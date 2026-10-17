@@ -27,7 +27,7 @@ export const vibeThemes = {
     ],
     palette: 'theme-solar',
     signature: [2, 1, 1, 1, 1, 2, 2, 2, 2, 2],
-    game: { type: 'solar', title: 'Собери солнечный поток' },
+    game: { type: 'water-sort', title: 'Цветной поток' },
   },
   neon: {
     title: 'Ночной неон',
@@ -40,7 +40,7 @@ export const vibeThemes = {
     ],
     palette: 'theme-neon',
     signature: [1, 2, 2, 2, 2, 0, 2, 2, 0, 2],
-    game: { type: 'neon', title: 'Неоновый ритм' },
+    game: { type: 'tetris', title: 'Неоновый тетрис' },
   },
   forest: {
     title: 'Лесной отдых',

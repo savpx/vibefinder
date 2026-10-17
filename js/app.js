@@ -51,15 +51,26 @@ const state = {
 let answerPending = false;
 const gameStage = document.getElementById('game-stage');
 const asmrStage = document.getElementById('asmr-stage');
-const creationMessage = document.getElementById('creation-message');
+const creationWord = document.getElementById('creation-word');
 const vibeTransition = document.getElementById('vibe-transition');
 const UI_CLICK_VOLUME = 0.22;
 const TRANSITION_VOLUME = 0.20;
+
+// Рукописный переход «VibeFinder»: буквы проявляются последовательно за ровно
+// 8 секунд. Задержки рассчитываются так, чтобы последняя буква завершила
+// появление (вместе с длительностью одного шага) точно в конце таймлайна.
+const CREATION_WORD = 'VibeFinder';
+const CREATION_TOTAL_DURATION = 8000;
+const CREATION_LETTER_DRAW_DURATION = 1200;
+const CREATION_START_DELAY = 200;
+const CREATION_LETTER_STAGGER = Math.round(
+  (CREATION_TOTAL_DURATION - CREATION_START_DELAY - CREATION_LETTER_DRAW_DURATION) / Math.max(1, CREATION_WORD.length - 1)
+);
+const CREATION_WRITING_DURATION = CREATION_START_DELAY + CREATION_LETTER_STAGGER * (CREATION_WORD.length - 1) + CREATION_LETTER_DRAW_DURATION;
 const audioVolumeFades = new WeakMap();
 const uiButtonAudio = new Audio('audio/ui/ui.mp3');
 const transitionAudio = new Audio('audio/ui/transition.mp3');
 let creationTimer = null;
-let creationMessageTimer = null;
 let vibeRevealTimer = null;
 let creationSequence = 0;
 
@@ -272,10 +283,6 @@ function cancelVibeCreation() {
     clearTimeout(creationTimer);
     creationTimer = null;
   }
-  if (creationMessageTimer !== null) {
-    clearInterval(creationMessageTimer);
-    creationMessageTimer = null;
-  }
   if (vibeRevealTimer !== null) {
     clearTimeout(vibeRevealTimer);
     vibeRevealTimer = null;
@@ -283,18 +290,42 @@ function cancelVibeCreation() {
   vibeTransition.classList.remove('is-visible');
 }
 
+// Собирает слово «VibeFinder» из отдельных <span>, чтобы каждая буква
+// анимировалась независимо. Задержки задаются через CSS-переменную
+// --letter-delay, выстраивая появление букв ровно за 8 секунд.
+function buildCreationWord() {
+  if (!creationWord) return;
+  creationWord.replaceChildren();
+  [...CREATION_WORD].forEach((letter, index) => {
+    const span = document.createElement('span');
+    span.className = 'creation-letter';
+    span.textContent = letter;
+    span.setAttribute('aria-hidden', 'true');
+    span.style.setProperty('--letter-delay', `${CREATION_START_DELAY + index * CREATION_LETTER_STAGGER}ms`);
+    creationWord.appendChild(span);
+  });
+}
+
+function playCreationWriting() {
+  buildCreationWord();
+  if (!creationWord) return;
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reducedMotion) {
+    creationWord.querySelectorAll('.creation-letter').forEach((span) => {
+      span.style.animation = 'none';
+      span.style.opacity = '1';
+      span.style.filter = 'none';
+      span.style.transform = 'none';
+    });
+  }
+}
+
 function startVibeCreation(vibeKey) {
   cancelVibeCreation();
   const sequence = creationSequence;
-  const messages = [
-    'Анализируем твои ответы',
-    'Подбираем атмосферу',
-    'Настраиваем настроение',
-    'Твой вайб почти готов',
-  ];
-  let messageIndex = 0;
-  creationMessage.textContent = messages[messageIndex];
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   showScreen('creation');
+  playCreationWriting();
 
   transitionAudio.pause();
   const transitionFade = audioVolumeFades.get(transitionAudio);
@@ -315,38 +346,34 @@ function startVibeCreation(vibeKey) {
   }
   fadeAudioVolume(transitionAudio, TRANSITION_VOLUME, 100);
 
-  creationMessageTimer = window.setInterval(() => {
-    messageIndex = Math.min(messageIndex + 1, messages.length - 1);
-    creationMessage.textContent = messages[messageIndex];
-  }, 1250);
+  const revealVibe = () => {
+    if (sequence !== creationSequence) return;
+    renderVibe(vibeKey);
+    screens.vibe.classList.add('vibe-screen-reveal');
+    showScreen('vibe');
+    if (reducedMotion) {
+      vibeTransition.classList.remove('is-visible');
+      return;
+    }
+    vibeRevealTimer = window.setTimeout(() => {
+      if (sequence === creationSequence) {
+        vibeTransition.classList.remove('is-visible');
+      }
+      vibeRevealTimer = null;
+    }, 350);
+  };
+
+  // Полная длительность письма — 8 секунд; при reduced-motion сокращаем паузу.
+  const writingTime = reducedMotion ? 1400 : CREATION_WRITING_DURATION;
   creationTimer = window.setTimeout(() => {
     if (sequence !== creationSequence) return;
-    clearInterval(creationMessageTimer);
-    creationMessageTimer = null;
     creationTimer = null;
-    const revealVibe = () => {
-      if (sequence !== creationSequence) return;
-      renderVibe(vibeKey);
-      screens.vibe.classList.add('vibe-screen-reveal');
-      showScreen('vibe');
-      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-        vibeTransition.classList.remove('is-visible');
-        return;
-      }
-      vibeRevealTimer = window.setTimeout(() => {
-        if (sequence === creationSequence) {
-          vibeTransition.classList.remove('is-visible');
-        }
-        vibeRevealTimer = null;
-      }, 350);
-    };
-    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     vibeTransition.classList.add('is-visible');
     vibeRevealTimer = window.setTimeout(() => {
       vibeRevealTimer = null;
       revealVibe();
-    }, reducedMotion ? 250 : 1350);
-  }, 5000);
+    }, reducedMotion ? 250 : 1050);
+  }, writingTime);
 }
 
 function updateProgress() {
@@ -371,12 +398,15 @@ function renderQuestion() {
   const current = questions[state.currentQuestion];
   questionText.textContent = current.text;
   answersContainer.innerHTML = '';
+  document.querySelector('.survey-card')?.classList.remove('is-switching');
 
   current.options.forEach((option, optionIndex) => {
     const button = document.createElement('button');
     button.className = 'option-btn';
     button.type = 'button';
     button.textContent = option.label;
+    // Мягкий ступенчатый вход со лёгким горизонтальным смещением при смене вопроса.
+    button.style.setProperty('--option-enter-delay', `${optionIndex * 55}ms`);
     button.addEventListener('click', () => {
       if (answerPending) return;
       answerPending = true;
@@ -385,6 +415,8 @@ function renderQuestion() {
         item.disabled = true;
       });
       button.classList.add('selected');
+      // Короткий «выход» текущих карточек вправо перед сменой вопроса.
+      document.querySelector('.survey-card')?.classList.add('is-switching');
       setTimeout(() => {
         applyAnswer(option.value, optionIndex);
       }, 180);
@@ -763,32 +795,10 @@ function renderMiniGame(config) {
     });
     controls.appendChild(restart);
     setStatus('Соедини звёзды по порядку: от 1 до 6.');
-  } else if (config.type === 'solar') {
-    setStatus('Касайся появляющихся солнечных искр.');
-    const spawn = () => {
-      if (board.children.length > 7) return;
-      target('✦', (event) => {
-        event.currentTarget.remove();
-        addPoint();
-      });
-    };
-    spawn();
-    gameInterval(spawn, 1200);
-  } else if (config.type === 'neon') {
-    setStatus('Лови световой импульс, пока он движется.');
-    const spawn = () => target('●', (event) => {
-      event.currentTarget.remove();
-      addPoint();
-      gameTimeout(spawn, 350);
-    });
-    const pulse = spawn();
-    pulse.classList.add('neon-target');
-    pulse.style.animation = 'neon-drift 2.4s linear infinite alternate';
-    pulse.style.left = '8%';
-    gameInterval(() => {
-      const current = board.querySelector('.neon-target');
-      if (current) current.style.left = current.style.left === '8%' ? '82%' : '8%';
-    }, 1200);
+  } else if (config.type === 'water-sort') {
+    renderWaterSortGame(board, controls, setStatus, setScore);
+  } else if (config.type === 'tetris') {
+    renderTetrisGame(board, controls, setStatus, setScore);
   } else if (config.type === 'forest') {
     setStatus('Собирай мерцающие листья и наслаждайся тишиной.');
     for (let index = 0; index < 7; index += 1) {
@@ -1491,6 +1501,643 @@ function renderMiniGame(config) {
     board.appendChild(room);
     setStatus('Перетащи любые четыре предмета. На компьютере двигай выбранный предмет клавишами WASD.');
   }
+}
+
+// ---------------------------------------------------------------------------
+// Water Sort: бесконечная логическая головоломка с переливанием цветов.
+// Solvers генерирует гарантированно решаемый случайный расклад, поэтому цикл
+// никогда не заходит в тупик: после победы сразу строится новый набор.
+// ---------------------------------------------------------------------------
+function renderWaterSortGame(board, controls, setStatus, setScore) {
+  const PALETTE = ['#ff6f91', '#ffc857', '#5be1d0', '#a78bfa', '#7dd3fc', '#fb923c'];
+  const CAPACITY = 4;
+  let flasks = [];
+  let selected = -1;
+  let locked = false;
+  let cycle = 0;
+  const flaskElements = [];
+
+  board.classList.add('water-board');
+  board.setAttribute('aria-label', 'Логическая головоломка: переливай цвета между колбами');
+
+  function isSolved(candidate) {
+    return candidate.every(
+      (flask) => flask.length === 0 || (flask.length === CAPACITY && flask.every((color) => color === flask[0])),
+    );
+  }
+
+  // Обход в глубину по состояниям: подтверждает, что расклад решаем.
+  function isSolvable(startFlasks) {
+    const stack = [startFlasks.map((flask) => [...flask])];
+    const seen = new Set();
+    let steps = 0;
+    while (stack.length && steps < 40000) {
+      steps += 1;
+      const current = stack.pop();
+      if (isSolved(current)) return true;
+      const key = current.map((flask) => flask.join('.')).sort().join('|');
+      if (seen.has(key)) continue;
+      seen.add(key);
+      for (let from = 0; from < current.length; from += 1) {
+        for (let to = 0; to < current.length; to += 1) {
+          if (from === to || current[from].length === 0 || current[to].length >= CAPACITY) continue;
+          const top = current[from][current[from].length - 1];
+          if (current[to].length && current[to][current[to].length - 1] !== top) continue;
+          const next = current.map((flask) => [...flask]);
+          let moved = 0;
+          while (next[to].length < CAPACITY && next[from].length && next[from][next[from].length - 1] === top) {
+            next[to].push(next[from].pop());
+            moved += 1;
+          }
+          if (moved) stack.push(next);
+        }
+      }
+    }
+    return false;
+  }
+
+  function createPuzzle() {
+    // 3 цвета → ровно 3 заполненные колбы + 1 пустая = 4 стеклянные колбы.
+    const colorCount = 3;
+    const pool = [];
+    for (let color = 0; color < colorCount; color += 1) {
+      for (let unit = 0; unit < CAPACITY; unit += 1) pool.push(PALETTE[color]);
+    }
+    let candidate = [];
+    let attempts = 0;
+    do {
+      const shuffled = pool.slice();
+      for (let index = shuffled.length - 1; index > 0; index -= 1) {
+        const swap = Math.floor(Math.random() * (index + 1));
+        [shuffled[index], shuffled[swap]] = [shuffled[swap], shuffled[index]];
+      }
+      candidate = [];
+      for (let index = 0; index < colorCount; index += 1) {
+        candidate.push(shuffled.slice(index * CAPACITY, (index + 1) * CAPACITY));
+      }
+      candidate.push([]);
+      attempts += 1;
+    } while (!isSolvable(candidate) && attempts < 120);
+    return candidate;
+  }
+
+  function updateSelection() {
+    flaskElements.forEach((flask, index) => {
+      const active = index === selected;
+      flask.classList.toggle('is-selected', active);
+      flask.setAttribute('aria-pressed', String(active));
+    });
+  }
+
+  function paintFlask(index) {
+    const glass = flaskElements[index].querySelector('.water-glass');
+    glass.replaceChildren();
+    flasks[index].forEach((color) => {
+      const segment = document.createElement('span');
+      segment.className = 'water-segment';
+      segment.style.setProperty('--liquid', color);
+      segment.style.setProperty('--segment-height', `${100 / CAPACITY}%`);
+      glass.appendChild(segment);
+    });
+    const completed = flasks[index].length === CAPACITY && flasks[index].every((color) => color === flasks[index][0]);
+    flaskElements[index].classList.toggle('is-solved', completed);
+  }
+
+  function canPour(from, to) {
+    if (from === to || from < 0 || to < 0) return false;
+    if (!flasks[from].length || flasks[to].length >= CAPACITY) return false;
+    const top = flasks[from][flasks[from].length - 1];
+    return !flasks[to].length || flasks[to][flasks[to].length - 1] === top;
+  }
+
+  function emitStardust() {
+    const count = 18;
+    for (let index = 0; index < count; index += 1) {
+      const particle = document.createElement('span');
+      particle.className = 'water-stardust';
+      const angle = (Math.PI * 2 * index) / count;
+      const distance = 60 + Math.random() * 90;
+      particle.style.setProperty('--stardust-x', `${Math.cos(angle) * distance}px`);
+      particle.style.setProperty('--stardust-y', `${Math.sin(angle) * distance}px`);
+      particle.style.setProperty('--stardust-delay', `${Math.random() * 120}ms`);
+      board.appendChild(particle);
+      gameTimeout(() => particle.remove(), 1000);
+    }
+  }
+
+  function finishCycle() {
+    locked = true;
+    cycle += 1;
+    setScore(cycle);
+    board.classList.add('is-flashing');
+    emitStardust();
+    setStatus('Все цвета собраны! Новый набор через мгновение.');
+    gameTimeout(() => {
+      board.classList.remove('is-flashing');
+      startCycle();
+    }, 900);
+  }
+
+  function handleFlaskClick(index) {
+    if (locked) return;
+    if (selected === -1) {
+      if (!flasks[index].length) {
+        setStatus('Эта колба пустая — выбери другую.');
+        return;
+      }
+      selected = index;
+      updateSelection();
+      setStatus('Выбери колбу, куда перелить цвет.');
+      return;
+    }
+    if (selected === index) {
+      selected = -1;
+      updateSelection();
+      setStatus('Выбор снят.');
+      return;
+    }
+    if (!canPour(selected, index)) {
+      if (flasks[index].length) {
+        selected = index;
+        updateSelection();
+        setStatus('Так перелить нельзя — выбрана другая колба.');
+      } else {
+        setStatus('Сюда цвет не поместится. Попробуй другую колбу.');
+      }
+      return;
+    }
+    const from = selected;
+    selected = -1;
+    updateSelection();
+    const color = flasks[from][flasks[from].length - 1];
+    while (flasks[index].length < CAPACITY && flasks[from].length && flasks[from][flasks[from].length - 1] === color) {
+      flasks[index].push(flasks[from].pop());
+    }
+    paintFlask(from);
+    paintFlask(index);
+    const poured = flaskElements[index].querySelector('.water-segment:last-child');
+    if (poured) poured.classList.add('is-poured');
+    if (isSolved(flasks)) {
+      finishCycle();
+    } else {
+      setStatus('Цвета перелиты. Продолжай сортировать.');
+    }
+  }
+
+  function buildFlask(index) {
+    const flask = document.createElement('button');
+    flask.type = 'button';
+    flask.className = 'water-flask';
+    flask.setAttribute('aria-pressed', 'false');
+    flask.setAttribute('aria-label', `Колба ${index + 1}`);
+    const glass = document.createElement('span');
+    glass.className = 'water-glass';
+    flask.appendChild(glass);
+    flask.addEventListener('click', () => handleFlaskClick(index));
+    flaskElements.push(flask);
+    board.appendChild(flask);
+    paintFlask(index);
+  }
+
+  function startCycle() {
+    flasks = createPuzzle();
+    selected = -1;
+    locked = false;
+    board.replaceChildren();
+    flaskElements.length = 0;
+    flasks.forEach((_, index) => buildFlask(index));
+    setStatus('Переливай цвета между колбами — заполни каждую одним цветом.');
+  }
+
+  const shuffleButton = document.createElement('button');
+  shuffleButton.type = 'button';
+  shuffleButton.className = 'game-btn';
+  shuffleButton.textContent = 'Новая головоломка';
+  shuffleButton.addEventListener('click', () => {
+    if (!locked) startCycle();
+  });
+  controls.appendChild(shuffleButton);
+
+  startCycle();
+}
+
+const TETRIS_SHAPES = {
+  I: { color: '#22d3ee', matrix: [[0, 0, 0, 0], [1, 1, 1, 1], [0, 0, 0, 0], [0, 0, 0, 0]] },
+  J: { color: '#60a5fa', matrix: [[1, 0, 0], [1, 1, 1], [0, 0, 0]] },
+  L: { color: '#fb923c', matrix: [[0, 0, 1], [1, 1, 1], [0, 0, 0]] },
+  O: { color: '#facc15', matrix: [[1, 1], [1, 1]] },
+  S: { color: '#4ade80', matrix: [[0, 1, 1], [1, 1, 0], [0, 0, 0]] },
+  T: { color: '#c084fc', matrix: [[0, 1, 0], [1, 1, 1], [0, 0, 0]] },
+  Z: { color: '#f87171', matrix: [[1, 1, 0], [0, 1, 1], [0, 0, 0]] },
+};
+
+// ---------------------------------------------------------------------------
+// Tetris: полноценный 10×20 тетрис на requestAnimationFrame с мягким сбросом,
+// очисткой линий, предпросмотром фигуры и безопасным рестартом.
+// ---------------------------------------------------------------------------
+function renderTetrisGame(board, controls, setStatus, setScore) {
+  const COLS = 10;
+  const ROWS = 20;
+  const SHAPE_KEYS = Object.keys(TETRIS_SHAPES);
+
+  board.classList.add('tetris-board');
+  board.setAttribute('aria-label', 'Тетрис: собирай линии');
+
+  const grid = document.createElement('div');
+  grid.className = 'tetris-grid';
+  const cells = [];
+  for (let index = 0; index < COLS * ROWS; index += 1) {
+    const cell = document.createElement('span');
+    cell.className = 'tetris-cell';
+    cells.push(cell);
+    grid.appendChild(cell);
+  }
+  board.appendChild(grid);
+
+  const previewWrap = document.createElement('div');
+  previewWrap.className = 'tetris-meta';
+  const previewLabel = document.createElement('span');
+  previewLabel.textContent = 'Далее';
+  const preview = document.createElement('div');
+  preview.className = 'tetris-preview';
+  const previewCells = [];
+  for (let index = 0; index < 16; index += 1) {
+    const tile = document.createElement('span');
+    previewCells.push(tile);
+    preview.appendChild(tile);
+  }
+  const linesWrap = document.createElement('div');
+  linesWrap.className = 'tetris-meta';
+  const linesLabel = document.createElement('span');
+  linesLabel.textContent = 'Линии';
+  const linesOutput = document.createElement('output');
+  linesOutput.setAttribute('aria-live', 'polite');
+  linesOutput.textContent = '0';
+  linesWrap.append(linesLabel, linesOutput);
+  previewWrap.append(previewLabel, preview);
+  controls.append(previewWrap, linesWrap);
+
+  const overlay = document.createElement('div');
+  overlay.className = 'tetris-overlay';
+  overlay.hidden = true;
+  const overlayTitle = document.createElement('h3');
+  overlayTitle.className = 'tetris-overlay__title';
+  const overlayScore = document.createElement('p');
+  overlayScore.className = 'tetris-overlay__score';
+  const overlayButton = document.createElement('button');
+  overlayButton.type = 'button';
+  overlayButton.className = 'tetris-restart';
+  overlayButton.textContent = 'Начать заново';
+  overlay.append(overlayTitle, overlayScore, overlayButton);
+  board.appendChild(overlay);
+
+  const state = {
+    field: Array.from({ length: ROWS }, () => Array(COLS).fill(null)),
+    piece: null,
+    next: null,
+    score: 0,
+    lines: 0,
+    dropTimer: 0,
+    dropInterval: 720,
+    running: false,
+    lastTime: 0,
+    raf: 0,
+  };
+
+  function createPiece() {
+    const key = SHAPE_KEYS[Math.floor(Math.random() * SHAPE_KEYS.length)];
+    const shape = TETRIS_SHAPES[key];
+    return {
+      color: shape.color,
+      matrix: shape.matrix.map((row) => [...row]),
+      x: Math.floor((COLS - shape.matrix[0].length) / 2),
+      y: 0,
+    };
+  }
+
+  function collides(piece, offsetX, offsetY, matrix) {
+    const shape = matrix || piece.matrix;
+    for (let y = 0; y < shape.length; y += 1) {
+      for (let x = 0; x < shape[y].length; x += 1) {
+        if (!shape[y][x]) continue;
+        const boardX = piece.x + x + offsetX;
+        const boardY = piece.y + y + offsetY;
+        if (boardX < 0 || boardX >= COLS || boardY >= ROWS) return true;
+        if (boardY >= 0 && state.field[boardY][boardX]) return true;
+      }
+    }
+    return false;
+  }
+
+  function paint() {
+    cells.forEach((cell) => {
+      cell.classList.remove('is-filled');
+      cell.style.removeProperty('--tetris-color');
+    });
+    state.field.forEach((row, y) => {
+      row.forEach((value, x) => {
+        if (!value) return;
+        const cell = cells[y * COLS + x];
+        cell.classList.add('is-filled');
+        cell.style.setProperty('--tetris-color', value);
+      });
+    });
+    if (!state.piece) return;
+    state.piece.matrix.forEach((row, y) => {
+      row.forEach((value, x) => {
+        if (!value) return;
+        const boardY = state.piece.y + y;
+        const boardX = state.piece.x + x;
+        if (boardY < 0 || boardY >= ROWS) return;
+        const cell = cells[boardY * COLS + boardX];
+        cell.classList.add('is-filled');
+        cell.style.setProperty('--tetris-color', state.piece.color);
+      });
+    });
+  }
+
+  function paintPreview() {
+    previewCells.forEach((tile) => {
+      tile.classList.remove('is-filled');
+      tile.style.removeProperty('--tetris-color');
+    });
+    if (!state.next) return;
+    const { matrix } = state.next;
+    const size = matrix.length;
+    const offset = Math.floor((4 - size) / 2);
+    matrix.forEach((row, y) => {
+      row.forEach((value, x) => {
+        if (!value) return;
+        const tile = previewCells[(y + offset) * 4 + (x + offset)];
+        if (!tile) return;
+        tile.classList.add('is-filled');
+        tile.style.setProperty('--tetris-color', state.next.color);
+      });
+    });
+  }
+
+  function updateScore() {
+    setScore(state.score);
+  }
+
+  function spawn() {
+    state.piece = state.next || createPiece();
+    state.next = createPiece();
+    paintPreview();
+    if (collides(state.piece, 0, 0)) endGame();
+  }
+
+  function move(offsetX) {
+    if (!state.running) return;
+    if (!collides(state.piece, offsetX, 0)) {
+      state.piece.x += offsetX;
+      paint();
+    }
+  }
+
+  function rotate() {
+    if (!state.running) return;
+    const rotated = state.piece.matrix[0].map((_, index) => state.piece.matrix.map((row) => row[index]).reverse());
+    if (!collides(state.piece, 0, 0, rotated)) {
+      state.piece.matrix = rotated;
+    } else if (!collides(state.piece, 1, 0, rotated)) {
+      state.piece.x += 1;
+      state.piece.matrix = rotated;
+    } else if (!collides(state.piece, -1, 0, rotated)) {
+      state.piece.x -= 1;
+      state.piece.matrix = rotated;
+    } else {
+      return;
+    }
+    paint();
+  }
+
+  function step() {
+    if (!state.running) return;
+    if (!collides(state.piece, 0, 1)) {
+      state.piece.y += 1;
+      paint();
+    } else {
+      lockPiece();
+    }
+  }
+
+  function softStep() {
+    if (!state.running) return;
+    if (!collides(state.piece, 0, 1)) {
+      state.piece.y += 1;
+      paint();
+    } else {
+      lockPiece();
+    }
+  }
+
+  function lockPiece() {
+    state.piece.matrix.forEach((row, y) => {
+      row.forEach((value, x) => {
+        if (!value) return;
+        const boardY = state.piece.y + y;
+        const boardX = state.piece.x + x;
+        if (boardY >= 0) state.field[boardY][boardX] = state.piece.color;
+      });
+    });
+    const fullRows = [];
+    state.field.forEach((row, index) => {
+      if (row.every((value) => value)) fullRows.push(index);
+    });
+
+    if (!fullRows.length) {
+      spawn();
+      paint();
+      return;
+    }
+
+    fullRows.forEach((rowIndex) => {
+      for (let x = 0; x < COLS; x += 1) cells[rowIndex * COLS + x].classList.add('is-clearing');
+    });
+    const lineScore = [0, 100, 300, 500, 800][fullRows.length] || 800;
+    state.score += lineScore;
+    state.lines += fullRows.length;
+    linesOutput.textContent = String(state.lines);
+    updateScore();
+    state.dropInterval = Math.max(140, 720 - Math.floor(state.score / 600) * 40);
+    setStatus(`Линия очищена! Комбо: ${fullRows.length}`);
+
+    state.running = false;
+    gameTimeout(() => {
+      const ordered = [...fullRows].sort((first, second) => first - second);
+      ordered.forEach((rowIndex) => state.field.splice(rowIndex, 1));
+      for (let index = 0; index < ordered.length; index += 1) state.field.unshift(Array(COLS).fill(null));
+      cells.forEach((cell) => cell.classList.remove('is-clearing'));
+      state.running = true;
+      spawn();
+      paint();
+      if (state.running) state.raf = window.requestAnimationFrame(loop);
+    }, 320);
+  }
+
+  function hardDrop() {
+    if (!state.running) return;
+    let dropped = 0;
+    while (!collides(state.piece, 0, 1)) {
+      state.piece.y += 1;
+      dropped += 1;
+    }
+    state.score += dropped * 2;
+    updateScore();
+    lockPiece();
+    paint();
+  }
+
+  function endGame() {
+    state.running = false;
+    if (state.raf) {
+      window.cancelAnimationFrame(state.raf);
+      state.raf = 0;
+    }
+    overlay.hidden = false;
+    overlayTitle.textContent = 'Игра окончена';
+    overlayScore.textContent = `Очки: ${state.score}`;
+    setStatus('Игра окончена. Нажми «Начать заново».');
+  }
+
+  function loop(time) {
+    if (!state.running) return;
+    if (!state.lastTime) state.lastTime = time;
+    const delta = time - state.lastTime;
+    state.lastTime = time;
+    state.dropTimer += delta;
+    if (state.dropTimer >= state.dropInterval) {
+      state.dropTimer = 0;
+      step();
+    }
+    if (state.running) {
+      state.raf = window.requestAnimationFrame(loop);
+    } else {
+      state.raf = 0;
+    }
+  }
+
+  function startGame() {
+    if (state.raf) {
+      window.cancelAnimationFrame(state.raf);
+      state.raf = 0;
+    }
+    state.field = Array.from({ length: ROWS }, () => Array(COLS).fill(null));
+    state.score = 0;
+    state.lines = 0;
+    linesOutput.textContent = '0';
+    state.dropInterval = 720;
+    state.dropTimer = 0;
+    state.lastTime = 0;
+    state.piece = null;
+    state.next = createPiece();
+    state.running = true;
+    overlay.hidden = true;
+    cells.forEach((cell) => cell.classList.remove('is-filled', 'is-clearing'));
+    setScore(0);
+    spawn();
+    paint();
+    if (state.running) {
+      setStatus('Стрелки или WASD — движение, ↑/W — поворот, пробел — сброс.');
+      state.raf = window.requestAnimationFrame(loop);
+    }
+  }
+
+  const keyHandler = (event) => {
+    if (!screens.vibe.classList.contains('active')) return;
+    if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement || event.target.isContentEditable) return;
+    const key = event.key.toLowerCase();
+    if ((key === ' ' || key === 'enter') && event.target instanceof HTMLButtonElement) return;
+    const actions = {
+      arrowleft: () => move(-1),
+      a: () => move(-1),
+      arrowright: () => move(1),
+      d: () => move(1),
+      arrowdown: softStep,
+      s: softStep,
+      arrowup: rotate,
+      w: rotate,
+      ' ': hardDrop,
+      spacebar: hardDrop,
+    };
+    const action = actions[key];
+    if (!action) return;
+    event.preventDefault();
+    if (!state.running) return;
+    action();
+  };
+  document.addEventListener('keydown', keyHandler);
+  registerGameCleanup(() => document.removeEventListener('keydown', keyHandler));
+  registerGameCleanup(() => {
+    state.running = false;
+    if (state.raf) window.cancelAnimationFrame(state.raf);
+  });
+
+  let touchStart = null;
+  const onTouchStart = (event) => {
+    const touch = event.changedTouches[0];
+    touchStart = { x: touch.clientX, y: touch.clientY, time: performance.now() };
+  };
+  // Во время активной игры полностью блокируем прокрутку страницы жестами.
+  const onTouchMove = (event) => {
+    if (state.running) event.preventDefault();
+  };
+  const onTouchEnd = (event) => {
+    if (!touchStart) return;
+    const touch = event.changedTouches[0];
+    const deltaX = touch.clientX - touchStart.x;
+    const deltaY = touch.clientY - touchStart.y;
+    const elapsed = performance.now() - touchStart.time;
+    touchStart = null;
+    if (!state.running) return;
+    if (Math.abs(deltaX) < 24 && Math.abs(deltaY) < 24 && elapsed < 260) {
+      rotate();
+      return;
+    }
+    if (Math.abs(deltaX) > Math.abs(deltaY)) {
+      move(deltaX > 0 ? 1 : -1);
+    } else if (deltaY > 40) {
+      softStep();
+    } else if (deltaY < -40) {
+      hardDrop();
+    }
+  };
+  board.addEventListener('touchstart', onTouchStart, { passive: true });
+  board.addEventListener('touchend', onTouchEnd, { passive: true });
+  board.addEventListener('touchmove', onTouchMove, { passive: false });
+  registerGameCleanup(() => {
+    board.removeEventListener('touchstart', onTouchStart);
+    board.removeEventListener('touchend', onTouchEnd);
+    board.removeEventListener('touchmove', onTouchMove);
+  });
+
+  const control = (label, action, name) => {
+    const item = document.createElement('button');
+    item.type = 'button';
+    item.className = 'game-btn';
+    item.textContent = label;
+    item.setAttribute('aria-label', name);
+    item.addEventListener('click', action);
+    return item;
+  };
+
+  const restartButton = document.createElement('button');
+  restartButton.type = 'button';
+  restartButton.className = 'tetris-restart';
+  restartButton.textContent = 'Начать заново';
+  restartButton.addEventListener('click', startGame);
+
+  controls.append(
+    restartButton,
+    control('◀', () => move(-1), 'Влево'),
+    control('▶', () => move(1), 'Вправо'),
+    control('⟳', rotate, 'Повернуть'),
+    control('⬇', hardDrop, 'Сбросить'),
+  );
+  overlayButton.addEventListener('click', startGame);
+
+  startGame();
 }
 
 function renderAsmrGame() {

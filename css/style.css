@@ -247,18 +247,19 @@ input {
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
-  transform: scale(0.985);
+  /* Микро-сдвиг вместо грубого масштабирования всей страницы */
+  transform: translateY(10px);
   transition:
-    opacity 0.5s var(--ease-spring),
-    transform 0.5s var(--ease-spring),
-    visibility 0.5s var(--ease-spring);
+    opacity 0.4s var(--ease-spring),
+    transform 0.4s var(--ease-spring),
+    visibility 0.4s var(--ease-spring);
 }
 
 .screen.active {
   opacity: 1;
   visibility: visible;
   pointer-events: auto;
-  transform: scale(1);
+  transform: translateY(0);
 }
 
 .vibe-transition {
@@ -281,8 +282,7 @@ input {
 }
 
 #home-screen,
-#survey-screen,
-#creation-screen {
+#survey-screen {
   --text: #f4f4f4;
   --muted: #b8b8b8;
   --primary: #eeeeee;
@@ -293,140 +293,109 @@ input {
     linear-gradient(145deg, #050505 0%, #111111 52%, #070707 100%);
 }
 
+/* Космический переход: рукописная подпись «VibeFinder» в абсолютной черноте.
+   Экран — единый чёрный холст без градиентных разрывов, серых блоков и рамок;
+   центрирование холста выполняется Flexbox по обеим осям. */
 #creation-screen {
-  padding: clamp(1rem, 4vw, 2rem);
-}
-
-.creation-card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  width: min(100%, 520px);
-  padding: clamp(1.5rem, 6vw, 3rem);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: var(--radius-container);
-  text-align: center;
-  background: rgba(15, 20, 30, 0.25);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.16), var(--inset-highlight);
-  backdrop-filter: blur(24px) saturate(180%);
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
-}
-
-.creation-orbit {
   position: relative;
-  display: grid;
-  place-items: center;
-  width: clamp(9rem, 36vw, 12rem);
-  aspect-ratio: 1;
-  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  overflow: hidden;
+  background: #000000;
+  background-image: none;
+  border: 0;
+  box-shadow: none;
 }
 
-.creation-orbit-ring,
-.creation-orbit-ring--inner {
+/* Слой звёзд внутри чёрного холста — мягкая космическая пыль */
+.creation-cosmos {
   position: absolute;
-  inset: 5%;
-  border: 1px solid rgba(220, 220, 220, 0.28);
-  border-radius: 50%;
-  animation: creation-orbit 14s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background: #000000;
 }
 
-.creation-orbit-ring::before,
-.creation-orbit-ring--inner::before {
+.creation-star {
   position: absolute;
-  top: 12%;
-  left: 15%;
-  width: 7px;
-  height: 7px;
+  width: 4px;
+  height: 4px;
   border-radius: 50%;
-  content: "";
-  background: #f2f2f2;
-  box-shadow: 0 0 16px rgba(240, 240, 240, 0.8);
+  background: #ffffff;
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.9), 0 0 22px rgba(255, 255, 255, 0.35);
+  opacity: 0;
+  animation: creation-star-flicker 5.5s ease-in-out infinite;
 }
 
-.creation-orbit-ring--inner {
-  inset: 19%;
-  border-color: rgba(180, 180, 180, 0.34);
-  animation-duration: 6s;
-  animation-direction: reverse;
+/* Центральный рабочий контейнер: строго по центру вьюпорта */
+.creation-writing {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: min(92vw, 1080px);
+  padding: 0 clamp(1rem, 5vw, 3rem);
+  text-align: center;
 }
 
-.creation-orbit-ring--inner::before {
-  top: auto;
-  bottom: 8%;
-  left: 18%;
-  width: 5px;
-  height: 5px;
-  background: #bdbdbd;
-  box-shadow: 0 0 13px rgba(190, 190, 190, 0.7);
-}
-
-.creation-core {
-  display: grid;
-  place-items: center;
-  width: 38%;
-  aspect-ratio: 1;
-  border: 1px solid rgba(238, 238, 238, 0.44);
-  border-radius: 50%;
-  color: #ffffff;
-  font-size: 1.6rem;
-  background: radial-gradient(circle at 35% 30%, #d8d8d8, #777777 65%, #303030);
-  box-shadow: 0 0 34px rgba(220, 220, 220, 0.28), inset 0 0 18px rgba(255, 255, 255, 0.2);
-  animation: creation-breathe 4.5s cubic-bezier(0.45, 0, 0.55, 1) infinite;
-}
-
-.creation-spark {
-  position: absolute;
-  color: #f5f5f5;
-  text-shadow: 0 0 16px currentColor;
-}
-
-.creation-spark--one { top: 7%; right: 8%; font-size: 1rem; }
-.creation-spark--two { bottom: 9%; right: 12%; color: #c4c4c4; font-size: 1.3rem; }
-
-.creation-kicker {
-  margin: 0 0 0.7rem;
-  color: #bdbdbd;
-  font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.28em;
-}
-
-.creation-card h2 {
+/* Слово «VibeFinder», набранное премиальным курсивом Alex Brush */
+.creation-word {
   margin: 0;
-  font-size: clamp(1.45rem, 5vw, 2rem);
-  letter-spacing: -0.035em;
+  display: inline-flex;
+  align-items: baseline;
+  justify-content: center;
+  flex-wrap: nowrap;
+  font-family: "Alex Brush", "Segoe Script", "Brush Script MT", cursive;
+  font-weight: 400;
+  font-size: clamp(3.4rem, 13vw, 11rem);
+  line-height: 1.05;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  color: #ffffff;
+  text-rendering: optimizeLegibility;
 }
 
-.creation-message {
-  min-height: 1.6em;
-  margin: 0.85rem 0 0;
-  color: #c8c8c8;
-  font-size: clamp(0.9rem, 3vw, 1rem);
-  animation: creation-message-glow 2.6s ease-in-out infinite alternate;
+/* Каждая буква проявляется отдельно; задержки заданы через --letter-delay
+   так, чтобы весь процесс письма занял ровно 8 секунд. */
+.creation-letter {
+  display: inline-block;
+  opacity: 0;
+  transform: translate3d(0, 0.24em, 0);
+  filter: blur(6px);
+  will-change: opacity, filter, transform;
+  animation: creation-letter-draw 1200ms var(--ease-spring) var(--letter-delay, 0ms) both;
 }
 
-@keyframes creation-orbit {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(1turn); }
-}
-
-/* Медитативное «дыхание» ядра: масштаб + мягкое свечение окружения */
-@keyframes creation-breathe {
+@keyframes creation-letter-draw {
   0% {
-    transform: scale(0.9);
-    box-shadow: 0 0 22px rgba(220, 220, 220, 0.18), inset 0 0 18px rgba(255, 255, 255, 0.16);
+    opacity: 0;
+    filter: blur(7px);
+    transform: translate3d(0, 0.26em, 0);
+    text-shadow: 0 0 0 rgba(255, 255, 255, 0);
   }
-  50% {
-    transform: scale(1.06);
-    box-shadow: 0 0 40px rgba(220, 220, 220, 0.32), inset 0 0 18px rgba(255, 255, 255, 0.22);
+  35% {
+    opacity: 1;
+    filter: blur(1.2px);
+    transform: translate3d(0, 0.08em, 0);
+    text-shadow: 0 0 14px rgba(255, 255, 255, 0.7), 0 0 30px rgba(255, 255, 255, 0.32);
   }
   100% {
-    transform: scale(0.9);
-    box-shadow: 0 0 22px rgba(220, 220, 220, 0.18), inset 0 0 18px rgba(255, 255, 255, 0.16);
+    opacity: 1;
+    filter: blur(0);
+    transform: translate3d(0, 0, 0);
+    text-shadow: 0 0 8px rgba(255, 255, 255, 0.45), 0 0 26px rgba(255, 255, 255, 0.22);
   }
 }
 
-@keyframes creation-message-glow { from { opacity: 0.68; } to { opacity: 1; } }
+@keyframes creation-star-flicker {
+  0%, 100% { opacity: 0; transform: scale(0.7); }
+  50% { opacity: 0.95; transform: scale(1.2); }
+}
 
 .hero-wrap {
   position: relative;
@@ -514,7 +483,8 @@ input {
 .quote-card:hover {
   transform: translateY(-2px);
   border-color: rgba(255, 255, 255, 0.2);
-  box-shadow: 0 12px 26px rgba(0,0,0,0.18);
+  /* Направленная мягкая тень вместо равномерного «блока» вокруг элемента */
+  box-shadow: 0 14px 26px -16px rgba(0, 0, 0, 0.5);
 }
 
 .hero-glow {
@@ -665,14 +635,15 @@ input {
   transition: width 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+/* Премиальное стекло опросной карточки — точные токены material (HIG) */
 .survey-card {
   background: rgba(15, 20, 30, 0.25);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-container);
   backdrop-filter: blur(24px) saturate(180%);
   -webkit-backdrop-filter: blur(24px) saturate(180%);
-  border-radius: var(--radius-container);
   padding: clamp(1.3rem, 2vw, 2.2rem);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14), var(--inset-highlight);
+  box-shadow: 0 22px 48px -26px rgba(0, 0, 0, 0.6), var(--inset-highlight);
 }
 
 /* Quiz question — iOS Title 2 */
@@ -681,8 +652,12 @@ input {
   font-size: var(--type-title2-size);
   letter-spacing: var(--type-title2-tracking);
   font-weight: 600;
-  line-height: 1.25;
+  line-height: 1.28;
   color: var(--label-primary);
+  /* Безопасность переноса длинных локалей и RTL на 375px */
+  overflow-wrap: anywhere;
+  text-wrap: balance;
+  hyphens: auto;
 }
 
 /* Survey options — premium translucent iOS plates */
@@ -692,20 +667,54 @@ input {
   gap: 0;
 }
 
+/* Смена вопроса: карточки входят со ступенчатым смещением и растворяются мягко */
+.survey-card.is-switching .answers {
+  animation: answers-leave 170ms var(--ease-spring) both;
+}
+
+.option-btn {
+  animation: option-enter 480ms var(--ease-spring) var(--option-enter-delay, 0ms) both;
+}
+
+@keyframes option-enter {
+  from {
+    opacity: 0;
+    transform: translateX(-14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes answers-leave {
+  from { opacity: 1; transform: translateX(0); }
+  to { opacity: 0; transform: translateX(12px); }
+}
+
+/* Опции ответа — премиальные стеклянные плашки в тон карточке */
 .option-btn {
   width: 100%;
   margin-bottom: 12px;
   padding: 16px 20px;
-  text-align: left;
+  text-align: start;
   font-weight: 400;
   font-size: var(--type-body-size);
   letter-spacing: var(--type-body-tracking);
+  line-height: 1.4;
   color: var(--label-primary);
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 14px;
+  background: rgba(15, 20, 30, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-control);
   min-height: 56px;
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow-wrap: anywhere;
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  transition:
+    transform 0.2s var(--ease-spring),
+    background-color 0.2s var(--ease-spring),
+    border-color 0.2s var(--ease-spring),
+    box-shadow 0.2s var(--ease-spring);
 }
 
 .option-btn:last-child {
@@ -713,14 +722,17 @@ input {
 }
 
 .option-btn:hover {
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.07);
   border-color: rgba(255, 255, 255, 0.2);
-  transform: translateY(-1px);
+  /* Лёгкий горизонтальный сдвиг-«отклик» вместо скачка по всей высоте */
+  transform: translateX(3px);
 }
 
+/* Мгновенный тактильный отклик на выбор — строго scale(0.98) */
 .option-btn:active {
-  transform: translateY(1px) scale(0.98);
-  background: rgba(255, 255, 255, 0.02);
+  transform: scale(0.98);
+  transition-duration: 0.1s;
+  background: rgba(15, 20, 30, 0.38);
 }
 
 .option-btn.selected {
@@ -851,8 +863,10 @@ body.theme-forest .quote-card {
   margin: 0.5rem 0 0;
   font-size: clamp(1.9rem, 4vw, 2.6rem);
   letter-spacing: var(--type-title2-tracking);
-  line-height: 1.12;
+  line-height: 1.14;
   color: var(--label-primary);
+  overflow-wrap: anywhere;
+  text-wrap: balance;
 }
 
 .vibe-description-wrap {
@@ -953,7 +967,8 @@ body.theme-forest .quote-card {
   border: 0.5px solid var(--material-border);
   border-radius: var(--radius-container);
   background: var(--material-bg);
-  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.22), var(--inset-highlight);
+  /* Направленный глубокий объект-тень вместо равномерного свечения бокса */
+  box-shadow: 0 28px 60px -28px rgba(0, 0, 0, 0.62), var(--inset-highlight);
   backdrop-filter: var(--material-blur);
   -webkit-backdrop-filter: var(--material-blur);
 }
@@ -1049,8 +1064,9 @@ body.theme-forest .quote-card {
 .game-choice:focus-visible,
 .keyboard-key:focus-visible,
 .direction-btn:focus-visible {
-  transform: translateY(-2px);
+  /* Интерактивные элементы откликаются цветом и границей, а не «прыжком» */
   border-color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 12%, var(--panel-strong));
 }
 
 .game-stat {
@@ -1639,10 +1655,10 @@ body.theme-forest .quote-card {
 @keyframes target-appear { from { opacity: 0; scale: .6; } to { opacity: 1; scale: 1; } }
 @keyframes rain-fall { to { transform: translateY(340px) rotate(20deg); opacity: .25; } }
 @keyframes breathe-wave { from { scale: .78; } to { scale: 1.08; } }
-@keyframes neon-drift { from { transform: translateX(0) scale(.86); } to { transform: translateX(120px) scale(1.14); } }
 
 #vibe-screen[data-vibe] {
   --vibe-accent: var(--primary);
+  --vibe-glow: color-mix(in srgb, var(--vibe-accent) 78%, transparent);
 }
 #vibe-screen[data-vibe] .quote-card,
 #vibe-screen[data-vibe] .mini-game,
@@ -2101,9 +2117,10 @@ button:disabled {
     }
   }
 
-  .creation-orbit-ring,
-  .creation-core,
-  .creation-message,
+  .creation-star,
+  .creation-word .creation-letter,
+  .option-btn,
+  .survey-card.is-switching .answers,
   .paint-illustration,
   .paint-region.is-filled path,
   .paint-region.is-filled circle,
@@ -2144,4 +2161,361 @@ button:disabled {
     }
   }
 
+}
+
+/* ------------------------------------------------------------------
+   Единый контейнер мини-игр (хаб настроения)
+   ------------------------------------------------------------------ */
+.game-hub {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.9rem, 2.5vw, 1.4rem);
+}
+
+.game-hub__title {
+  margin: 0;
+  font-size: clamp(1.15rem, 2.4vw, 1.5rem);
+  letter-spacing: -0.02em;
+  color: var(--label-primary);
+}
+
+.game-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-top: 0.55rem;
+}
+
+/* ------------------------------------------------------------------
+   Water sort — бесконечная сортировка цвета
+   ------------------------------------------------------------------ */
+.water-board {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: center;
+  gap: clamp(0.55rem, 3vw, 1.4rem);
+  padding: clamp(1rem, 4vw, 1.9rem) clamp(0.75rem, 3vw, 1.5rem) clamp(1.1rem, 4vw, 2rem);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-container);
+  background:
+    radial-gradient(ellipse at 50% 0%, color-mix(in srgb, var(--vibe-accent, var(--primary)) 16%, transparent), transparent 72%),
+    var(--panel-strong);
+  overflow: hidden;
+}
+
+.water-board.is-flashing::after {
+  position: absolute;
+  inset: 0;
+  content: "";
+  pointer-events: none;
+  background: radial-gradient(circle at 50% 55%, rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0.2) 38%, transparent 70%);
+  animation: water-flash 900ms var(--ease-spring) both;
+}
+
+.water-flask {
+  position: relative;
+  width: clamp(46px, 11vw, 62px);
+  height: clamp(150px, 34vw, 196px);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  transition: transform 0.32s var(--ease-spring);
+}
+
+.water-flask:focus-visible {
+  outline: 2px solid var(--vibe-accent, var(--primary));
+  outline-offset: 5px;
+  border-radius: 12px 12px 22px 22px;
+}
+
+.water-flask:hover:not(.is-selected) {
+  transform: translateY(-5px);
+}
+
+.water-flask.is-selected {
+  transform: translateY(-16px);
+}
+
+.water-flask.is-selected .water-glass {
+  border-color: color-mix(in srgb, var(--vibe-accent, var(--primary)) 70%, transparent);
+  box-shadow: inset 0 -12px 20px -12px rgba(0, 0, 0, 0.5), 0 0 26px color-mix(in srgb, var(--vibe-accent, var(--primary)) 55%, transparent);
+}
+
+.water-flask.is-solved .water-glass {
+  border-color: rgba(174, 230, 207, 0.9);
+}
+
+.water-glass {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column-reverse;
+  overflow: hidden;
+  border: 2px solid rgba(255, 255, 255, 0.26);
+  border-top: none;
+  border-radius: 12px 12px 22px 22px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.03));
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  box-shadow: inset 0 -12px 20px -12px rgba(0, 0, 0, 0.5), 0 14px 26px -20px rgba(0, 0, 0, 0.75);
+  transition: border-color 0.3s var(--ease-spring), box-shadow 0.3s var(--ease-spring);
+}
+
+.water-glass::after {
+  position: absolute;
+  top: 0;
+  left: 13%;
+  width: 15%;
+  height: 100%;
+  content: "";
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.42), transparent);
+  opacity: 0.55;
+}
+
+.water-segment {
+  width: 100%;
+  height: var(--segment-height, 25%);
+  background: var(--liquid);
+  box-shadow: inset 0 5px 9px -7px rgba(255, 255, 255, 0.7), inset 0 -3px 6px -5px rgba(0, 0, 0, 0.35);
+}
+
+.water-segment.is-poured {
+  animation: water-pour 380ms var(--ease-spring) both;
+}
+
+/* Звёздная пыль при завершении цикла сортировки */
+.water-stardust {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 0 12px rgba(255, 255, 255, 0.9), 0 0 26px rgba(255, 226, 150, 0.6);
+  pointer-events: none;
+  animation: water-stardust-fly 900ms var(--ease-spring) var(--stardust-delay, 0ms) both;
+}
+
+@keyframes water-stardust-fly {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.4);
+  }
+  25% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(calc(-50% + var(--stardust-x, 0px)), calc(-50% + var(--stardust-y, 0px))) scale(1.1);
+  }
+}
+
+/* ------------------------------------------------------------------
+   Tetris — неоновый тетрис (10×20)
+   ------------------------------------------------------------------ */
+.tetris-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(120px, 168px);
+  gap: clamp(0.8rem, 3vw, 1.5rem);
+  align-items: start;
+}
+
+.tetris-board {
+  position: relative;
+  width: 100%;
+  max-width: 340px;
+  margin: 0 auto;
+  aspect-ratio: 1 / 2;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  background: rgba(3, 6, 13, 0.88);
+  overflow: hidden;
+  touch-action: none;
+  box-shadow:
+    inset 0 0 46px rgba(0, 0, 0, 0.66),
+    0 0 34px color-mix(in srgb, var(--tetris-accent, var(--primary)) 16%, transparent);
+}
+
+.tetris-grid {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  grid-template-rows: repeat(20, 1fr);
+  width: 100%;
+  height: 100%;
+}
+
+.tetris-cell {
+  border-right: 1px solid rgba(255, 255, 255, 0.045);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.045);
+  background: transparent;
+}
+
+.tetris-cell.is-filled {
+  border-radius: 3px;
+  background: var(--tetris-color);
+  box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.3), 0 0 9px var(--tetris-color);
+}
+
+.tetris-cell.is-clearing {
+  animation: tetris-line-clear 360ms var(--ease-spring) forwards;
+}
+
+.tetris-side {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.9rem;
+}
+
+.tetris-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  color: var(--muted);
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.tetris-meta output {
+  color: var(--vibe-accent, var(--primary));
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.tetris-preview {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 2px;
+  width: 100px;
+  height: 100px;
+  padding: 6px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel-strong);
+}
+
+.tetris-preview span {
+  border-radius: 3px;
+}
+
+.tetris-preview span.is-filled {
+  background: var(--tetris-color);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.28);
+}
+
+.tetris-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.9rem;
+  padding: 1.2rem;
+  text-align: center;
+  background: rgba(3, 6, 13, 0.74);
+  backdrop-filter: blur(7px);
+  -webkit-backdrop-filter: blur(7px);
+}
+
+.tetris-overlay[hidden] {
+  display: none;
+}
+
+.tetris-overlay__title {
+  margin: 0;
+  font-size: clamp(1.2rem, 4vw, 1.6rem);
+  letter-spacing: -0.02em;
+  color: var(--label-primary);
+}
+
+.tetris-overlay__score {
+  margin: 0;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.tetris-restart {
+  min-height: 46px;
+  padding: 0.65rem 1.5rem;
+  border: 1px solid color-mix(in srgb, var(--vibe-accent, var(--primary)) 70%, transparent);
+  border-radius: 999px;
+  color: #ffffff;
+  background: color-mix(in srgb, var(--vibe-accent, var(--primary)) 26%, transparent);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  box-shadow: 0 0 24px color-mix(in srgb, var(--vibe-accent, var(--primary)) 40%, transparent);
+  transition: transform 0.24s var(--ease-spring), background-color 0.24s var(--ease-spring);
+}
+
+.tetris-restart:hover,
+.tetris-restart:focus-visible {
+  background: color-mix(in srgb, var(--vibe-accent, var(--primary)) 40%, transparent);
+}
+
+.tetris-restart:active {
+  transform: scale(0.96);
+}
+
+@keyframes tetris-line-clear {
+  from {
+    background: #ffffff;
+    box-shadow: 0 0 22px var(--vibe-glow, rgba(255, 255, 255, 0.9));
+    filter: brightness(1.6);
+  }
+  to {
+    background: #ffffff;
+    box-shadow: 0 0 34px var(--vibe-glow, rgba(255, 255, 255, 0.5));
+    filter: brightness(1);
+  }
+}
+
+@keyframes water-pour {
+  from { transform: translateY(-64%); opacity: 0.2; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes water-flash {
+  0% { opacity: 0.9; }
+  100% { opacity: 0; }
+}
+
+/* ------------------------------------------------------------------
+   Мобильные тач-цели и безопасность переноса текста (375–768px)
+   ------------------------------------------------------------------ */
+@media (max-width: 768px) {
+  .option-btn {
+    min-height: 52px;
+    padding: 14px 16px;
+  }
+
+  .game-btn,
+  .game-choice,
+  .direction-btn,
+  .keyboard-key {
+    min-height: 48px;
+  }
+
+  .share-card h1 {
+    word-break: break-word;
+  }
+
+  .share-invitation {
+    overflow-wrap: anywhere;
+  }
+
+  .creation-word {
+    font-size: clamp(2.8rem, 15vw, 5rem);
+  }
 }
