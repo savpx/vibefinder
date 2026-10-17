@@ -51,22 +51,18 @@ const state = {
 let answerPending = false;
 const gameStage = document.getElementById('game-stage');
 const asmrStage = document.getElementById('asmr-stage');
-const creationWord = document.getElementById('creation-word');
 const vibeTransition = document.getElementById('vibe-transition');
 const UI_CLICK_VOLUME = 0.22;
 const TRANSITION_VOLUME = 0.20;
 
-// Рукописный переход «VibeFinder»: буквы проявляются последовательно за ровно
-// 8 секунд. Задержки рассчитываются так, чтобы последняя буква завершила
-// появление (вместе с длительностью одного шага) точно в конце таймлайна.
-const CREATION_WORD = 'VibeFinder';
-const CREATION_TOTAL_DURATION = 8000;
-const CREATION_LETTER_DRAW_DURATION = 1200;
-const CREATION_START_DELAY = 200;
-const CREATION_LETTER_STAGGER = Math.round(
-  (CREATION_TOTAL_DURATION - CREATION_START_DELAY - CREATION_LETTER_DRAW_DURATION) / Math.max(1, CREATION_WORD.length - 1)
-);
-const CREATION_WRITING_DURATION = CREATION_START_DELAY + CREATION_LETTER_STAGGER * (CREATION_WORD.length - 1) + CREATION_LETTER_DRAW_DURATION;
+// Рукописный переход «VibeFinder»: буквы проявляются по одной за ровно 8 секунд.
+const CREATION_TOTAL_DURATION = 8000; // Жёсткий лимит: ровно 8 секунд
+const CREATION_LETTER_DURATION = 2500; // Жизненный цикл появления одной буквы
+const CREATION_TIMING_CURVE = [0.16, 1, 0.3, 1]; // Нелинейная кривая для премиального почерка
+const CREATION_SPRING_EASE = `cubic-bezier(${CREATION_TIMING_CURVE.join(',')})`;
+// Максимальный сдвиг, чтобы раскрытие уложилось точно в 8-секундный таймлайн.
+const CREATION_AVAILABLE_STAGGER = CREATION_TOTAL_DURATION - CREATION_LETTER_DURATION;
+const CREATION_STAGGER_STEP = CREATION_AVAILABLE_STAGGER / ('VibeFinder'.length - 1);
 const audioVolumeFades = new WeakMap();
 const uiButtonAudio = new Audio('audio/ui/ui.mp3');
 const transitionAudio = new Audio('audio/ui/transition.mp3');
@@ -290,28 +286,36 @@ function cancelVibeCreation() {
   vibeTransition.classList.remove('is-visible');
 }
 
-// Собирает слово «VibeFinder» из отдельных <span>, чтобы каждая буква
-// анимировалась независимо. Задержки задаются через CSS-переменную
-// --letter-delay, выстраивая появление букв ровно за 8 секунд.
+// Разбивает слово «VibeFinder» на отдельные <span> и задаёт каждой букве
+// явные animation-delay / animation-duration / animation-timing-function,
+// выстраивая раскрытие ровно за 8 секунд.
 function buildCreationWord() {
-  if (!creationWord) return;
-  creationWord.replaceChildren();
-  [...CREATION_WORD].forEach((letter, index) => {
-    const span = document.createElement('span');
-    span.className = 'creation-letter';
-    span.textContent = letter;
-    span.setAttribute('aria-hidden', 'true');
-    span.style.setProperty('--letter-delay', `${CREATION_START_DELAY + index * CREATION_LETTER_STAGGER}ms`);
-    creationWord.appendChild(span);
-  });
-}
+  const container = document.getElementById('vibe-finder-animated-text');
+  if (!container) return;
 
-function playCreationWriting() {
-  buildCreationWord();
-  if (!creationWord) return;
+  // Убираем возможные остатки предыдущего запуска
+  container.innerHTML = '';
+
+  const textWord = 'VibeFinder';
+  const lettersArray = textWord.split('');
+
+  lettersArray.forEach((char, index) => {
+    const spanNode = document.createElement('span');
+    spanNode.textContent = char;
+    spanNode.setAttribute('aria-hidden', 'true');
+
+    // Явные вычисления, записанные прямо в живые CSS-биндинги
+    const delayMiliseconds = index * CREATION_STAGGER_STEP;
+    spanNode.style.animationDelay = `${delayMiliseconds}ms`;
+    spanNode.style.animationDuration = `${CREATION_LETTER_DURATION}ms`;
+    spanNode.style.animationTimingFunction = CREATION_SPRING_EASE;
+
+    container.appendChild(spanNode);
+  });
+
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   if (reducedMotion) {
-    creationWord.querySelectorAll('.creation-letter').forEach((span) => {
+    container.querySelectorAll('span').forEach((span) => {
       span.style.animation = 'none';
       span.style.opacity = '1';
       span.style.filter = 'none';
@@ -324,8 +328,8 @@ function startVibeCreation(vibeKey) {
   cancelVibeCreation();
   const sequence = creationSequence;
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  buildCreationWord();
   showScreen('creation');
-  playCreationWriting();
 
   transitionAudio.pause();
   const transitionFade = audioVolumeFades.get(transitionAudio);
@@ -363,8 +367,8 @@ function startVibeCreation(vibeKey) {
     }, 350);
   };
 
-  // Полная длительность письма — 8 секунд; при reduced-motion сокращаем паузу.
-  const writingTime = reducedMotion ? 1400 : CREATION_WRITING_DURATION;
+  // Полная длительность письма — ровно 8 секунд; при reduced-motion сокращаем паузу.
+  const writingTime = reducedMotion ? 1400 : CREATION_TOTAL_DURATION;
   creationTimer = window.setTimeout(() => {
     if (sequence !== creationSequence) return;
     creationTimer = null;
