@@ -284,8 +284,11 @@ input {
   background: rgba(4, 7, 17, 0.35);
 }
 
+/* Единая фоновая канва домашнего экрана, опроса и перехода — фон полностью
+   идентичен, поэтому смена экранов ощущается бесшовной и непрерывной. */
 #home-screen,
-#survey-screen {
+#survey-screen,
+#creation-screen {
   --text: #f4f4f4;
   --muted: #b8b8b8;
   --primary: #eeeeee;
@@ -299,19 +302,19 @@ input {
 /* Курсивный шрифт Alex Brush уже подключён через @import в самом начале файла
    (правило @import обязано идти первым, поэтому здесь оно не дублируется). */
 
+/* Экран перехода использует ровно ту же космическую канву, что и домашний
+   экран, — никакой фиолетово-синей мглы и отдельных градиентных сдвигов.
+   z-index: 2 держит канву над базовыми экранами, но ниже слоя частиц. */
 #creation-screen {
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  /* Никакого чистого чёрного: прозрачный фон сохраняет видимость
-     нижележащих ambient-слоёв и плавающих частиц #particles */
-  background: transparent !important;
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 100;
+  z-index: 2;
   overflow: hidden;
 }
 
@@ -441,7 +444,6 @@ input {
 .option-btn:active,
 .share-button:active,
 .game-btn:active,
-.game-choice:active,
 .direction-btn:active {
   transform: scale(0.96);
   transition: transform 0.1s;
@@ -507,7 +509,9 @@ input {
   inset: 0;
   overflow: hidden;
   pointer-events: none;
-  z-index: 1;
+  /* Выше канвы экрана перехода (z-index: 2), чтобы звёзды оставались
+     видимыми и активными поверх рукописной анимации */
+  z-index: 3;
 }
 
 .particle {
@@ -979,8 +983,7 @@ body.theme-forest .quote-card {
   inset: 0;
 }
 
-.game-tools,
-.game-controls {
+.game-tools {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -1010,7 +1013,6 @@ body.theme-forest .quote-card {
 }
 
 .game-btn,
-.game-choice,
 .keyboard-key,
 .direction-btn {
   min-height: 44px;
@@ -1026,11 +1028,9 @@ body.theme-forest .quote-card {
 }
 
 .game-btn:hover,
-.game-choice:hover,
 .keyboard-key:hover,
 .direction-btn:hover,
 .game-btn:focus-visible,
-.game-choice:focus-visible,
 .keyboard-key:focus-visible,
 .direction-btn:focus-visible {
   /* Интерактивные элементы откликаются цветом и границей, а не «прыжком» */
@@ -1636,8 +1636,7 @@ body.theme-forest .quote-card {
 #vibe-screen[data-vibe] .theme-tag { color: var(--vibe-accent); }
 #vibe-screen[data-vibe] .game-stat { color: var(--vibe-accent); }
 #vibe-screen[data-vibe] .game-target { border-color: var(--vibe-accent); box-shadow: 0 0 22px color-mix(in srgb, var(--vibe-accent) 45%, transparent); }
-#vibe-screen[data-vibe] .game-btn:hover,
-#vibe-screen[data-vibe] .game-choice:hover { border-color: var(--vibe-accent); }
+#vibe-screen[data-vibe] .game-btn:hover { border-color: var(--vibe-accent); }
 
 #vibe-screen[data-vibe="night"] { --vibe-accent:#70e7ff; color:#e4f5ff; background:radial-gradient(ellipse at 50% 15%,#203858,#0b1021 62%,#080b15); }
 #vibe-screen[data-vibe="melancholic"] { --vibe-accent:#a8d8f0; color:#e4eef6; background:linear-gradient(160deg,#34495e,#1e2b3d 52%,#172130); }
@@ -1679,26 +1678,16 @@ body.theme-forest .quote-card {
 #vibe-screen[data-vibe="cozy"] .mini-game,
 #vibe-screen[data-vibe="cozy"] .asmr-game { border-radius: 34px; background: linear-gradient(150deg,rgba(112,75,56,.9),rgba(45,35,35,.96)); box-shadow: 0 18px 45px rgba(239,180,119,.12); }
 
-#vibe-screen[data-vibe="night"] .game-btn,
-#vibe-screen[data-vibe="night"] .game-choice { border-radius: 10px; box-shadow: 0 0 12px rgba(112,231,255,.12); }
-#vibe-screen[data-vibe="melancholic"] .game-btn,
-#vibe-screen[data-vibe="melancholic"] .game-choice { border-radius: 22px; }
-#vibe-screen[data-vibe="zen"] .game-btn,
-#vibe-screen[data-vibe="zen"] .game-choice { border-radius: 999px; }
-#vibe-screen[data-vibe="chaotic"] .game-btn,
-#vibe-screen[data-vibe="chaotic"] .game-choice { border-radius: 4px 16px; }
-#vibe-screen[data-vibe="happy"] .game-btn,
-#vibe-screen[data-vibe="happy"] .game-choice { border-radius: 999px; background: linear-gradient(135deg,rgba(255,202,72,.22),rgba(255,128,188,.16)); }
-#vibe-screen[data-vibe="mysterious"] .game-btn,
-#vibe-screen[data-vibe="mysterious"] .game-choice { border-style: dashed; border-radius: 6px; }
-#vibe-screen[data-vibe="creative"] .game-btn,
-#vibe-screen[data-vibe="creative"] .game-choice { border-radius: 8px 20px; }
-#vibe-screen[data-vibe="nature"] .game-btn,
-#vibe-screen[data-vibe="nature"] .game-choice { border-radius: 22px 6px 22px 6px; }
-#vibe-screen[data-vibe="retro"] .game-btn,
-#vibe-screen[data-vibe="retro"] .game-choice { border-radius: 0; border-color: #bdf35d; font-family: "Courier New",monospace; }
-#vibe-screen[data-vibe="cozy"] .game-btn,
-#vibe-screen[data-vibe="cozy"] .game-choice { border-radius: 20px; background: rgba(243,189,125,.14); }
+#vibe-screen[data-vibe="night"] .game-btn { border-radius: 10px; box-shadow: 0 0 12px rgba(112,231,255,.12); }
+#vibe-screen[data-vibe="melancholic"] .game-btn { border-radius: 22px; }
+#vibe-screen[data-vibe="zen"] .game-btn { border-radius: 999px; }
+#vibe-screen[data-vibe="chaotic"] .game-btn { border-radius: 4px 16px; }
+#vibe-screen[data-vibe="happy"] .game-btn { border-radius: 999px; background: linear-gradient(135deg,rgba(255,202,72,.22),rgba(255,128,188,.16)); }
+#vibe-screen[data-vibe="mysterious"] .game-btn { border-style: dashed; border-radius: 6px; }
+#vibe-screen[data-vibe="creative"] .game-btn { border-radius: 8px 20px; }
+#vibe-screen[data-vibe="nature"] .game-btn { border-radius: 22px 6px 22px 6px; }
+#vibe-screen[data-vibe="retro"] .game-btn { border-radius: 0; border-color: #bdf35d; font-family: "Courier New",monospace; }
+#vibe-screen[data-vibe="cozy"] .game-btn { border-radius: 20px; background: rgba(243,189,125,.14); }
 
 .vibe-navigation {
   position: fixed;
@@ -2469,7 +2458,6 @@ button:disabled {
   }
 
   .game-btn,
-  .game-choice,
   .direction-btn,
   .keyboard-key {
     min-height: 48px;
