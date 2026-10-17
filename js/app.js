@@ -55,12 +55,13 @@ const vibeTransition = document.getElementById('vibe-transition');
 const UI_CLICK_VOLUME = 0.22;
 const TRANSITION_VOLUME = 0.20;
 
-// Рукописный переход «VibeFinder»: буквы проявляются по одной за ровно 8 секунд.
-const CREATION_TOTAL_DURATION = 8000; // Жёсткий лимит: ровно 8 секунд
-const CREATION_LETTER_DURATION = 2500; // Жизненный цикл появления одной буквы
-const CREATION_TIMING_CURVE = [0.16, 1, 0.3, 1]; // Нелинейная кривая для премиального почерка
+// Рукописный переход «VibeFinder»: буквы проявляются по одной за ровно 4 секунды.
+const CREATION_TOTAL_DURATION = 4000; // Жёсткий лимит: ровно 4 секунды
+const CREATION_LETTER_DURATION = 1200; // Быстрый премиальный штрих одной буквы
+// Нелинейная кривая для премиального почерка (стандартная кривая проекта).
+const CREATION_TIMING_CURVE = [0.16, 1, 0.3, 1];
 const CREATION_SPRING_EASE = `cubic-bezier(${CREATION_TIMING_CURVE.join(',')})`;
-// Максимальный сдвиг, чтобы раскрытие уложилось точно в 8-секундный таймлайн.
+// Максимальный сдвиг, чтобы раскрытие уложилось точно в 4-секундный таймлайн.
 const CREATION_AVAILABLE_STAGGER = CREATION_TOTAL_DURATION - CREATION_LETTER_DURATION;
 const CREATION_STAGGER_STEP = CREATION_AVAILABLE_STAGGER / ('VibeFinder'.length - 1);
 const audioVolumeFades = new WeakMap();
@@ -367,7 +368,7 @@ function startVibeCreation(vibeKey) {
     }, 350);
   };
 
-  // Полная длительность письма — ровно 8 секунд; при reduced-motion сокращаем паузу.
+  // Полная длительность письма — ровно 4 секунды; при reduced-motion сокращаем паузу.
   const writingTime = reducedMotion ? 1400 : CREATION_TOTAL_DURATION;
   creationTimer = window.setTimeout(() => {
     if (sequence !== creationSequence) return;
