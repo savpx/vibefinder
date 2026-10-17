@@ -325,7 +325,6 @@ const translationCatalog = {
   'Верно! Раскрашено %s из %s областей.': ['That is right! %s of %s regions colored.', '正确！已完成 %s / %s 个区域。', 'صحيح! لوّنت %s من أصل %s مناطق.'],
   'Собрано листьев: %s/%s. Ветер меняет направление.': ['Leaves gathered: %s/%s. The wind is shifting.', '已收集树叶：%s/%s。风向正在变化。', 'الأوراق المجموعة: %s/%s. الريح تغيّر اتجاهها.'],
   'Вопрос %s из %s': ['Question %s of %s', '第 %s 题，共 %s 题', 'السؤال %s من %s'],
-  'Contact Vibe Finder Support': ['Contact Vibe Finder Support', '联系 Vibe Finder 支持', 'تواصل مع دعم Vibe Finder'],
   'Change language': ['Change language', '切换语言', 'تغيير اللغة'],
   'Choose language': ['Choose language', '选择语言', 'اختر اللغة'],
   'English': ['English', '英语', 'الإنجليزية'],
