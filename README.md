@@ -99,6 +99,4 @@ Vibe Finder has gentle audio — soft interface clicks, a transition sound, and 
 
 ---
 
-## Feedback
-
 **Vibe Finder. Find your vibe.** 🌌
