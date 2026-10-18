@@ -187,42 +187,68 @@ input {
   direction: ltr;
 }
 
+/* Переключатель языка намеренно оформлен в том же стеклянном стиле, что и
+   кнопка поддержки Discord: material-токены, скругление-сквиркл, spring-переход
+   и физический отклик на нажатие. */
 .language-toggle,
 .language-options button {
-  min-width: 42px;
-  min-height: 38px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 999px;
-  color: var(--text);
-  background: rgba(15, 18, 28, 0.52);
-  font: inherit;
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
+  min-width: 36px;
+  min-height: 36px;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
   cursor: pointer;
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  box-shadow: 0 10px 26px rgba(10, 12, 18, 0.22);
+  color: var(--label-secondary);
+  background: var(--material-bg);
+  border: 0.5px solid var(--material-border);
+  border-radius: var(--radius-control);
+  box-shadow: var(--inset-highlight);
+  backdrop-filter: var(--material-blur);
+  -webkit-backdrop-filter: var(--material-blur);
+  transition: all 0.4s var(--ease-spring);
 }
 
 .language-toggle:hover,
 .language-options button:hover,
 .language-toggle:focus-visible,
 .language-options button:focus-visible {
-  border-color: rgba(255, 255, 255, 0.28);
-  background: rgba(28, 34, 46, 0.68);
+  color: var(--label-primary);
+  border-color: rgba(255, 255, 255, 0.24);
+  background: rgba(35, 35, 35, 0.55);
+  transform: translateY(-2px);
+  box-shadow: var(--inset-highlight), 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+/* Физический отклик на нажатие — как у кнопки поддержки */
+.language-toggle:active,
+.language-options button:active {
+  transform: scale(0.96);
+  transition: transform 0.1s;
+}
+
+/* Визуально кнопка компактная (36px), но тач-цель расширена до 44pt
+   невидимой областью — соблюдение HIG на мобильных экранах. */
+.language-toggle {
+  position: relative;
+}
+
+.language-toggle::before {
+  position: absolute;
+  inset: -4px;
+  content: "";
 }
 
 .language-options {
   display: flex;
   gap: 0.35rem;
   padding: 0.25rem;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 999px;
-  background: rgba(20, 23, 32, 0.68);
-  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.26);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
+  border: 0.5px solid var(--material-border);
+  border-radius: var(--radius-control);
+  background: rgba(20, 20, 20, 0.55);
+  box-shadow: var(--inset-highlight), 0 16px 32px rgba(0, 0, 0, 0.32);
+  backdrop-filter: var(--material-blur);
+  -webkit-backdrop-filter: var(--material-blur);
 }
 
 .language-options[hidden] {
@@ -230,15 +256,29 @@ input {
 }
 
 .language-options button {
-  min-width: 38px;
-  min-height: 34px;
+  min-width: 32px;
+  min-height: 30px;
   border-color: transparent;
   background: transparent;
+  box-shadow: none;
 }
 
 .language-options button[aria-pressed="true"] {
+  color: var(--label-primary);
   border-color: rgba(255, 255, 255, 0.24);
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .language-toggle,
+  .language-options button {
+    transition: none;
+  }
+
+  .language-toggle:active,
+  .language-options button:active {
+    transition: none;
+  }
 }
 
 .screen {
@@ -731,6 +771,77 @@ input {
 #home-screen .primary-btn:active {
   border-color: rgba(245, 245, 245, 0.62);
   box-shadow: 0 0 24px rgba(225, 225, 225, 0.12);
+}
+
+/* Discord support — стеклянная иконка-кнопка строго в правом нижнем углу
+   домашнего экрана. Позиционируется абсолютно относительно #home-screen
+   (он сам absolute), поэтому живёт только на первом экране. Видимый размер
+   компактный (36×36), тач-цель расширена до 44pt через ::before. */
+.discord-support {
+  position: absolute;
+  bottom: 24px;
+  right: 24px;
+  z-index: 10;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  text-decoration: none;
+  cursor: pointer;
+  color: var(--label-secondary);
+  background: var(--material-bg);
+  border: 0.5px solid var(--material-border);
+  border-radius: var(--radius-control);
+  box-shadow: var(--inset-highlight);
+  backdrop-filter: var(--material-blur);
+  -webkit-backdrop-filter: var(--material-blur);
+  transition: all 0.4s var(--ease-spring);
+}
+
+/* Тач-цель расширена до 44pt при видимом размере 36px — HIG на мобильных. */
+.discord-support::before {
+  position: absolute;
+  inset: -4px;
+  content: "";
+}
+
+.discord-support__icon {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
+  opacity: 0.9;
+  transition: opacity 0.4s var(--ease-spring);
+}
+
+.discord-support:hover,
+.discord-support:focus-visible {
+  color: var(--label-primary);
+  border-color: rgba(255, 255, 255, 0.24);
+  background: rgba(35, 35, 35, 0.55);
+  transform: translateY(-2px);
+  box-shadow: var(--inset-highlight), 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+.discord-support:hover .discord-support__icon,
+.discord-support:focus-visible .discord-support__icon {
+  opacity: 1;
+}
+
+/* Физический отклик на нажатие — мгновенный и упругий */
+.discord-support:active {
+  transform: scale(0.96);
+  transition: transform 0.1s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .discord-support {
+    transition: none;
+  }
+
+  .discord-support:active {
+    transition: none;
+  }
 }
 
 /* Hit-area friendly hover for survey list rows */
@@ -2418,6 +2529,13 @@ button:disabled {
   .option-btn {
     min-height: 52px;
     padding: 14px 16px;
+  }
+
+  /* Кнопка поддержки Discord: на узких экранах прижимаем к краю,
+     учитывая safe-area, чтобы не перекрывать системные жесты. */
+  .discord-support {
+    bottom: max(16px, env(safe-area-inset-bottom));
+    right: max(16px, env(safe-area-inset-right));
   }
 
   .game-btn,

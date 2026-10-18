@@ -2,7 +2,7 @@
 <html lang="ru">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>Vibe Finder</title>
     <meta
       name="description"
@@ -51,6 +51,23 @@
           </p>
           <button id="start-btn" class="primary-btn">Начать</button>
         </div>
+        <!-- Поддержка Discord: стеклянная иконка-кнопка строго в правом нижнем
+             углу домашнего экрана. Видимого текста нет, поэтому перевод не
+             требуется — доступность обеспечивает aria-label. -->
+        <a
+          id="discord-support"
+          class="discord-support"
+          href="https://discord.gg/kS2Mp8bjj5"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Discord community support"
+        >
+          <svg class="discord-support__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path
+              d="M19.54 5.34A16.3 16.3 0 0 0 15.5 4.1a.06.06 0 0 0-.06.03c-.17.31-.37.71-.5 1.02a15 15 0 0 0-4.48 0c-.14-.32-.34-.71-.52-1.02a.06.06 0 0 0-.06-.03 16.3 16.3 0 0 0-4.04 1.24.06.06 0 0 0-.03.02C3.1 9.1 2.4 12.74 2.75 16.34a.07.07 0 0 0 .03.05 16.4 16.4 0 0 0 4.94 2.5.06.06 0 0 0 .07-.02c.38-.52.72-1.06 1.01-1.63a.06.06 0 0 0-.03-.09c-.54-.2-1.05-.45-1.54-.74a.06.06 0 0 1 0-.1l.3-.24a.06.06 0 0 1 .07 0 11.7 11.7 0 0 0 9.94 0 .06.06 0 0 1 .07 0l.31.24a.06.06 0 0 1 0 .1c-.5.29-1.01.53-1.55.73a.06.06 0 0 0-.03.09c.3.57.64 1.11 1.01 1.63a.06.06 0 0 0 .07.03 16.35 16.35 0 0 0 4.95-2.5.06.06 0 0 0 .03-.06c.42-4.16-.7-7.77-2.96-10.98a.05.05 0 0 0-.03-.02ZM8.68 14.14c-.97 0-1.77-.89-1.77-1.98s.78-2 1.77-2c1 0 1.79.9 1.77 2 0 1.09-.78 1.98-1.77 1.98Zm6.66 0c-.97 0-1.77-.89-1.77-1.98s.78-2 1.77-2c1 0 1.79.9 1.77 2 0 1.09-.78 1.98-1.77 1.98Z"
+            ></path>
+          </svg>
+        </a>
       </section>
 
       <section id="survey-screen" class="screen">

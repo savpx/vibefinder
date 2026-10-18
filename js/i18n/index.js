@@ -96,6 +96,7 @@ const translationCatalog = {
   ],
   'Неизвестный вайб': ['Unknown vibe', '未知氛围', 'أجواء غير معروفة'],
   'Показать следующую цитату': ['Show the next quote', '显示下一句', 'عرض الاقتباس التالي'],
+  'Discord community support': ['Discord community support', 'Discord 社区支持', 'دعم مجتمع Discord'],
   'Вайб-цитата': ['A thought for this vibe', '氛围寄语', 'اقتباس يناسب أجواءك'],
   'ТВОЙ ВАЙБ': ['YOUR VIBE', '此刻的氛围', 'أجواؤك الآن'],
   'Мини-игра': ['Mini Game', '小游戏', 'لعبة قصيرة'],
