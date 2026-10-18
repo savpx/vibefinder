@@ -2121,29 +2121,6 @@ button:disabled {
 }
 
 /* ------------------------------------------------------------------
-   Единый контейнер мини-игр (хаб настроения)
-   ------------------------------------------------------------------ */
-.game-hub {
-  display: flex;
-  flex-direction: column;
-  gap: clamp(0.9rem, 2.5vw, 1.4rem);
-}
-
-.game-hub__title {
-  margin: 0;
-  font-size: clamp(1.15rem, 2.4vw, 1.5rem);
-  letter-spacing: -0.02em;
-  color: var(--label-primary);
-}
-
-.game-tools {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.6rem;
-  margin-top: 0.55rem;
-}
-
-/* ------------------------------------------------------------------
    Water sort — бесконечная сортировка цвета
    ------------------------------------------------------------------ */
 .water-board {
@@ -2275,13 +2252,6 @@ button:disabled {
 /* ------------------------------------------------------------------
    Tetris — неоновый тетрис (10×20)
    ------------------------------------------------------------------ */
-.tetris-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(120px, 168px);
-  gap: clamp(0.8rem, 3vw, 1.5rem);
-  align-items: start;
-}
-
 .tetris-board {
   position: relative;
   width: 100%;
@@ -2320,13 +2290,6 @@ button:disabled {
 
 .tetris-cell.is-clearing {
   animation: tetris-line-clear 360ms var(--ease-spring) forwards;
-}
-
-.tetris-side {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.9rem;
 }
 
 .tetris-meta {

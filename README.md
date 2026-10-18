@@ -96,13 +96,34 @@ Vibe Finder has gentle audio — soft interface clicks, a transition sound, and 
 The site is fully static, but it uses modern JavaScript modules, so it needs a simple local server (opening the file directly won't work).
 
 ```bash
-cd VibeFinder
 python -m http.server 8000
 ```
 
 Then open [http://localhost:8000](http://localhost:8000) in your browser.
 
-Any static server works equally well (for example `npx serve VibeFinder`).
+Any static server works equally well (for example `npx serve .`). You can also use the Vercel CLI:
+
+```bash
+npx vercel dev
+```
+
+---
+
+## Deploying to Vercel
+
+The site is a completely static project served from the repository root, so it deploys to Vercel with zero build configuration.
+
+1. Import the repository at [vercel.com/new](https://vercel.com/new).
+2. Use the default settings — **Framework Preset: Other**, no build command, no output directory (the site is served from the root).
+3. Deploy. Vercel picks up [`vercel.json`](vercel.json) automatically for caching and security headers.
+
+Or deploy straight from the command line:
+
+```bash
+npx vercel --prod
+```
+
+Custom domains can be attached in the Vercel dashboard under **Settings → Domains**.
 
 ---
 
@@ -110,7 +131,8 @@ Any static server works equally well (for example `npx serve VibeFinder`).
 
 - **HTML**, **CSS**, and **JavaScript** (native ES modules)
 - No frameworks, no build tools, no dependencies
-- Pure static site, host-agnostic (served from the repository root)
+- Pure static site (served from the repository root)
+- Hosted on **Vercel**
 
 ---
 

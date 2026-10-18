@@ -2167,7 +2167,7 @@ function renderAsmrGame() {
     keyboard.querySelectorAll('.keyboard-key').forEach((item) => item.classList.remove('is-pressed'));
     keyButton.classList.add('is-pressed');
     keyButton.appendChild(walker);
-    const audioFile = `audio/asmr/key-${key.toLowerCase()}.mp3`;
+    const audioFile = `audio/keyboard/key-${key.toLowerCase()}.mp3`;
     if (typeof Audio === 'undefined') {
       status.textContent = 'Звук недоступен в этом браузере.';
       return;
