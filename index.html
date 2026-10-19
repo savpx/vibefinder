@@ -32,7 +32,10 @@
           aria-label="Change language"
           aria-expanded="false"
           aria-controls="language-options"
-        >RU</button>
+        >
+          <div class="glass-glare-effect" aria-hidden="true"></div>
+          <span class="control-label">RU</span>
+        </button>
         <div id="language-options" class="language-options" role="group" aria-label="Choose language" hidden>
           <button type="button" data-language="en" aria-label="English">EN</button>
           <button type="button" data-language="ru" aria-label="Russian">RU</button>
@@ -49,7 +52,10 @@
           <p class="subtitle">
             Найди своё настроение и войди в атмосферу, которая подстроится под тебя.
           </p>
-          <button id="start-btn" class="primary-btn">Начать</button>
+          <button id="start-btn" class="primary-btn">
+            <div class="glass-glare-effect" aria-hidden="true"></div>
+            <span class="control-label">Начать</span>
+          </button>
         </div>
         <!-- Поддержка Discord: стеклянная иконка-кнопка строго в правом нижнем
              углу домашнего экрана. Видимого текста нет, поэтому перевод не
@@ -62,6 +68,7 @@
           rel="noopener noreferrer"
           aria-label="Discord community support"
         >
+          <div class="glass-glare-effect" aria-hidden="true"></div>
           <svg class="discord-support__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
             <path
               d="M19.54 5.34A16.3 16.3 0 0 0 15.5 4.1a.06.06 0 0 0-.06.03c-.17.31-.37.71-.5 1.02a15 15 0 0 0-4.48 0c-.14-.32-.34-.71-.52-1.02a.06.06 0 0 0-.06-.03 16.3 16.3 0 0 0-4.04 1.24.06.06 0 0 0-.03.02C3.1 9.1 2.4 12.74 2.75 16.34a.07.07 0 0 0 .03.05 16.4 16.4 0 0 0 4.94 2.5.06.06 0 0 0 .07-.02c.38-.52.72-1.06 1.01-1.63a.06.06 0 0 0-.03-.09c-.54-.2-1.05-.45-1.54-.74a.06.06 0 0 1 0-.1l.3-.24a.06.06 0 0 1 .07 0 11.7 11.7 0 0 0 9.94 0 .06.06 0 0 1 .07 0l.31.24a.06.06 0 0 1 0 .1c-.5.29-1.01.53-1.55.73a.06.06 0 0 0-.03.09c.3.57.64 1.11 1.01 1.63a.06.06 0 0 0 .07.03 16.35 16.35 0 0 0 4.95-2.5.06.06 0 0 0 .03-.06c.42-4.16-.7-7.77-2.96-10.98a.05.05 0 0 0-.03-.02ZM8.68 14.14c-.97 0-1.77-.89-1.77-1.98s.78-2 1.77-2c1 0 1.79.9 1.77 2 0 1.09-.78 1.98-1.77 1.98Zm6.66 0c-.97 0-1.77-.89-1.77-1.98s.78-2 1.77-2c1 0 1.79.9 1.77 2 0 1.09-.78 1.98-1.77 1.98Z"
@@ -96,6 +103,7 @@
           </div>
 
           <div class="survey-card">
+            <div class="glass-glare-effect" aria-hidden="true"></div>
             <p class="card-kicker">Опрос</p>
             <h2 id="question-text">Какое у тебя настроение прямо сейчас?</h2>
             <div id="answers" class="answers" aria-live="polite"></div>
@@ -126,13 +134,26 @@
             </p>
           </div>
           <div class="vibe-divider" aria-hidden="true"></div>
-          <div class="quote-card" id="quote-card" tabindex="0" role="button" aria-label="Показать следующую цитату">
-            <span class="quote-label">Вайб-цитата</span>
-            <p id="quote-text">Тихий свет — лучший компаньон для новых мыслей.</p>
+
+          <!-- Вайб-игра показывается только на экране вайба «Ночной»:
+               тетрис-канва + одна ротирующаяся строка вайб-цитаты. -->
+          <div class="vibe-game" id="vibe-game" hidden>
+            <div class="tetris-box">
+              <canvas
+                id="tetris-canvas"
+                width="200"
+                height="400"
+                tabindex="0"
+                aria-label="Tetris"
+              ></canvas>
+              <div class="tetris-game-over-overlay" id="tetris-game-over" hidden>
+                <button id="tetris-restart-btn" type="button">RESTART</button>
+              </div>
+            </div>
+            <div class="vibe-quote-container">
+              <span id="vibe-quote-text"></span>
+            </div>
           </div>
-          <h3 class="vibe-game-title">Мини-игра</h3>
-          <div id="game-stage" class="game-stage"></div>
-          <div id="asmr-stage" class="asmr-stage"></div>
         </div>
       </section>
 
@@ -143,6 +164,7 @@
           <a id="share-invitation" class="share-invitation" href="#home">
             Узнай, какой вайб у тебя сегодня!
           </a>
+
           <button id="share-button" class="share-button" type="button">Поделиться</button>
           <p id="share-feedback" class="share-feedback" role="status" aria-live="polite"></p>
         </main>
@@ -157,6 +179,7 @@
           aria-expanded="false"
           aria-controls="vibe-menu"
         >
+          <div class="glass-glare-effect" aria-hidden="true"></div>
           <svg viewBox="0 0 20 20" aria-hidden="true">
             <path d="M3 5h14M3 10h14M3 15h14"></path>
           </svg>
@@ -169,6 +192,17 @@
     </div>
 
     <div id="vibe-transition" class="vibe-transition" aria-hidden="true"></div>
+
+    <!-- Лупа: реальный оптический эффект. Слой .vibe-magnifier-copy содержит
+         клон домашнего экрана и обрезается clip-path по кругу линзы, поэтому
+         исходная вёрстка никогда не рвётся. .vibe-magnifier-glass — стекло с
+         ручкой, движется как единое тело. Живёт в body (fixed = вьюпорт). -->
+    <div class="vibe-magnifier-lens" id="vibe-magnifier" aria-hidden="true">
+      <div class="vibe-magnifier-copy">
+        <div class="vibe-magnifier-stage" id="vibe-magnifier-stage"></div>
+      </div>
+      <div class="vibe-magnifier-glass"></div>
+    </div>
 
     <script type="module" src="js/app.js"></script>
   </body>
