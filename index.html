@@ -75,6 +75,16 @@
             ></path>
           </svg>
         </a>
+
+        <!-- Лупа: позиционируется абсолютно внутри #home-screen, поэтому живёт
+             в natural scroll-потоке документа и не отвязывается от текста при
+             прокрутке. Координаты считаются в document-space (rect + scroll). -->
+        <div class="vibe-magnifier-lens" id="vibe-magnifier" aria-hidden="true">
+          <div class="vibe-magnifier-copy">
+            <div class="vibe-magnifier-stage" id="vibe-magnifier-stage"></div>
+          </div>
+          <div class="vibe-magnifier-glass"></div>
+        </div>
       </section>
 
       <section id="survey-screen" class="screen">
@@ -113,9 +123,7 @@
 
       <section id="creation-screen" class="screen page-shell__screen" aria-label="Создание твоего вайба">
         <div class="transition-container">
-          <div id="vibe-finder-animated-text" class="cursive-brand-text" aria-label="VibeFinder">
-            <!-- Буквы вставляются динамически из JavaScript для точного расчёта ступенчатой задержки -->
-          </div>
+          <div id="vibe-finder-animated-text" class="cursive-brand-text" aria-label="VibeFinder"></div>
         </div>
       </section>
 
@@ -192,17 +200,6 @@
     </div>
 
     <div id="vibe-transition" class="vibe-transition" aria-hidden="true"></div>
-
-    <!-- Лупа: реальный оптический эффект. Слой .vibe-magnifier-copy содержит
-         клон домашнего экрана и обрезается clip-path по кругу линзы, поэтому
-         исходная вёрстка никогда не рвётся. .vibe-magnifier-glass — стекло с
-         ручкой, движется как единое тело. Живёт в body (fixed = вьюпорт). -->
-    <div class="vibe-magnifier-lens" id="vibe-magnifier" aria-hidden="true">
-      <div class="vibe-magnifier-copy">
-        <div class="vibe-magnifier-stage" id="vibe-magnifier-stage"></div>
-      </div>
-      <div class="vibe-magnifier-glass"></div>
-    </div>
 
     <script type="module" src="js/app.js"></script>
   </body>

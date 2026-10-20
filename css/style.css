@@ -451,7 +451,9 @@ input {
    текстовые узлы вёрстки никогда не разбиваются и не меняются.
    ------------------------------------------------------------------ */
 .vibe-magnifier-lens {
-  position: fixed;
+  /* Абсолютно внутри #home-screen — линза в natural scroll-потоке документа,
+     поэтому при прокрутке она остаётся привязанной к тексту, а не к вьюпорту. */
+  position: absolute;
   top: 0;
   left: 0;
   width: 45px;
@@ -585,6 +587,8 @@ input {
   perspective: 1000px;
   transform-style: preserve-3d;
   transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s ease;
+  /* Свайп по 3D-слою не скроллит окно (touch-трекинг пальцем). */
+  touch-action: none;
 }
 
 /* Текстовый ярлык поверх слоя блика, независимый от line-height кнопки. */
@@ -803,6 +807,9 @@ input {
 /* Премиальное стекло опросной карточки — точные токены material (HIG) */
 .survey-card {
   position: relative;
+  /* 3D-перспектива; вертикальный скролл опроса сохранён (pan-y). */
+  perspective: 1000px;
+  touch-action: pan-y;
   /* Нейтральный тёмный стеклянный фон без синеватого подтона. */
   background: rgba(20, 20, 20, 0.35);
   border: 0.5px solid rgba(255, 255, 255, 0.12);

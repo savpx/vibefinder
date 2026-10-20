@@ -38,7 +38,6 @@ const tetrisRestartBtn = document.getElementById('tetris-restart-btn');
 const magnifierLens = document.getElementById('vibe-magnifier');
 const heroTitle = document.querySelector('.hero-wrap h1');
 const heroSubtitle = document.querySelector('.subtitle');
-const languageSwitcher = document.querySelector('.language-switcher');
 const discordButton = document.getElementById('discord-support');
 
 const state = {
@@ -166,16 +165,20 @@ function init3DTiltEffect(elementSelector, maxTiltAngle) {
     }
   };
 
+  const scheduleUpdate = (clientX, clientY) => {
+    if (!state.rect) state.rect = element.getBoundingClientRect();
+    state.pointer = { x: clientX, y: clientY };
+    if (state.frame) return;
+    state.frame = window.requestAnimationFrame(apply);
+  };
+
   const onEnter = () => {
     state.rect = element.getBoundingClientRect();
     element.classList.add('is-tilting');
   };
 
   const onMove = (event) => {
-    if (!state.rect) state.rect = element.getBoundingClientRect();
-    state.pointer = { x: event.clientX, y: event.clientY };
-    if (state.frame) return;
-    state.frame = window.requestAnimationFrame(apply);
+    scheduleUpdate(event.clientX, event.clientY);
   };
 
   const onLeave = () => {
@@ -193,9 +196,34 @@ function init3DTiltEffect(elementSelector, maxTiltAngle) {
     }
   };
 
+  // --- Touch-трекинг: палец ведёт наклон 1:1, как курсор на десктопе. ---
+  const onTouchStart = (event) => {
+    const touch = event.touches[0];
+    if (!touch) return;
+    state.rect = element.getBoundingClientRect();
+    element.classList.add('is-tilting');
+    scheduleUpdate(touch.clientX, touch.clientY);
+  };
+
+  const onTouchMove = (event) => {
+    const touch = event.touches[0];
+    if (!touch) return;
+    // Блокируем прокрутку окна, пока пользователь ведёт палец по 3D-слою.
+    if (event.cancelable) event.preventDefault();
+    scheduleUpdate(touch.clientX, touch.clientY);
+  };
+
+  const onTouchEnd = () => {
+    onLeave();
+  };
+
   element.addEventListener('mouseenter', onEnter);
   element.addEventListener('mousemove', onMove);
   element.addEventListener('mouseleave', onLeave);
+  element.addEventListener('touchstart', onTouchStart, { passive: true });
+  element.addEventListener('touchmove', onTouchMove, { passive: false });
+  element.addEventListener('touchend', onTouchEnd, { passive: true });
+  element.addEventListener('touchcancel', onTouchEnd, { passive: true });
   return element;
 }
 
@@ -246,11 +274,6 @@ const magnifier = {
 const magnifierLinear = (t) => t;
 const magnifierSmooth = (t) => t * t * (3 - 2 * t);
 
-function centerOf(element) {
-  const rect = element.getBoundingClientRect();
-  return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
-}
-
 // Клонирует рабочую область внутрь stage-слоя линзы (один раз). Клонируем
 // .page-shell целиком — так в линзе оказываются фон, свечение и частицы,
 // а исходная вёрстка и её текстовые узлы остаются полностью нетронутыми.
@@ -260,6 +283,9 @@ function buildMagnifierClone() {
   if (!stage || !source) return;
   if (stage.dataset.cloned === 'true') return;
   const clone = source.cloneNode(true);
+  // Сама лупа теперь лежит внутри .page-shell — исключаем её из клона,
+  // иначе получилась бы рекурсивная копия.
+  clone.querySelectorAll('.vibe-magnifier-lens').forEach((node) => node.remove());
   clone.querySelectorAll('[id]').forEach((node) => node.removeAttribute('id'));
   clone.setAttribute('aria-hidden', 'true');
   stage.replaceChildren(clone);
@@ -274,12 +300,30 @@ function buildMagnifierTimeline() {
   const lens = magnifier.lensSize;
   const half = lens / 2;
   const readSpeed = 70; // px/s — ускоренное, но плавное «чтение» строк
-  const mobile = window.matchMedia('(max-width: 768px)').matches;
-  const compress = mobile ? 0.82 : 1;
+  // Мобильный брейкпоинт по фактической ширине вьюпорта (а не только media).
+  const mobile = window.innerWidth < 768 || window.matchMedia('(max-width: 768px)').matches;
+  // На мобильных сильнее сжимаем вектор и удерживаем линзу внутри экрана.
+  const compress = mobile ? 0.7 : 1;
 
-  const titleRect = heroTitle ? heroTitle.getBoundingClientRect() : null;
-  const descRect = heroSubtitle ? heroSubtitle.getBoundingClientRect() : null;
-  const discordRect = discordButton ? discordButton.getBoundingClientRect() : null;
+  // Все координаты переводим в document-space (rect + scroll offset): линза
+  // абсолютна внутри #home-screen, поэтому при прокрутке она остаётся
+  // привязанной к тексту и не «дрейфует» как привязка к static viewport.
+  const scrollX = window.scrollX || window.pageXOffset || 0;
+  const scrollY = window.scrollY || window.pageYOffset || 0;
+  const documentRect = (element) => {
+    if (!element) return null;
+    const rect = element.getBoundingClientRect();
+    return {
+      left: rect.left + scrollX,
+      top: rect.top + scrollY,
+      width: rect.width,
+      height: rect.height,
+    };
+  };
+
+  const titleRect = documentRect(heroTitle);
+  const descRect = documentRect(heroSubtitle);
+  const discordRect = documentRect(discordButton);
 
   // Стартовая точка — прямо НАД заголовком «Vibe Finder» (по центру).
   const start = titleRect
@@ -298,23 +342,45 @@ function buildMagnifierTimeline() {
       }
     : start;
 
-  // Абзац описания состоит из двух строк. Высоту строки берём как половину
-  // высоты блока. Центр 1-й строки смещён вниз (DESC_ROW_OFFSET_Y), центр 2-й —
-  // на высоту строки ниже. Текст центрирован, поэтому обе строки идут по cx.
-  const DESC_ROW_OFFSET_Y = 12;
+  // Фактическая высота строки берётся из computed style (line-height), а не
+  // оценочно height/2 — так трекинг двух строк точен и на мобильных, где
+  // переносы и межстрочный интервал отличаются от десктопа.
+  const measuredLineHeight = (element) => {
+    if (!element) return 0;
+    const style = window.getComputedStyle(element);
+    const lh = parseFloat(style.lineHeight);
+    if (Number.isFinite(lh) && lh > 0) return lh;
+    const fs = parseFloat(style.fontSize);
+    return Number.isFinite(fs) && fs > 0 ? fs * 1.4 : 26;
+  };
+
+  // Нормируем ось Y строки так, чтобы она не выходила за блок описания.
+  const clampToBlock = (value, top, height) =>
+    Math.min(Math.max(value, top + half), top + height - half);
+
   const descLines = descRect
     ? (() => {
+        const lineHeight = measuredLineHeight(heroSubtitle);
         const cx = descRect.left + descRect.width / 2;
-        const lineHeight = descRect.height / 2;
-        const y1 = descRect.top + descRect.height / 2 - DESC_ROW_OFFSET_Y;
-        const y2 = y1 + lineHeight;
-        // Диапазон 1-й строки — почти вся ширина блока.
+        const y1 = clampToBlock(
+          descRect.top + lineHeight / 2 + 2,
+          descRect.top,
+          descRect.height,
+        );
+        const y2 = clampToBlock(y1 + lineHeight, descRect.top, descRect.height);
+        // Диапазон 1-й строки — почти вся ширина блока (с учётом сжатия).
         const shrink = Math.max(0, (descRect.width / 2 - half) * compress);
+        // Границы ни при каком масштабе не выходят за документ (document-space).
+        const docWidth = document.documentElement.clientWidth + scrollX;
+        const left = Math.max(scrollX + half, cx - shrink);
+        const right = Math.min(docWidth - half, cx + shrink);
         // Диапазон 2-й строки («под тебя.») — узкий, вокруг центра.
         const shortSpan = Math.max(half, descRect.width * 0.12);
+        const shortLeft = Math.max(scrollX + half, cx - shortSpan);
+        const shortRight = Math.min(docWidth - half, cx + shortSpan);
         return [
-          { left: cx - shrink, right: cx + shrink, y: y1 },
-          { left: cx - shortSpan, right: cx + shortSpan, y: y2 },
+          { left, right: Math.max(left, right), y: y1 },
+          { left: shortLeft, right: Math.max(shortLeft, shortRight), y: y2 },
         ];
       })()
     : [];
@@ -394,8 +460,14 @@ function magnifierPointAt(time) {
 function placeMagnifier(point) {
   const half = magnifier.lensSize / 2;
   if (magnifierLens) {
+    // Линза абсолютна внутри #home-screen: вычитаем origin содержащего блока,
+    // чтобы document-координаты точки легли точно под линзу.
+    const host = magnifierLens.offsetParent || screens.home || document.body;
+    const hostRect = host.getBoundingClientRect();
+    const originX = hostRect.left + (window.scrollX || window.pageXOffset || 0);
+    const originY = hostRect.top + (window.scrollY || window.pageYOffset || 0);
     magnifierLens.style.transform =
-      `translate3d(${point.x - half}px, ${point.y - half}px, 0)`;
+      `translate3d(${point.x - half - originX}px, ${point.y - half - originY}px, 0)`;
   }
   const stage = document.getElementById('vibe-magnifier-stage');
   if (stage) {
