@@ -29,15 +29,11 @@ const questionText = document.getElementById('question-text');
 const answersContainer = document.getElementById('answers');
 const themeName = document.getElementById('theme-name');
 const themeDescription = document.getElementById('theme-description');
-const particlesWrap = document.getElementById('particles');
 const vibeGame = document.getElementById('vibe-game');
 const tetrisCanvas = document.getElementById('tetris-canvas');
 const vibeQuoteText = document.getElementById('vibe-quote-text');
 const tetrisGameOver = document.getElementById('tetris-game-over');
 const tetrisRestartBtn = document.getElementById('tetris-restart-btn');
-const magnifierLens = document.getElementById('vibe-magnifier');
-const heroTitle = document.querySelector('.hero-wrap h1');
-const heroSubtitle = document.querySelector('.subtitle');
 const discordButton = document.getElementById('discord-support');
 
 const state = {
@@ -236,299 +232,9 @@ function initGlassTilt() {
   init3DTiltEffect('#vibe-menu-toggle', 7);
 }
 
-function initParticles() {
-  particlesWrap.innerHTML = '';
-  for (let index = 0; index < 48; index += 1) {
-    const particle = document.createElement('span');
-    particle.className = 'particle';
-    particle.style.left = `${Math.random() * 100}%`;
-    particle.style.top = `${Math.random() * 100}%`;
-    particle.style.opacity = (Math.random() * 0.8 + 0.2).toFixed(2);
-    particle.style.setProperty('--speed', `${Math.random() * 12 + 12}s`);
-    particle.style.animationDelay = `${Math.random() * 6}s`;
-    particlesWrap.appendChild(particle);
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Оптическая лупа на домашнем экране. Внутри маленькой линзы показывается
-// увеличенный клон экрана (twin-copy), обрезанный круглой маской, поэтому
-// текст «выпукло» растёт только в её 45px-периметре. Исходная вёрстка и её
-// текстовые узлы НЕ меняются — никакие буквы не разбиваются на span'ы.
-// Движение задаётся явной таймлайн-машиной состояний: медленное «чтение»
-// заголовка по буквам → описание → пауза 2000мс у Discord → возврат.
-// ---------------------------------------------------------------------------
-const magnifier = {
-  active: false,
-  raf: 0,
-  start: 0,
-  holdTimer: 0,
-  segments: [],
-  total: 0,
-  scale: 1.5,
-  lensSize: 45,
-  holdMs: 3000,
-};
-
-// Кривые движения: линейная для «чтения», сглаженная для переходов.
-const magnifierLinear = (t) => t;
-const magnifierSmooth = (t) => t * t * (3 - 2 * t);
-
-// Клонирует рабочую область внутрь stage-слоя линзы (один раз). Клонируем
-// .page-shell целиком — так в линзе оказываются фон, свечение и частицы,
-// а исходная вёрстка и её текстовые узлы остаются полностью нетронутыми.
-function buildMagnifierClone() {
-  const stage = document.getElementById('vibe-magnifier-stage');
-  const source = document.querySelector('.page-shell');
-  if (!stage || !source) return;
-  if (stage.dataset.cloned === 'true') return;
-  const clone = source.cloneNode(true);
-  // Сама лупа теперь лежит внутри .page-shell — исключаем её из клона,
-  // иначе получилась бы рекурсивная копия.
-  clone.querySelectorAll('.vibe-magnifier-lens').forEach((node) => node.remove());
-  clone.querySelectorAll('[id]').forEach((node) => node.removeAttribute('id'));
-  clone.setAttribute('aria-hidden', 'true');
-  stage.replaceChildren(clone);
-  stage.dataset.cloned = 'true';
-}
-
-// Строит явный таймлайн: старт НАД заголовком «Vibe Finder» (заголовок не
-// сканируем), быстрый проход по ОБЕИМ строкам описания, переход к кнопке
-// Discord (целиком внутри линзы), пауза 3000мс и возврат в исходную точку.
-function buildMagnifierTimeline() {
-  const segments = [];
-  const lens = magnifier.lensSize;
-  const half = lens / 2;
-  const readSpeed = 70; // px/s — ускоренное, но плавное «чтение» строк
-  // Мобильный брейкпоинт по фактической ширине вьюпорта (а не только media).
-  const mobile = window.innerWidth < 768 || window.matchMedia('(max-width: 768px)').matches;
-  // На мобильных сильнее сжимаем вектор и удерживаем линзу внутри экрана.
-  const compress = mobile ? 0.7 : 1;
-
-  // Все координаты переводим в document-space (rect + scroll offset): линза
-  // абсолютна внутри #home-screen, поэтому при прокрутке она остаётся
-  // привязанной к тексту и не «дрейфует» как привязка к static viewport.
-  const scrollX = window.scrollX || window.pageXOffset || 0;
-  const scrollY = window.scrollY || window.pageYOffset || 0;
-  const documentRect = (element) => {
-    if (!element) return null;
-    const rect = element.getBoundingClientRect();
-    return {
-      left: rect.left + scrollX,
-      top: rect.top + scrollY,
-      width: rect.width,
-      height: rect.height,
-    };
-  };
-
-  const titleRect = documentRect(heroTitle);
-  const descRect = documentRect(heroSubtitle);
-  const discordRect = documentRect(discordButton);
-
-  // Стартовая точка — прямо НАД заголовком «Vibe Finder» (по центру).
-  const start = titleRect
-    ? { x: titleRect.left + titleRect.width / 2, y: titleRect.top - half - 10 }
-    : { x: half, y: half };
-
-  // Диск: центр кнопки, чтобы весь модуль целиком попал в 45px-периметр линзы.
-  // Небольшой сдвиг вправо/вниз (DISCORD_OFFSET_X/Y) компенсирует визуальный
-  // сдвиг иконки внутри контейнера, чтобы линза встала ровно по центру кнопки.
-  const DISCORD_OFFSET_X = 5;
-  const DISCORD_OFFSET_Y = 4;
-  const discord = discordRect
-    ? {
-        x: discordRect.left + discordRect.width / 2 + DISCORD_OFFSET_X,
-        y: discordRect.top + discordRect.height / 2 + DISCORD_OFFSET_Y,
-      }
-    : start;
-
-  // Фактическая высота строки берётся из computed style (line-height), а не
-  // оценочно height/2 — так трекинг двух строк точен и на мобильных, где
-  // переносы и межстрочный интервал отличаются от десктопа.
-  const measuredLineHeight = (element) => {
-    if (!element) return 0;
-    const style = window.getComputedStyle(element);
-    const lh = parseFloat(style.lineHeight);
-    if (Number.isFinite(lh) && lh > 0) return lh;
-    const fs = parseFloat(style.fontSize);
-    return Number.isFinite(fs) && fs > 0 ? fs * 1.4 : 26;
-  };
-
-  // Нормируем ось Y строки так, чтобы она не выходила за блок описания.
-  const clampToBlock = (value, top, height) =>
-    Math.min(Math.max(value, top + half), top + height - half);
-
-  const descLines = descRect
-    ? (() => {
-        const lineHeight = measuredLineHeight(heroSubtitle);
-        const cx = descRect.left + descRect.width / 2;
-        const y1 = clampToBlock(
-          descRect.top + lineHeight / 2 + 2,
-          descRect.top,
-          descRect.height,
-        );
-        const y2 = clampToBlock(y1 + lineHeight, descRect.top, descRect.height);
-        // Диапазон 1-й строки — почти вся ширина блока (с учётом сжатия).
-        const shrink = Math.max(0, (descRect.width / 2 - half) * compress);
-        // Границы ни при каком масштабе не выходят за документ (document-space).
-        const docWidth = document.documentElement.clientWidth + scrollX;
-        const left = Math.max(scrollX + half, cx - shrink);
-        const right = Math.min(docWidth - half, cx + shrink);
-        // Диапазон 2-й строки («под тебя.») — узкий, вокруг центра.
-        const shortSpan = Math.max(half, descRect.width * 0.12);
-        const shortLeft = Math.max(scrollX + half, cx - shortSpan);
-        const shortRight = Math.min(docWidth - half, cx + shortSpan);
-        return [
-          { left, right: Math.max(left, right), y: y1 },
-          { left: shortLeft, right: Math.max(shortLeft, shortRight), y: y2 },
-        ];
-      })()
-    : [];
-
-  const move = (from, to, duration) => ({
-    fromX: from.x, fromY: from.y, toX: to.x, toY: to.y,
-    duration, ease: magnifierSmooth,
-  });
-  const sweep = (line, duration) => ({
-    fromX: line.left, fromY: line.y, toX: line.right, toY: line.y,
-    duration, ease: magnifierLinear,
-  });
-  const hold = (point, duration) => ({
-    fromX: point.x, fromY: point.y, toX: point.x, toY: point.y,
-    duration, ease: magnifierLinear,
-  });
-  const sweepDuration = (line) =>
-    Math.max(1500, ((line.right - line.left) / readSpeed) * 1000);
-
-  // 1. Старт над заголовком → спуск к первой строке описания.
-  const firstLine = descLines[0];
-  if (firstLine) {
-    segments.push(move(start, { x: firstLine.left, y: firstLine.y }, 1300));
-    // 2. Проход по первой строке описания.
-    segments.push(sweep(firstLine, sweepDuration(firstLine)));
-  }
-  // 3. Мягкий спуск ко второй строке («под тебя.») и её проход.
-  const secondLine = descLines[1];
-  if (firstLine && secondLine) {
-    segments.push(move(
-      { x: firstLine.right, y: firstLine.y },
-      { x: secondLine.left, y: secondLine.y },
-      1100,
-    ));
-    segments.push(sweep(secondLine, sweepDuration(secondLine)));
-  }
-  // 4. Переход к Discord (кнопка целиком внутри линзы) и пауза 3000мс.
-  const fromDesc = secondLine
-    ? { x: secondLine.right, y: secondLine.y }
-    : (firstLine ? { x: firstLine.right, y: firstLine.y } : start);
-  segments.push(move(fromDesc, discord, 1500));
-  segments.push(hold(discord, magnifier.holdMs));
-  // 5. Плавный возврат в исходную точку над заголовком — цикл замыкается.
-  segments.push(move(discord, start, 1700));
-
-  magnifier.segments = segments;
-  magnifier.total = segments.reduce((sum, part) => sum + part.duration, 0) || 1;
-}
-
-function measureMagnifier() {
-  magnifier.lensSize = magnifierLens ? magnifierLens.offsetWidth || 45 : 45;
-  magnifier.scale = window.matchMedia('(max-width: 768px)').matches ? 1.45 : 1.5;
-  buildMagnifierTimeline();
-}
-
-// Находит точку на таймлайне по прошедшему времени.
-function magnifierPointAt(time) {
-  const segments = magnifier.segments;
-  if (!segments.length) return { x: magnifier.lensSize / 2, y: magnifier.lensSize / 2 };
-  let remaining = time % magnifier.total;
-  for (const part of segments) {
-    if (remaining <= part.duration) {
-      const local = part.duration ? remaining / part.duration : 0;
-      const eased = part.ease(local);
-      return {
-        x: part.fromX + (part.toX - part.fromX) * eased,
-        y: part.fromY + (part.toY - part.fromY) * eased,
-      };
-    }
-    remaining -= part.duration;
-  }
-  const last = segments[segments.length - 1];
-  return { x: last.toX, y: last.toY };
-}
-
-// Двигает линзу в точку и синхронизирует увеличенный клон под её центром.
-function placeMagnifier(point) {
-  const half = magnifier.lensSize / 2;
-  if (magnifierLens) {
-    // Линза абсолютна внутри #home-screen: вычитаем origin содержащего блока,
-    // чтобы document-координаты точки легли точно под линзу.
-    const host = magnifierLens.offsetParent || screens.home || document.body;
-    const hostRect = host.getBoundingClientRect();
-    const originX = hostRect.left + (window.scrollX || window.pageXOffset || 0);
-    const originY = hostRect.top + (window.scrollY || window.pageYOffset || 0);
-    magnifierLens.style.transform =
-      `translate3d(${point.x - half - originX}px, ${point.y - half - originY}px, 0)`;
-  }
-  const stage = document.getElementById('vibe-magnifier-stage');
-  if (stage) {
-    // Точка под линзой с учётом увеличения должна совпасть с её центром:
-    // origin клона (0,0) смещаем так, чтобы (point * scale) попало в half.
-    const scale = magnifier.scale;
-    const tx = half - point.x * scale;
-    const ty = half - point.y * scale;
-    stage.style.transform = `translate(${tx}px, ${ty}px) scale(${scale})`;
-  }
-}
-
-function magnifierTick(time) {
-  if (!magnifier.active) return;
-  if (!magnifier.start) magnifier.start = time;
-  placeMagnifier(magnifierPointAt(time - magnifier.start));
-  if (magnifier.active) {
-    magnifier.raf = window.requestAnimationFrame(magnifierTick);
-  }
-}
-
-function startMagnifier() {
-  if (!magnifierLens) return;
-  // Строгий тирдаун перед ре-маунтом: гасим возможный предыдущий цикл и
-  // таймеры паузы, чтобы не запустился дублирующий оверлей и координаты
-  // не «рвались» при возврате на домашний экран.
-  teardownMagnifier();
-  buildMagnifierClone();
-  measureMagnifier();
-  magnifier.active = true;
-  magnifier.start = 0;
-  magnifierLens.classList.add('is-active');
-  // Ставим линзу в абсолютную стартовую точку (над заголовком) сразу.
-  placeMagnifier(magnifierPointAt(0));
-  magnifier.raf = window.requestAnimationFrame(magnifierTick);
-}
-
-// Полный сброс состояния лупы: кадр, таймеры паузы и координаты трансформов.
-function teardownMagnifier() {
-  if (magnifier.raf) {
-    window.cancelAnimationFrame(magnifier.raf);
-    magnifier.raf = 0;
-  }
-  if (magnifier.holdTimer) {
-    window.clearTimeout(magnifier.holdTimer);
-    magnifier.holdTimer = 0;
-  }
-  magnifier.active = false;
-  magnifier.start = 0;
-}
-
-function stopMagnifier() {
-  teardownMagnifier();
-  if (magnifierLens) {
-    magnifierLens.classList.remove('is-active');
-    // Сбрасываем базовые координаты в дефолтную позицию.
-    magnifierLens.style.transform = 'translate3d(-200px, -200px, 0)';
-  }
-  const stage = document.getElementById('vibe-magnifier-stage');
-  if (stage) stage.style.transform = '';
-}
+/* Лупа удалена целиком: её непрозрачный круг закрывал текст первого экрана,
+   а не увеличивал его. Прежний код строил клон всей страницы и водил линзу
+   по маршруту «заголовок → подзаголовок → Discord». */
 
 function showScreen(name) {
   Object.entries(screens).forEach(([key, screen]) => {
@@ -539,9 +245,6 @@ function showScreen(name) {
   if (name !== 'vibe') closeVibeMenu();
   // Вне экрана вайба тетрис и карусель цитат должны быть полностью остановлены.
   if (name !== 'vibe') stopVibeGame();
-  // Лупа живёт только на домашнем экране — на других останавливается.
-  if (name === 'home') startMagnifier();
-  else stopMagnifier();
 }
 
 function closeVibeMenu(returnFocus = false) {
@@ -1368,8 +1071,6 @@ function performReturn() {
   closeVibeMenu();
   cancelVibeCreation();
   stopVibeGame();
-  // Полный тирдаун лупы до ре-маунта на домашнем экране.
-  teardownMagnifier();
   state.currentQuestion = 0;
   state.scores = { cosmos: 0, solar: 0, neon: 0, forest: 0 };
   state.answers = [];
@@ -1410,15 +1111,6 @@ window.addEventListener('vibe-language-change', () => {
   if (state.quoteList && state.quoteList.length) {
     showQuote(game.quoteIndex);
   }
-  // Перевод перерисовал тексты — пересобираем клон экрана для лупы.
-  if (magnifier.active) {
-    const stage = document.getElementById('vibe-magnifier-stage');
-    if (stage) {
-      stage.dataset.cloned = '';
-      buildMagnifierClone();
-    }
-    measureMagnifier();
-  }
   shareFeedback.textContent = '';
 });
 document.addEventListener('click', (event) => {
@@ -1433,22 +1125,10 @@ document.addEventListener('keydown', (event) => {
   }
 });
 
-// Пересчёт маршрута лупы при изменении размеров окна (координаты относительные).
-let magnifierResizeRaf = 0;
-function handleMagnifierResize() {
-  if (magnifierResizeRaf) return;
-  magnifierResizeRaf = window.requestAnimationFrame(() => {
-    magnifierResizeRaf = 0;
-    if (magnifier.active) measureMagnifier();
-  });
-}
-window.addEventListener('resize', handleMagnifierResize);
-
 // Порядок важен: сначала локализация (переводит статические тексты и запускает
 // наблюдатель за динамическими узлами), затем построение UI.
 initI18n('ru');
 initGlassTilt();
-initParticles();
 renderQuestion();
 showScreen('home');
 handleHashRoute();

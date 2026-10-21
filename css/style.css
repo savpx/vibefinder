@@ -2,20 +2,12 @@
 @import url('https://fonts.googleapis.com/css2?family=Alex+Brush&display=swap');
 
 :root {
-  --bg: #070b13;
-  --bg-alt: #0f172a;
-  --panel: rgba(17, 21, 31, 0.46);
-  --panel-strong: rgba(12, 17, 24, 0.7);
-  --glass: rgba(255, 255, 255, 0.08);
-  --glass-strong: rgba(255, 255, 255, 0.12);
-  --line: rgba(255, 255, 255, 0.12);
+  /* Тотальный чёрный: раньше здесь был синеватый #070b13, из-за которого
+     «чёрный» экран на самом деле читался как тёмно-синий. */
+  --bg: #000000;
   --text: #f3f5f9;
   --muted: #c7d2ea;
   --primary: #d2d9ff;
-  --secondary: #b9c0ff;
-  --success: #aee6cf;
-  --shadow: rgba(3, 6, 15, 0.58);
-  --shadow-soft: rgba(13, 18, 30, 0.38);
 
   /* --- Apple semantic label colors (HIG) --- */
   --label-primary: #FFFFFF;
@@ -24,7 +16,6 @@
 
   /* --- Apple system material (glass) — exact physical params --- */
   --material-bg: rgba(25, 25, 25, 0.45);
-  --material-bg-opaque: rgba(25, 25, 25, 0.94);
   --material-border: rgba(255, 255, 255, 0.12);
   --material-blur: blur(20px) saturate(190%);
   --inset-highlight: inset 0 0.5px 0 rgba(255, 255, 255, 0.15);
@@ -32,26 +23,18 @@
   --shadow-elevated: 0 30px 70px -28px rgba(0, 0, 0, 0.7),
     0 0 46px rgba(120, 170, 255, 0.18), var(--inset-highlight);
 
-  /* --- System grays & hairlines --- */
+  /* --- System grays --- */
   --system-gray-4: #3A3A3C;
-  --hairline: rgba(255, 255, 255, 0.1);
-  --hairline-strong: rgba(255, 255, 255, 0.12);
 
-  /* --- iOS squircle geometry --- */
+  /* --- Geometry --- */
   --radius-container: 22px;
   --radius-control: 12px;
-  --radius-micro: 10px;
 
-  /* --- iOS type scale --- */
-  --type-large-title-size: 34px;
-  --type-large-title-tracking: -0.4px;
+  /* --- Type scale --- */
   --type-title2-size: 22px;
   --type-title2-tracking: -0.4px;
   --type-body-size: 17px;
-  --type-body-line: 22px;
   --type-body-tracking: -0.4px;
-  --type-footnote-size: 13px;
-  --type-footnote-tracking: -0.08px;
 
   /* --- Fluid motion (spring-mimicking) --- */
   --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
@@ -80,35 +63,18 @@ html {
 body {
   min-height: 100vh;
   overflow-x: hidden;
-  /* Акцентные градиенты плавно растворяются в глубоком чернильном --bg */
-  background:
-    radial-gradient(circle at 20% 12%, rgba(167, 139, 250, 0.16), transparent 22%),
-    radial-gradient(circle at 78% 18%, rgba(125, 211, 252, 0.12), transparent 24%),
-    linear-gradient(140deg, var(--bg) 0%, #0a1020 38%, var(--bg) 100%);
+  /* Ровный фон. Прежде здесь лежали два цветных пятна и светлая полоса
+     градиента: на широком экране полоса читалась как случайный блик
+     поперёк страницы, а пятна не несли смысла. */
+  background: var(--bg);
   transition: background 0.7s var(--ease-spring), color 0.4s var(--ease-spring);
-}
-
-body::before {
-  position: fixed;
-  inset: -20% -10% auto;
-  height: 80vh;
-  content: "";
-  background: radial-gradient(circle at center, rgba(255, 255, 255, 0.08), transparent 60%);
-  pointer-events: none;
-  filter: blur(36px);
-  opacity: 0.7;
 }
 
 body.theme-cosmos {
   --bg: #040a1f;
-  --bg-alt: #111c3b;
-  --panel: rgba(13, 18, 34, 0.82);
-  --panel-strong: rgba(8, 14, 28, 0.92);
   --text: #edf4ff;
   --muted: #c0d1ee;
   --primary: #80d8ff;
-  --secondary: #b892ff;
-  --success: #91f2d2;
   background:
     radial-gradient(circle at 15% 20%, rgba(123, 92, 255, 0.32), transparent 25%),
     radial-gradient(circle at 75% 20%, rgba(91, 152, 255, 0.22), transparent 26%),
@@ -117,14 +83,9 @@ body.theme-cosmos {
 
 body.theme-solar {
   --bg: #1b1204;
-  --bg-alt: #2c1d0a;
-  --panel: rgba(34, 22, 10, 0.8);
-  --panel-strong: rgba(36, 24, 11, 0.92);
   --text: #fff8ef;
   --muted: #ffe8c2;
   --primary: #fbbf24;
-  --secondary: #f97316;
-  --success: #facc15;
   background:
     radial-gradient(circle at 30% 15%, rgba(251, 191, 36, 0.28), transparent 22%),
     radial-gradient(circle at 68% 25%, rgba(251, 146, 60, 0.22), transparent 18%),
@@ -133,14 +94,9 @@ body.theme-solar {
 
 body.theme-neon {
   --bg: #05070d;
-  --bg-alt: #0d1221;
-  --panel: rgba(12, 14, 28, 0.8);
-  --panel-strong: rgba(8, 10, 23, 0.92);
   --text: #eff7ff;
   --muted: #cedcff;
   --primary: #67e8f9;
-  --secondary: #f472b6;
-  --success: #a78bfa;
   background:
     radial-gradient(circle at 15% 10%, rgba(103, 232, 249, 0.17), transparent 18%),
     radial-gradient(circle at 75% 18%, rgba(244, 114, 182, 0.16), transparent 20%),
@@ -149,14 +105,9 @@ body.theme-neon {
 
 body.theme-forest {
   --bg: #111b14;
-  --bg-alt: #1e2a1f;
-  --panel: rgba(18, 26, 20, 0.8);
-  --panel-strong: rgba(15, 20, 17, 0.92);
   --text: #f2f6ee;
   --muted: #dfe9d4;
   --primary: #8ec49a;
-  --secondary: #b7a76d;
-  --success: #9ad5a3;
   background:
     radial-gradient(circle at 10% 18%, rgba(142, 196, 154, 0.2), transparent 22%),
     radial-gradient(circle at 75% 20%, rgba(168, 142, 90, 0.18), transparent 22%),
@@ -327,19 +278,17 @@ input {
   background: rgba(4, 7, 17, 0.35);
 }
 
-/* Единая фоновая канва домашнего экрана, опроса и перехода — фон полностью
-   идентичен, поэтому смена экранов ощущается бесшовной и непрерывной. */
+/* Единая фоновая канва домашнего экрана, опроса и перехода: ровный чёрный.
+   Раньше здесь лежал градиент #050505 → #111111 → #070707, который светлел
+   к середине и читался как случайное пятно на «чёрном» экране. */
 #home-screen,
 #survey-screen,
 #creation-screen {
   --text: #f4f4f4;
   --muted: #b8b8b8;
   --primary: #eeeeee;
-  --secondary: #929292;
   color: var(--text);
-  background:
-    radial-gradient(circle at 50% 42%, rgba(210, 210, 210, 0.09), transparent 28rem),
-    linear-gradient(145deg, #050505 0%, #111111 52%, #070707 100%);
+  background: #000000;
 }
 
 /* Курсивный шрифт Alex Brush уже подключён через @import в самом начале файла
@@ -419,7 +368,7 @@ input {
   align-items: center;
   justify-content: center;
   text-align: center;
-  gap: 1rem;
+  gap: 1.15rem;
   padding: 2rem;
   z-index: 2;
 }
@@ -433,124 +382,44 @@ input {
   font-size: 0.7rem;
 }
 
-/* Main app title — enlarged Large Title (42px) */
+/* Заголовок держит первый экран размером и весом, а не свечением.
+   Разрыв с подзаголовком намеренно большой — это и даёт иерархию. */
 .hero-wrap h1 {
   margin: 0;
-  font-size: clamp(2.8rem, 6vw, 42px);
-  font-weight: 700;
-  letter-spacing: -0.8px;
-  line-height: 1.05;
+  font-size: clamp(3.2rem, 9vw, 88px);
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  line-height: 0.98;
   color: var(--label-primary);
-  text-shadow: 0 0 28px rgba(235, 235, 235, 0.22);
 }
 
-/* ------------------------------------------------------------------
-   Лупа: миниатюрная прецизионная линза (диаметр 45px) + ручка под 45°.
-   Контейнер позиционируется во вьюпорте; внутри .vibe-magnifier-copy
-   лежит увеличенный клон экрана, обрезанный круглой маской. Исходные
-   текстовые узлы вёрстки никогда не разбиваются и не меняются.
-   ------------------------------------------------------------------ */
-.vibe-magnifier-lens {
-  /* Абсолютно внутри #home-screen — линза в natural scroll-потоке документа,
-     поэтому при прокрутке она остаётся привязанной к тексту, а не к вьюпорту. */
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 45px;
-  height: 45px;
-  margin: 0;
-  pointer-events: none;
-  z-index: 9999;
-  opacity: 1;
-  transform: translate3d(-200px, -200px, 0);
-  transition: opacity 0.5s var(--ease-spring);
-  will-change: transform;
-}
+/* Убрано: лупа (.vibe-magnifier-lens/copy/stage/glass) и её ручка.
+   Круг линзы непрозрачен, поэтому на домашнем экране он не увеличивал
+   текст, а закрывал его: подзаголовок читался плохо, а ручка ложилась
+   диагональю поперёк строки. Первый экран держится типографикой. */
 
-.vibe-magnifier-lens:not(.is-active) {
-  opacity: 0;
-}
-
-/* Слой реальной оптики: маска-круг по размеру линзы, внутри — клон экрана.
-   Непрозрачный фон (как у body) полностью перекрывает РЕАЛЬНЫЙ текст под
-   линзой, поэтому виден только увеличенный клон — двоения (ghosting) нет. */
-.vibe-magnifier-copy {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-  border-radius: 50%;
-  pointer-events: none;
-  /* Сплошной непрозрачный фон надёжно скрывает реальный текст под линзой. */
-  background: var(--bg);
-}
-
-/* Клон домашнего экрана в натуральную величину; трансформируется в JS.
-   Тот же градиент, что у body — масштабируется вместе с текстом, поэтому
-   увеличенная картинка идеально совпадает с исходной (без смещений). */
-.vibe-magnifier-stage {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  transform-origin: 0 0;
-  pointer-events: none;
-  background:
-    radial-gradient(circle at 20% 12%, rgba(167, 139, 250, 0.16), transparent 22%),
-    radial-gradient(circle at 78% 18%, rgba(125, 211, 252, 0.12), transparent 24%),
-    linear-gradient(140deg, var(--bg) 0%, #0a1020 38%, var(--bg) 100%);
-}
-
-.vibe-magnifier-stage * {
-  pointer-events: none;
-}
-
-/* Стеклянная линза поверх клона + ручка под 45°. Blur полностью убран —
-   увеличенный текст внутри остаётся кристально резким. */
-.vibe-magnifier-glass {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 45px;
-  height: 45px;
-  border-radius: 50%;
-  pointer-events: none;
-  background: rgba(255, 255, 255, 0.03);
-  backdrop-filter: blur(0px);
-  -webkit-backdrop-filter: blur(0px);
-  border: 0.5px solid rgba(255, 255, 255, 0.3);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.45), inset 0 0 8px rgba(255, 255, 255, 0.18);
-  background-image: radial-gradient(circle at 34% 28%, rgba(255, 255, 255, 0.16), transparent 48%);
-}
-
-.vibe-magnifier-glass::after {
-  position: absolute;
-  width: 4px;
-  height: 20px;
-  bottom: -14px;
-  right: -8px;
-  content: "";
-  background: rgba(255, 255, 255, 0.4);
-  border-radius: 3px;
-  transform: rotate(-45deg);
-  box-shadow: 0 3px 7px rgba(0, 0, 0, 0.35);
-}
-
+/* Подпись команды переехала в нижний угол экрана: она перестала быть
+   надзаголовком и перестала разрывать пару «заголовок — подзаголовок». */
 .team-credit {
-  margin: 0 0 0.3rem;
-  color: var(--muted);
+  position: fixed;
+  inset-inline-start: max(20px, env(safe-area-inset-left));
+  bottom: max(24px, env(safe-area-inset-bottom));
+  z-index: 22;
+  margin: 0;
+  color: var(--label-tertiary);
   font-size: 0.72rem;
   letter-spacing: 0.14em;
+  text-transform: uppercase;
 }
 
-/* Body copy — welcoming 19px / 26px */
+/* Подзаголовок явно тише заголовка: 17px против 88px. */
 .subtitle {
   margin: 0;
-  max-width: 620px;
+  max-width: 46ch;
   color: var(--label-secondary);
-  font-size: 19px;
-  line-height: 26px;
-  letter-spacing: var(--type-body-tracking);
+  font-size: 17px;
+  line-height: 1.55;
+  letter-spacing: 0;
 }
 
 .primary-btn,
@@ -564,14 +433,15 @@ input {
   transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease, background 0.22s ease;
 }
 
-/* iOS 15+ filled button */
+/* Главная кнопка: рамка и лёгкая заливка. Ореол 30px вокруг кнопки был ещё
+   одним эффектом, который ничего не сообщал. */
 .primary-btn {
   padding: 14px 20px;
   font-weight: 600;
   font-size: var(--type-body-size);
   letter-spacing: var(--type-body-tracking);
   background: linear-gradient(135deg, rgba(240, 240, 240, 0.16), rgba(130, 130, 130, 0.12));
-  box-shadow: 0 0 30px rgba(220, 220, 220, 0.12), var(--inset-highlight);
+  box-shadow: var(--inset-highlight);
 }
 
 /* ------------------------------------------------------------------
@@ -652,76 +522,22 @@ input {
   box-shadow: 0 14px 26px -16px rgba(0, 0, 0, 0.5);
 }
 
-.hero-glow {
-  position: absolute;
-  width: 520px;
-  height: 520px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(235, 235, 235, 0.17), rgba(135, 135, 135, 0.09), transparent 65%);
-  filter: blur(24px);
-  z-index: -1;
-  animation: pulse 9s ease-in-out infinite alternate;
-}
+/* Убраны: .hero-glow, .ambient-1/2/3, #particles, .particle, @keyframes drift.
+   Два свечения поверх друг друга и три цветных круга с blur(60px) не
+   сообщали ничего о продукте. Движение осталось там, где оно отвечает
+   на действие: лупа, рукописный переход, каскад результата. */
 
-.ambient {
-  position: absolute;
-  filter: blur(60px);
-  border-radius: 50%;
-  opacity: 0.28;
-  animation: floaty 22s ease-in-out infinite alternate;
-  z-index: 0;
-}
-
-.ambient-1 {
-  width: 340px;
-  height: 340px;
-  background: rgba(114, 107, 255, 0.28);
-  top: 10%;
-  left: 12%;
-}
-
-.ambient-2 {
-  width: 420px;
-  height: 420px;
-  background: rgba(14, 165, 233, 0.2);
-  right: 15%;
-  bottom: 10%;
-  animation-delay: 2s;
-}
-
-.ambient-3 {
-  width: 260px;
-  height: 260px;
-  background: rgba(244, 114, 182, 0.18);
-  left: 45%;
-  top: 55%;
-  animation-delay: 5s;
-}
-
-#particles {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-  pointer-events: none;
-  /* Выше канвы экрана перехода (z-index: 2), чтобы звёзды оставались
-     видимыми и активными поверх рукописной анимации */
-  z-index: 3;
-}
-
-.particle {
-  position: absolute;
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: rgba(255,255,255,0.7);
-  box-shadow: 0 0 10px rgba(255,255,255,0.5);
-  animation: drift var(--speed) linear infinite;
-}
-
-@keyframes drift {
-  0% { transform: translateY(0) scale(0.8); opacity: 0; }
-  15% { opacity: 1; }
-  100% { transform: translateY(-108vh) scale(1.5); opacity: 0; }
+/* Единственная конкретика на первом экране: сколько здесь есть. */
+.fact {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  /* --label-secondary, а не tertiary: на чистом чёрном 30% белого давали
+     2.48:1 — ниже порога 4.5:1 для текста. */
+  color: var(--label-secondary);
+  font-variant-numeric: tabular-nums;
 }
 
 #survey-screen {
@@ -1186,7 +1002,6 @@ body.theme-forest #vibe-screen {
 
 #vibe-screen[data-vibe] {
   --vibe-accent: var(--primary);
-  --vibe-glow: color-mix(in srgb, var(--vibe-accent) 78%, transparent);
 }
 #vibe-screen[data-vibe] .theme-tag { color: var(--vibe-accent); }
 
@@ -1627,6 +1442,7 @@ button:disabled {
 }
 
 .tetris-box {
+  position: relative;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -1638,10 +1454,6 @@ button:disabled {
   border: 0.5px solid rgba(255, 255, 255, 0.12);
   border-radius: 22px;
   box-shadow: 0 28px 60px -28px rgba(0, 0, 0, 0.62), var(--inset-highlight);
-}
-
-.tetris-box {
-  position: relative;
 }
 
 #tetris-canvas {
@@ -1740,22 +1552,5 @@ button:disabled {
     max-height: min(52vh, 420px);
   }
 
-  /* На мобильных линза чуть компактнее (36px) — путь сжимается в JS. */
-  .vibe-magnifier-lens {
-    width: 36px;
-    height: 36px;
-  }
-
-  .vibe-magnifier-glass {
-    width: 36px;
-    height: 36px;
-  }
-
-  .vibe-magnifier-glass::after {
-    width: 3px;
-    height: 16px;
-    bottom: -11px;
-    right: -6px;
-  }
 }
 

@@ -20,10 +20,6 @@
   </head>
   <body>
     <div class="page-shell">
-      <div class="ambient ambient-1"></div>
-      <div class="ambient ambient-2"></div>
-      <div class="ambient ambient-3"></div>
-      <div id="particles" aria-hidden="true"></div>
       <div class="language-switcher">
         <button
           id="language-toggle"
@@ -46,12 +42,11 @@
 
       <section id="home-screen" class="screen active">
         <div class="hero-wrap">
-          <div class="hero-glow"></div>
-          <p class="team-credit">created by the Bsoul team</p>
           <h1>Vibe Finder</h1>
           <p class="subtitle">
             Найди своё настроение и войди в атмосферу, которая подстроится под тебя.
           </p>
+          <p class="fact">14 атмосфер · 10 вопросов</p>
           <button id="start-btn" class="primary-btn">
             <div class="glass-glare-effect" aria-hidden="true"></div>
             <span class="control-label">Начать</span>
@@ -76,15 +71,6 @@
           </svg>
         </a>
 
-        <!-- Лупа: позиционируется абсолютно внутри #home-screen, поэтому живёт
-             в natural scroll-потоке документа и не отвязывается от текста при
-             прокрутке. Координаты считаются в document-space (rect + scroll). -->
-        <div class="vibe-magnifier-lens" id="vibe-magnifier" aria-hidden="true">
-          <div class="vibe-magnifier-copy">
-            <div class="vibe-magnifier-stage" id="vibe-magnifier-stage"></div>
-          </div>
-          <div class="vibe-magnifier-glass"></div>
-        </div>
       </section>
 
       <section id="survey-screen" class="screen">
