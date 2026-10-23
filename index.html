@@ -3,6 +3,33 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <!-- ЯВНЫЙ OVERRIDE АНИМАЦИЙ (для разработки и для случаев, когда в Windows
+         выключены «Эффекты анимации»: MinAnimate=0 → браузер рапортует
+         prefers-reduced-motion: reduce → сайт честно показывает статику).
+         Скрипт стоит В HEAD и ДО CSS, поэтому стили успевают учесть атрибут.
+         Без параметра поведение НЕ меняется: доступность уважается как прежде.
+           ?motion=on   — принудительно включить все анимации на эту сессию
+           ?motion=off  — явно выключить (как reduce)
+         Выбор ?motion=on запоминается в localStorage и действует далее. -->
+    <script>
+      (function () {
+        try {
+          var params = new URLSearchParams(window.location.search);
+          var mode = params.get('motion');
+          if (mode === 'on' || mode === 'force') {
+            document.documentElement.dataset.motion = 'force';
+            try { window.localStorage.setItem('vibefinder:motion', 'force'); } catch (e) {}
+          } else if (mode === 'off') {
+            document.documentElement.dataset.motion = 'off';
+            try { window.localStorage.removeItem('vibefinder:motion'); } catch (e) {}
+          } else {
+            var saved = null;
+            try { saved = window.localStorage.getItem('vibefinder:motion'); } catch (e) {}
+            if (saved === 'force') document.documentElement.dataset.motion = 'force';
+          }
+        } catch (e) { /* приватный режим — тихо игнорируем */ }
+      })();
+    </script>
     <title>Vibe Finder</title>
     <meta
       name="description"
@@ -10,64 +37,170 @@
     />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- Единый запрос к Google Fonts (без @import — он блокирует CSS):
+         • Manrope — основной UI-шрифт. Есть Cyrillic / Cyrillic-ext / Greek /
+           Vietnamese / Latin. Это ключ: у Space Grotesk кириллицы НЕТ
+           (проверено через API: subsets = vietnamese, latin-ext, latin),
+           поэтому кириллица всегда идёт сюда.
+         • Space Grotesk 700 — заголовочный шрифт для ЛАТИНИЦЫ (EN-интерфейс,
+           бренд-надпись). Только вес 700, чтобы не тянуть лишние файлы.
+         • Alex Brush — рукописная латинская бренд-надпись перехода.
+         • Marck Script — рукописный вордмарк витрины для кириллицы
+           (в Alex Brush её нет).
+         CJK и Arabic намеренно НЕ грузятся: система даёт корректные глифы. -->
     <link
-      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Alex+Brush&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Space+Grotesk:wght@700&family=Alex+Brush&family=Marck+Script&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="css/style.css" />
+    <!-- ?v= — обязательный cache-buster. vercel.json отдаёт /css/* и /js/*
+         с max-age=31536000, immutable, поэтому без смены URL браузер НЕ
+         запрашивает обновлённые style.css/app.js и правки просто не видны.
+         Меняйте номер версии при каждом деплое изменений. -->
+    <link rel="stylesheet" href="css/style.css?v=20" />
     <!-- Native ES-module preload: fetches js/app.js and its import graph in parallel (no bundler). -->
-    <link rel="modulepreload" href="js/app.js" />
+    <link rel="modulepreload" href="js/app.js?v=20" />
   </head>
   <body>
     <div class="page-shell">
-      <div class="ambient ambient-1"></div>
-      <div class="ambient ambient-2"></div>
-      <div class="ambient ambient-3"></div>
-      <div id="particles" aria-hidden="true"></div>
-      <div class="language-switcher">
-        <button
-          id="language-toggle"
-          class="language-toggle"
-          type="button"
-          aria-label="Change language"
-          aria-expanded="false"
-          aria-controls="language-options"
-        >RU</button>
-        <div id="language-options" class="language-options" role="group" aria-label="Choose language" hidden>
-          <button type="button" data-language="en" aria-label="English">EN</button>
-          <button type="button" data-language="ru" aria-label="Russian">RU</button>
-          <button type="button" data-language="zh" aria-label="Chinese">ZH</button>
-          <button type="button" data-language="ar" aria-label="Arabic">AR</button>
-        </div>
-      </div>
 
       <section id="home-screen" class="screen active">
-        <div class="hero-wrap">
-          <div class="hero-glow"></div>
-          <p class="team-credit">created by the Bsoul team</p>
-          <h1>Vibe Finder</h1>
-          <p class="subtitle">
-            Найди своё настроение и войди в атмосферу, которая подстроится под тебя.
-          </p>
-          <button id="start-btn" class="primary-btn">Начать</button>
+        <!-- Мягкое свечение первого экрана. Внутри — два слоя с фиксированными
+             цветами: витрина перекрещивает их по прозрачности, поэтому один
+             цвет плавно заменяется другим без грязных промежуточных оттенков.
+             Сама витрина сейчас отключена (HOME_SHOWCASE_ENABLED = false в
+             js/app.js) — разметка и код сохранены для обратной совместимости. -->
+        <div class="home-glow" aria-hidden="true">
+          <span class="home-glow__layer"></span>
+          <span class="home-glow__layer"></span>
         </div>
-        <!-- Поддержка Discord: стеклянная иконка-кнопка строго в правом нижнем
-             углу домашнего экрана. Видимого текста нет, поэтому перевод не
-             требуется — доступность обеспечивает aria-label. -->
-        <a
-          id="discord-support"
-          class="discord-support"
-          href="https://discord.gg/kS2Mp8bjj5"
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-label="Discord community support"
-        >
-          <svg class="discord-support__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-            <path
-              d="M19.54 5.34A16.3 16.3 0 0 0 15.5 4.1a.06.06 0 0 0-.06.03c-.17.31-.37.71-.5 1.02a15 15 0 0 0-4.48 0c-.14-.32-.34-.71-.52-1.02a.06.06 0 0 0-.06-.03 16.3 16.3 0 0 0-4.04 1.24.06.06 0 0 0-.03.02C3.1 9.1 2.4 12.74 2.75 16.34a.07.07 0 0 0 .03.05 16.4 16.4 0 0 0 4.94 2.5.06.06 0 0 0 .07-.02c.38-.52.72-1.06 1.01-1.63a.06.06 0 0 0-.03-.09c-.54-.2-1.05-.45-1.54-.74a.06.06 0 0 1 0-.1l.3-.24a.06.06 0 0 1 .07 0 11.7 11.7 0 0 0 9.94 0 .06.06 0 0 1 .07 0l.31.24a.06.06 0 0 1 0 .1c-.5.29-1.01.53-1.55.73a.06.06 0 0 0-.03.09c.3.57.64 1.11 1.01 1.63a.06.06 0 0 0 .07.03 16.35 16.35 0 0 0 4.95-2.5.06.06 0 0 0 .03-.06c.42-4.16-.7-7.77-2.96-10.98a.05.05 0 0 0-.03-.02ZM8.68 14.14c-.97 0-1.77-.89-1.77-1.98s.78-2 1.77-2c1 0 1.79.9 1.77 2 0 1.09-.78 1.98-1.77 1.98Zm6.66 0c-.97 0-1.77-.89-1.77-1.98s.78-2 1.77-2c1 0 1.79.9 1.77 2 0 1.09-.78 1.98-1.77 1.98Z"
-            ></path>
-          </svg>
-        </a>
+        <!-- Витрина атмосфер: крупное полупрозрачное имя текущего вайба лежит
+             прямо на его свечении, а два текстовых слоя перекрещиваются
+             кроссфейдом при смене. Названия берутся из данных тем в js/app.js
+             и локализуются через i18n. Витрина декоративна. -->
+        <div id="vibe-showcase" class="vibe-showcase" aria-hidden="true">
+          <span class="vibe-showcase__name" data-layer="0"></span>
+          <span class="vibe-showcase__name" data-layer="1"></span>
+        </div>
+        <!-- Единственный потоковый ребёнок #home-screen: колонка
+             (шапка → hero → каталог → подвал). Так существующая flex-строка
+             #home-screen не ломается, а контент выстраивается в столбец. -->
+        <div class="home-main">
+          <!-- «Живое ночное небо» (Canvas 2D): звёздное поле, редкие частицы и
+               далёкий холодный свет. Рисуется в js/sky.js, лежит ЗА всем
+               контентом (z-index:0), не перехватывает события и работает только
+               пока первый экран активен. В reduced-motion — статичный кадр. -->
+          <canvas id="sky-canvas" class="sky-canvas" aria-hidden="true"></canvas>
+          <!-- Кинематографичный амбиентный фон первого экрана (ФАЗА 3).
+               Живёт ВНУТРИ колонки, поэтому растягивается на всю высоту
+               прокручиваемого контента (атмосфера сохраняется и у каталога).
+               Три слоя: фиолетовые световые пятна, дрейфующая мгла, виньетка.
+               Анимируются только transform/opacity, слои pointer-events:none,
+               отключаются вне первого экрана (.is-home-active) и при
+               prefers-reduced-motion. -->
+          <div class="home-ambient" aria-hidden="true">
+            <span class="home-ambient__field"></span>
+            <span class="home-ambient__haze"></span>
+            <span class="home-ambient__vignette"></span>
+          </div>
+          <header class="home-header">
+            <!-- Логотип-локап: CSS-метка «атмосферы» + вордмарк. Метка —
+                 чистый CSS (без внешних ассетов), поэтому бренд остаётся
+                 узнаваемым на любом языке, а сам текст «Vibe Finder»
+                 переводится существующим i18n как обычный текстовый узел. -->
+            <!-- Бренд: вордмарк Vibe Finder + оригинальный логотип колледжа
+                 IT.Москва справа от него. Логотип — отдельный <img> с
+                 прозрачным фоном (img/itmoscow.png); цвета (синий «IT», белый
+                 «МОСКВА») не перекрашиваются и не фильтруются. -->
+            <div class="home-brand">
+              <a class="home-wordmark" href="#home">
+                <span class="home-wordmark__text">Vibe Finder</span>
+              </a>
+              <img
+                class="home-brand__logo"
+                src="img/itmoscow.png?v=20"
+                alt="Логотип колледжа IT.Москва"
+                width="464"
+                height="58"
+                decoding="async"
+              />
+            </div>
+            <!-- Правый блок шапки: переключатель языка и Discord стоят рядом
+                 и всегда на одном месте. Переключатель языка живёт ТОЛЬКО на
+                 первом экране: видимостью управляет существующий механизм
+                 экранов через атрибут data-home-only (см. CSS + showScreen). -->
+            <div class="home-header__controls">
+              <div class="language-switcher" data-home-only>
+                <button
+                  id="language-toggle"
+                  class="language-toggle"
+                  type="button"
+                  aria-label="Change language"
+                  aria-expanded="false"
+                  aria-controls="language-options"
+                >
+                  <span class="control-label">RU</span>
+                </button>
+                <div id="language-options" class="language-options" role="group" aria-label="Choose language" hidden>
+                  <button type="button" data-language="en" aria-label="English">EN</button>
+                  <button type="button" data-language="ru" aria-label="Russian">RU</button>
+                  <button type="button" data-language="zh" aria-label="Chinese">ZH</button>
+                  <button type="button" data-language="ar" aria-label="Arabic">AR</button>
+                </div>
+              </div>
+              <!-- Поддержка Discord: видимого текста нет, поэтому перевод не
+                   требуется — доступность обеспечивает aria-label. -->
+              <a
+                id="discord-support"
+                class="discord-support"
+                href="https://discord.gg/kS2Mp8bjj5"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Discord community support"
+              >
+                <svg class="discord-support__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <path
+                    d="M19.54 5.34A16.3 16.3 0 0 0 15.5 4.1a.06.06 0 0 0-.06.03c-.17.31-.37.71-.5 1.02a15 15 0 0 0-4.48 0c-.14-.32-.34-.71-.52-1.02a.06.06 0 0 0-.06-.03 16.3 16.3 0 0 0-4.04 1.24.06.06 0 0 0-.03.02C3.1 9.1 2.4 12.74 2.75 16.34a.07.07 0 0 0 .03.05 16.4 16.4 0 0 0 4.94 2.5.06.06 0 0 0 .07-.02c.38-.52.72-1.06 1.01-1.63a.06.06 0 0 0-.03-.09c-.54-.2-1.05-.45-1.54-.74a.06.06 0 0 1 0-.1l.3-.24a.06.06 0 0 1 .07 0 11.7 11.7 0 0 0 9.94 0 .06.06 0 0 1 .07 0l.31.24a.06.06 0 0 1 0 .1c-.5.29-1.01.53-1.55.73a.06.06 0 0 0-.03.09c.3.57.64 1.11 1.01 1.63a.06.06 0 0 0 .07.03 16.35 16.35 0 0 0 4.95-2.5.06.06 0 0 0 .03-.06c.42-4.16-.7-7.77-2.96-10.98a.05.05 0 0 0-.03-.02ZM8.68 14.14c-.97 0-1.77-.89-1.77-1.98s.78-2 1.77-2c1 0 1.79.9 1.77 2 0 1.09-.78 1.98-1.77 1.98Zm6.66 0c-.97 0-1.77-.89-1.77-1.98s.78-2 1.77-2c1 0 1.79.9 1.77 2 0 1.09-.78 1.98-1.77 1.98Z"
+                  ></path>
+                </svg>
+              </a>
+            </div>
+          </header>
+
+          <div class="hero-wrap">
+            <h1>Найди свою атмосферу.</h1>
+            <p class="subtitle">14 вайбов. 14 разных миров.</p>
+            <div class="hero-actions">
+              <!-- #start-btn — ГЛАВНАЯ, самая заметная CTA: запускает опрос.
+                   ID, класс, обработчик (resetSurvey) и всё поведение сохранены
+                   без изменений — изменён только порядок и визуальный вес. -->
+              <button id="start-btn" class="primary-btn">
+                <div class="glass-glare-effect" aria-hidden="true"></div>
+                <span class="control-label">Поиск</span>
+              </button>
+              <!-- Вторичное действие: прокрутка к каталогу. Опрос не запускает. -->
+              <button id="explore-vibes-btn" class="explore-btn" type="button">
+                <span class="control-label">Смотреть вайбы</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Каталог атмосфер: карточки строит js/app.js из тех же данных
+               (vibeThemes), что использует подбор вайба, поэтому имена и id
+               всегда совпадают с источником. Здесь нет ни одного придуманного
+               вайба и ни одной жёстко прописанной карточки. -->
+          <section id="vibe-catalog" class="vibe-catalog" aria-labelledby="catalog-title">
+            <div class="catalog-head">
+              <h2 id="catalog-title" class="catalog-title">Атмосферы</h2>
+            </div>
+            <div id="vibe-catalog-top" class="catalog-top"></div>
+            <div id="vibe-catalog-grid" class="vibe-catalog__grid"></div>
+          </section>
+
+          <footer class="home-footer">
+            <p class="home-footer__line">Каждый вайб — небольшой мир, в который можно войти.</p>
+          </footer>
+        </div>
+
       </section>
 
       <section id="survey-screen" class="screen">
@@ -96,6 +229,7 @@
           </div>
 
           <div class="survey-card">
+            <div class="glass-glare-effect" aria-hidden="true"></div>
             <p class="card-kicker">Опрос</p>
             <h2 id="question-text">Какое у тебя настроение прямо сейчас?</h2>
             <div id="answers" class="answers" aria-live="polite"></div>
@@ -105,9 +239,7 @@
 
       <section id="creation-screen" class="screen page-shell__screen" aria-label="Создание твоего вайба">
         <div class="transition-container">
-          <div id="vibe-finder-animated-text" class="cursive-brand-text" aria-label="VibeFinder">
-            <!-- Буквы вставляются динамически из JavaScript для точного расчёта ступенчатой задержки -->
-          </div>
+          <div id="vibe-finder-animated-text" class="cursive-brand-text" aria-label="VibeFinder"></div>
         </div>
       </section>
 
@@ -126,13 +258,26 @@
             </p>
           </div>
           <div class="vibe-divider" aria-hidden="true"></div>
-          <div class="quote-card" id="quote-card" tabindex="0" role="button" aria-label="Показать следующую цитату">
-            <span class="quote-label">Вайб-цитата</span>
-            <p id="quote-text">Тихий свет — лучший компаньон для новых мыслей.</p>
+
+          <!-- Вайб-игра показывается только на экране вайба «Ночной»:
+               тетрис-канва + одна ротирующаяся строка вайб-цитаты. -->
+          <div class="vibe-game" id="vibe-game" hidden>
+            <div class="tetris-box">
+              <canvas
+                id="tetris-canvas"
+                width="200"
+                height="400"
+                tabindex="0"
+                aria-label="Tetris"
+              ></canvas>
+              <div class="tetris-game-over-overlay" id="tetris-game-over" hidden>
+                <button id="tetris-restart-btn" type="button">RESTART</button>
+              </div>
+            </div>
+            <div class="vibe-quote-container">
+              <span id="vibe-quote-text"></span>
+            </div>
           </div>
-          <h3 class="vibe-game-title">Мини-игра</h3>
-          <div id="game-stage" class="game-stage"></div>
-          <div id="asmr-stage" class="asmr-stage"></div>
         </div>
       </section>
 
@@ -143,6 +288,7 @@
           <a id="share-invitation" class="share-invitation" href="#home">
             Узнай, какой вайб у тебя сегодня!
           </a>
+
           <button id="share-button" class="share-button" type="button">Поделиться</button>
           <p id="share-feedback" class="share-feedback" role="status" aria-live="polite"></p>
         </main>
@@ -157,6 +303,7 @@
           aria-expanded="false"
           aria-controls="vibe-menu"
         >
+          <div class="glass-glare-effect" aria-hidden="true"></div>
           <svg viewBox="0 0 20 20" aria-hidden="true">
             <path d="M3 5h14M3 10h14M3 15h14"></path>
           </svg>
@@ -170,6 +317,17 @@
 
     <div id="vibe-transition" class="vibe-transition" aria-hidden="true"></div>
 
-    <script type="module" src="js/app.js"></script>
+    <!-- Кинематографический вход: изолированный декоративный слой. Тайминги и
+         состояния — в css/style.css (раздел «Кинематографический вход»).
+         aria-hidden + pointer-events: none: слой невидим для скринридеров и
+         никогда не перехватывает клики/тач. При сбое JS контент остаётся
+         видимым — затемнение само гаснет силами одного CSS. -->
+    <div id="cinematic-intro" class="cinematic-intro" aria-hidden="true">
+      <span class="cinematic-intro__bloom"></span>
+      <span class="cinematic-intro__vignette"></span>
+      <span class="cinematic-intro__grain"></span>
+    </div>
+
+    <script type="module" src="js/app.js?v=20"></script>
   </body>
 </html>

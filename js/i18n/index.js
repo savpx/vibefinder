@@ -9,13 +9,46 @@ const localeMetadata = {
 
 const translationCatalog = {
   'Vibe Finder': ['Vibe Finder', 'Vibe Finder', 'Vibe Finder'],
+  'Найди свою атмосферу.': [
+    'Find your own atmosphere.',
+    '找到属于你的氛围。',
+    'اكتشف أجواءك الخاصة.',
+  ],
+  '14 вайбов. 14 разных миров.': [
+    '14 vibes. 14 different worlds.',
+    '14 种氛围，14 个不同的世界。',
+    '١٤ أجواءً. ١٤ عالمًا مختلفًا.',
+  ],
+  'Смотреть вайбы': ['Explore vibes', '浏览氛围', 'استكشف الأجواء'],
+  'Логотип колледжа IT.Москва': [
+    'IT.Moscow college logo',
+    'IT.Москва 学院徽标',
+    'شعار كلية IT.موسكو',
+  ],
+  'Атмосфера': ['Vibe', '氛围', 'أجواء'],
+  'Открой мир, который подстроится под тебя.': [
+    'Open a world that adapts to you.',
+    '打开一个为你而生的世界。',
+    'افتح عالمًا يتكيّف معك.',
+  ],
+  'Каждый вайб — небольшой мир, в который можно войти.': [
+    'Every vibe is a small world you can step into.',
+    '每种氛围都是一个可以走进的小世界。',
+    'كل أجواء عالم صغير يمكنك الدخول إليه.',
+  ],
   'created by the Bsoul team': ['created by the Bsoul team', 'Bsoul 团队创作', 'من إنشاء فريق Bsoul'],
   'Найди своё настроение и войди в атмосферу, которая подстроится под тебя.': [
     'Find your mood and step into an atmosphere made for you.',
     '找到此刻的心情，进入为你定制的氛围。',
     'اكتشف مزاجك وادخل أجواءً صُممت لتناسبك.',
   ],
-  'Начать': ['Start', '开始', 'ابدأ'],
+  'Поиск': ['Search', '搜索', 'بحث'],
+  '14 атмосфер · 10 вопросов': [
+    '14 atmospheres · 10 questions',
+    '14 种氛围 · 10 个问题',
+    '14 أجواء · 10 أسئلة',
+  ],
+  'Атмосферы': ['Atmospheres', '氛围', 'الأجواء'],
   'Вопрос 1 из 10': ['Question 1 of 10', '第 1 题，共 10 题', 'السؤال 1 من 10'],
   'Вернуться к предыдущему вопросу': [
     'Back to the previous question',
@@ -136,6 +169,10 @@ const translationCatalog = {
   'Ночью даже знакомый путь становится открытием.': ['At night, even a familiar path can feel new.', '到了夜晚，熟悉的路也会带来新发现。', 'في الليل، حتى الطريق المألوف يصبح اكتشافًا جديدًا.'],
   'Некоторые окна светят ровно тогда, когда нужно.': ['Some windows glow just when you need them.', '有些窗户，总会在你需要时亮起。', 'تضيء بعض النوافذ في اللحظة التي تحتاج إليها.'],
   'Город не одинок, пока в нём горит свет.': ['A city is never lonely while a light is on.', '只要还有灯光，城市就不会孤单。', 'لا تكون المدينة وحيدة ما دام فيها ضوء.'],
+  'Тихий город засыпает, оставляя тебя наедине с мыслями.': ['The quiet city falls asleep, leaving you alone with your thoughts.', '安静的城市渐渐入睡，只留下你与思绪相伴。', 'تغفو المدينة الهادئة، تاركةً إياك وحدك مع أفكارك.'],
+  'Свет неоновых вывесок отражается в каплях на стекле.': ['The light of neon signs reflects in the drops on the glass.', '霓虹招牌的光映在玻璃上的水珠里。', 'ينعكس ضوء لافتات النيون في القطرات على الزجاج.'],
+  'В собственном ритме замечай маленькие огни вокруг.': ['In your own rhythm, notice the small lights around you.', '以自己的节奏，留意身边微小的光。', 'على إيقاعك الخاص، لاحظ الأضواء الصغيرة حولك.'],
+  'Ночь смывает дневной шум, открывая бесконечность звезд.': ["Night washes away the day's noise, revealing the infinity of stars.", '夜色洗去白日的喧嚣，展露无尽的星辰。', 'يغسل الليل ضجيج النهار، كاشفًا لانهاية النجوم.'],
   'Night Walk': ['Night Walk', '夜间漫步', 'نزهة ليلية'],
   'Меланхоличный': ['Melancholic', '忧郁', 'مكتئب حالم'],
   'Спокойные капли на стекле, тихие мысли и простор для чувств без спешки и оценок.': ['Raindrops on glass, quiet thoughts, and space to feel without rushing or judging yourself.', '雨滴轻敲玻璃，思绪安静流淌；不必匆忙，也不必评判。', 'قطرات على الزجاج وأفكار هادئة ومساحة لمشاعرك بلا استعجال أو أحكام.'],
@@ -313,15 +350,7 @@ const translationCatalog = {
   'Перетащи любые четыре предмета и создай свою уютную комнату.': ['Move any four items to make the room your own.', '移动任意四件物品，布置属于你的温馨房间。', 'حرّك أي أربعة أغراض لتصنع غرفتك المريحة.'],
   'Перетащи любые четыре предмета. На компьютере двигай выбранный предмет клавишами WASD.': ['Move any four items. On desktop, move the selected item with WASD.', '移动任意四件物品。在电脑上可使用 WASD 移动选中的物件。', 'حرّك أي أربعة أغراض. على الكمبيوتر، حرّك الغرض المحدد باستخدام WASD.'],
   'На компьютере двигай выбранный предмет клавишами WASD.': ['On desktop, move the selected item with WASD.', '在电脑上可使用 WASD 移动选中的物件。', 'على الكمبيوتر، حرّك الغرض المحدد باستخدام WASD.'],
-  'ASMR-прогулка по клавишам': ['ASMR Keyboard Walk', 'ASMR 键盘漫步', 'جولة ASMR على لوحة المفاتيح'],
-  'Выбери клавишу: персонаж перейдёт на неё, а игра воспроизведёт ASMR-звук.': ['Choose a key: the character will step onto it and play its ASMR sound.', '选择一个按键：角色会走到按键上，并播放对应的 ASMR 声音。', 'اختر مفتاحًا؛ ستنتقل إليه الشخصية ويُشغّل صوت ASMR الخاص به.'],
-  'Звук недоступен в этом браузере.': ['Sound is unavailable in this browser.', '此浏览器无法播放声音。', 'الصوت غير متاح في هذا المتصفح.'],
-  'Звук клавиши %s недоступен.': ['The sound for key %s is unavailable.', '按键 %s 的声音不可用。', 'صوت المفتاح %s غير متاح.'],
-  'Персонаж шагнул на клавишу %s.': ['The character stepped onto key %s.', '角色走到了 %s 键上。', 'خطت الشخصية على المفتاح %s.'],
-  'Не удалось воспроизвести звук клавиши %s.': ['Could not play the sound for key %s.', '无法播放按键 %s 的声音。', 'تعذّر تشغيل صوت المفتاح %s.'],
-  'Наступить на клавишу %s': ['Step on key %s', '踩下 %s 键', 'اضغط على المفتاح %s'],
   'Цвет %s: %s': ['Color %s: %s', '颜色 %s：%s', 'اللون %s: %s'],
-  'Клавиша %s': ['Key %s', '%s 键', 'المفتاح %s'],
   'Цвет %s — %s. Найди области с номером %s.': ['Color %s — %s. Find regions numbered %s.', '已选颜色 %s（%s）。找到编号为 %s 的区域。', 'اللون %s — %s. ابحث عن المناطق التي تحمل الرقم %s.'],
   'Область %s уже раскрашена.': ['Region %s is already colored in.', '区域 %s 已经填好颜色。', 'المنطقة %s ملوّنة بالفعل.'],
   'Не тот цвет: области %s нужен цвет %s.': ['Not quite: region %s needs color %s.', '颜色不匹配：区域 %s 需要颜色 %s。', 'لون غير صحيح؛ المنطقة %s تحتاج إلى اللون %s.'],
@@ -462,10 +491,6 @@ const dynamicTranslations = [
     },
   },
   {
-    pattern: /^Наступить на клавишу ([A-Z])$/,
-    render: (match, locale) => locale === 'en' ? `Step on key ${match[1]}` : locale === 'zh' ? `踩下 ${match[1]} 键` : locale === 'ar' ? `اضغط على المفتاح ${match[1]}` : match[0],
-  },
-  {
     pattern: /^(\d+) с$/,
     render: (match, locale) => locale === 'en' ? `${match[1]} s` : locale === 'zh' ? `${match[1]} 秒` : locale === 'ar' ? `${match[1]} ث` : match[0],
   },
@@ -475,18 +500,6 @@ const dynamicTranslations = [
       const clue = translateText(match[1]);
       return locale === 'en' ? `${clue}: ${match[2]}` : locale === 'zh' ? `${clue}：${match[2]}` : locale === 'ar' ? `${clue}: ${match[2]}` : match[0];
     },
-  },
-  {
-    pattern: /^Персонаж шагнул на клавишу ([A-Z])\.$/,
-    render: (match, locale) => locale === 'en' ? `The character stepped onto key ${match[1]}.` : locale === 'zh' ? `角色走到了 ${match[1]} 键上。` : locale === 'ar' ? `خطت الشخصية على المفتاح ${match[1]}.` : match[0],
-  },
-  {
-    pattern: /^Звук клавиши ([A-Z]) недоступен\.$/,
-    render: (match, locale) => locale === 'en' ? `The sound for key ${match[1]} is unavailable.` : locale === 'zh' ? `按键 ${match[1]} 的声音不可用。` : locale === 'ar' ? `صوت المفتاح ${match[1]} غير متاح.` : match[0],
-  },
-  {
-    pattern: /^Не удалось воспроизвести звук клавиши ([A-Z])\.$/,
-    render: (match, locale) => locale === 'en' ? `Could not play the sound for key ${match[1]}.` : locale === 'zh' ? `无法播放按键 ${match[1]} 的声音。` : locale === 'ar' ? `تعذّر تشغيل صوت المفتاح ${match[1]}.` : match[0],
   },
   {
     pattern: /^Цвет (\d+): (.+)$/,
@@ -536,10 +549,6 @@ const textSources = new WeakMap();
 const attributeSources = new WeakMap();
 let languageToggle = null;
 let languageOptions = null;
-
-export function getCurrentLanguage() {
-  return currentLanguage;
-}
 
 export function translateText(source) {
   const text = String(source);
@@ -605,7 +614,12 @@ export function setLanguage(language) {
   currentLanguage = language;
   document.documentElement.lang = localeMetadata[language].htmlLang;
   document.documentElement.dir = language === 'ar' ? 'rtl' : 'ltr';
-  if (languageToggle) languageToggle.textContent = localeMetadata[language].code;
+  if (languageToggle) {
+    // Обновляем только текстовый ярлык, сохраняя слой блика внутри кнопки.
+    const label = languageToggle.querySelector('.control-label');
+    if (label) label.textContent = localeMetadata[language].code;
+    else languageToggle.textContent = localeMetadata[language].code;
+  }
   document.querySelectorAll('[data-language]').forEach((option) => {
     option.setAttribute('aria-pressed', String(option.dataset.language === language));
   });
