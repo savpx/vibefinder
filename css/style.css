@@ -1,7 +1,38 @@
-/* Премиальный курсивный шрифт для экрана перехода — @import обязан идти первым */
-@import url('https://fonts.googleapis.com/css2?family=Alex+Brush&display=swap');
+/* ВНИМАНИЕ: @import для шрифтов отсюда удалён намеренно.
+   Подключение шрифтов перенесено в <link> в index.html — это быстрее
+   (@import блокирует разбор CSS и создаёт цепочку запросов), и теперь
+   все семейства идут ОДНИМ запросом к Google Fonts.
+   Alex Brush и Marck Script по-прежнему подключены (см. index.html). */
 
 :root {
+  /* --- Типографическая система (единый стек для всего сайта) --------------
+     Space Grotesk идёт ПЕРВЫМ: он перекрывает только те символы, которые в
+     нём реально есть (Latin / Latin-ext / Vietnamese). Всё остальное браузер
+     берёт из следующих семейств по порядку:
+       • кириллица  → Manrope (есть Cyrillic + Cyrillic-ext);
+       • CJK        → системные шрифты Windows/macOS/Android/Linux;
+       • Arabic     → системные арабо-совместимые шрифты.
+     Так одна переменная обслуживает все четыре языка без дублирования CSS.
+     Monospace-стек оставлен отдельно: он нужен ретрo-вайбу и игровому UI. */
+  --font-sans:
+    "Space Grotesk", "Manrope",
+    -apple-system, BlinkMacSystemFont, "Segoe UI Variable Text", "Segoe UI",
+    Roboto, "Helvetica Neue", Arial,
+    "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC",
+    "Noto Sans", "Noto Sans Arabic", "Segoe UI Historic", Tahoma,
+    sans-serif;
+  --font-display: var(--font-sans);          /* заголовки */
+  --font-script-latin: 'Alex Brush', 'Marck Script', cursive;  /* латин. почерк */
+  --font-script-cyr: 'Marck Script', 'Alex Brush', cursive;    /* кир. почерк */
+  --font-mono: "Courier New", ui-monospace, "SFMono-Regular", Menlo, monospace;
+
+  /* Веса: реально подключены 400/500/600/700/800 (Manrope) и 700 (Space Grotesk). */
+  --weight-body: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+  --weight-heavy: 800;
+
   /* Тотальный чёрный: раньше здесь был синеватый #070b13, из-за которого
      «чёрный» экран на самом деле читался как тёмно-синий. */
   --bg: #000000;
@@ -40,6 +71,45 @@
   --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+/* Регистрируем переменные интерактива как анимируемые. Тогда наклон, подъём и
+   нажатие живут в одном составном transform и анимируются каждый по своему
+   каналу, а не перезаписывают друг друга. В браузерах без @property значения
+   подставляются как обычно — теряется только сглаживание, вёрстка цела. */
+@property --rotate-x {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+@property --rotate-y {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+@property --scale {
+  syntax: "<number>";
+  inherits: false;
+  initial-value: 1;
+}
+
+@property --press {
+  syntax: "<number>";
+  inherits: false;
+  initial-value: 1;
+}
+
+@property --lift {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+/* Акцент текущего вайба используется только для ореола имени. Интерполировать
+   его НЕ нужно (и даже вредно): переход цвета через промежуточные оттенки даёт
+   грязную гамму. Настоящий переток цветов делает свечение из двух слоёв
+   (.home-glow__layer), а ореол имени проявляется вместе с самим текстом. */
+
 * {
   box-sizing: border-box;
 }
@@ -47,9 +117,7 @@
 html, body {
   margin: 0;
   min-height: 100%;
-  font-family:
-    -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text",
-    "Helvetica Neue", "Manrope", sans-serif;
+  font-family: var(--font-sans);
   background: var(--bg);
   color: var(--text);
   -webkit-font-smoothing: antialiased;
@@ -148,7 +216,7 @@ input {
 .language-options button {
   min-width: 36px;
   min-height: 36px;
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+  font-family: var(--font-sans);
   font-size: 0.66rem;
   font-weight: 600;
   letter-spacing: 0.06em;
@@ -160,7 +228,16 @@ input {
   box-shadow: var(--inset-highlight);
   backdrop-filter: var(--material-blur);
   -webkit-backdrop-filter: var(--material-blur);
-  transition: all 0.4s var(--ease-spring);
+  transition:
+    --press 0.2s var(--ease-spring),
+    --rotate-x 0.4s var(--ease-spring),
+    --rotate-y 0.4s var(--ease-spring),
+    --scale 0.4s var(--ease-spring),
+    --lift 0.4s var(--ease-spring),
+    color 0.4s var(--ease-spring),
+    background-color 0.4s var(--ease-spring),
+    border-color 0.4s var(--ease-spring),
+    box-shadow 0.4s var(--ease-spring);
 }
 
 .language-toggle:hover,
@@ -170,12 +247,22 @@ input {
   color: var(--label-primary);
   border-color: rgba(255, 255, 255, 0.24);
   background: rgba(35, 35, 35, 0.55);
-  transform: translateY(-2px);
   box-shadow: var(--inset-highlight), 0 8px 24px rgba(0, 0, 0, 0.35);
 }
 
+/* Подъём стеклянного переключателя — каналом --lift, чтобы складываться
+   с наклоном от курсора. Кнопки внутри раскрытого списка — простые. */
+.language-toggle:hover,
+.language-toggle:focus-visible {
+  --lift: -2px;
+}
+
 /* Физический отклик на нажатие — как у кнопки поддержки */
-.language-toggle:active,
+.language-toggle:active {
+  --press: 0.965;
+  transition: --press 0.08s ease-out;
+}
+
 .language-options button:active {
   transform: scale(0.96);
   transition: transform 0.1s;
@@ -276,6 +363,11 @@ input {
 
 #home-screen {
   background: rgba(4, 7, 17, 0.35);
+  /* Витрина карточек длиннее экрана на мобильных: экран прокручивается,
+     а hero остаётся по центру, пока помещается (margin: auto у .hero-wrap). */
+  align-items: flex-start;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 /* Единая фоновая канва домашнего экрана, опроса и перехода: ровный чёрный.
@@ -319,7 +411,7 @@ input {
 }
 
 .cursive-brand-text {
-  font-family: 'Alex Brush', cursive, sans-serif;
+  font-family: var(--font-script-latin);
   font-size: 5rem;
   color: var(--text, #f3f5f9);
   letter-spacing: 2px;
@@ -369,7 +461,8 @@ input {
   justify-content: center;
   text-align: center;
   gap: 1.15rem;
-  padding: 2rem;
+  margin: auto;
+  padding: clamp(2.5rem, 6vh, 3.5rem) 1.5rem 2.5rem;
   z-index: 2;
 }
 
@@ -393,25 +486,6 @@ input {
   color: var(--label-primary);
 }
 
-/* Убрано: лупа (.vibe-magnifier-lens/copy/stage/glass) и её ручка.
-   Круг линзы непрозрачен, поэтому на домашнем экране он не увеличивал
-   текст, а закрывал его: подзаголовок читался плохо, а ручка ложилась
-   диагональю поперёк строки. Первый экран держится типографикой. */
-
-/* Подпись команды переехала в нижний угол экрана: она перестала быть
-   надзаголовком и перестала разрывать пару «заголовок — подзаголовок». */
-.team-credit {
-  position: fixed;
-  inset-inline-start: max(20px, env(safe-area-inset-left));
-  bottom: max(24px, env(safe-area-inset-bottom));
-  z-index: 22;
-  margin: 0;
-  color: var(--label-tertiary);
-  font-size: 0.72rem;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-}
-
 /* Подзаголовок явно тише заголовка: 17px против 88px. */
 .subtitle {
   margin: 0;
@@ -430,7 +504,7 @@ input {
   border-radius: 999px;
   cursor: pointer;
   min-height: 44px;
-  transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease, background 0.22s ease;
+  transition: box-shadow 0.22s ease, border-color 0.22s ease, background-color 0.22s ease;
 }
 
 /* Главная кнопка: рамка и лёгкая заливка. Ореол 30px вокруг кнопки был ещё
@@ -445,9 +519,10 @@ input {
 }
 
 /* ------------------------------------------------------------------
-   3D-тилт + спекуляр для четырёх управляющих кнопок:
-   START, переключатель языка, Discord и кнопка меню. Кнопки получают
-   собственную перспективу, скруглённый блик и плавный spring-переход.
+   3D-тилт + спекуляр для управляющих кнопок: «Поиск», переключатель
+   языка, Discord и кнопка меню. Наклон приходит из JS переменными, а
+   подъём (--lift) и нажатие (--press) — отдельными каналами того же
+   составного transform, поэтому эффекты складываются, а не спорят.
    ------------------------------------------------------------------ */
 .primary-btn,
 .language-toggle,
@@ -456,7 +531,21 @@ input {
   position: relative;
   perspective: 1000px;
   transform-style: preserve-3d;
-  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s ease;
+  --rotate-x: 0deg;
+  --rotate-y: 0deg;
+  --scale: 1;
+  --press: 1;
+  --lift: 0px;
+  transform: perspective(1000px) rotateX(var(--rotate-x)) rotateY(var(--rotate-y))
+    scale3d(calc(var(--scale) * var(--press)), calc(var(--scale) * var(--press)), 1)
+    translateY(var(--lift));
+  transition:
+    --press 0.2s var(--ease-spring),
+    --rotate-x 0.4s var(--ease-spring),
+    --rotate-y 0.4s var(--ease-spring),
+    --scale 0.4s var(--ease-spring),
+    --lift 0.4s var(--ease-spring),
+    box-shadow 0.4s ease;
   /* Свайп по 3D-слою не скроллит окно (touch-трекинг пальцем). */
   touch-action: none;
 }
@@ -469,12 +558,16 @@ input {
   line-height: 1.2;
 }
 
-/* Пока курсор внутри — ведём трансформу 1:1, без сглаживающего перехода. */
+/* Пока курсор внутри, каналы наклона ведём 1:1 (без сглаживания), чтобы не
+   было обратной связи и дрожания границ. Подъём и нажатие остаются плавными. */
 .primary-btn.is-tilting,
 .language-toggle.is-tilting,
 .discord-support.is-tilting,
 .vibe-menu-toggle.is-tilting {
-  transition: box-shadow 0.4s ease;
+  transition:
+    --press 0.2s var(--ease-spring),
+    --lift 0.4s var(--ease-spring),
+    box-shadow 0.4s ease;
 }
 
 /* Дети кнопок не перехватывают курсор — события идут только на кнопку,
@@ -506,19 +599,39 @@ input {
   opacity: 0.7;
 }
 
-/* Native micro-tactile press feedback */
-.primary-btn:active,
+/* Native micro-tactile press feedback для простых кнопок */
 .option-btn:active,
 .share-button:active {
   transform: scale(0.96);
   transition: transform 0.1s;
 }
 
-.primary-btn:hover,
+/* У стеклянных кнопок нажатие идёт каналом --press: наклон и подъём при этом
+   сохраняются, а не сбрасываются инлайн-трансформой. */
+.primary-btn:active,
+.language-toggle:active,
+.discord-support:active,
+.vibe-menu-toggle:active {
+  --press: 0.965;
+  transition: --press 0.08s ease-out;
+}
+
 .option-btn:hover {
-  transform: translateY(-2px);
   border-color: rgba(255, 255, 255, 0.2);
   /* Направленная мягкая тень вместо равномерного «блока» вокруг элемента */
+  box-shadow: 0 14px 26px -16px rgba(0, 0, 0, 0.5);
+}
+
+/* Подъём — отдельный канал --lift внутри единого transform, поэтому он
+   складывается с наклоном от курсора, а не конфликтует с ним. */
+.primary-btn:hover,
+.primary-btn:focus-visible,
+.language-toggle:hover,
+.language-toggle:focus-visible,
+.discord-support:hover,
+.discord-support:focus-visible {
+  --lift: -2px;
+  border-color: rgba(255, 255, 255, 0.2);
   box-shadow: 0 14px 26px -16px rgba(0, 0, 0, 0.5);
 }
 
@@ -527,17 +640,170 @@ input {
    сообщали ничего о продукте. Движение осталось там, где оно отвечает
    на действие: лупа, рукописный переход, каскад результата. */
 
-/* Единственная конкретика на первом экране: сколько здесь есть. */
-.fact {
-  margin: 0;
-  font-size: 0.78rem;
-  font-weight: 500;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  /* --label-secondary, а не tertiary: на чистом чёрном 30% белого давали
-     2.48:1 — ниже порога 4.5:1 для текста. */
-  color: var(--label-secondary);
-  font-variant-numeric: tabular-nums;
+/* --- Витрина атмосфер на первом экране --- */
+
+/* Свечение позади hero: два наложенных слоя с фиксированными цветами. При
+   смене вайба они перекрещиваются по прозрачности, поэтому один цвет
+   постепенно заменяет другой — без грязных промежуточных оттенков, которые
+   неизбежны при интерполяции одной цветовой переменной. */
+.home-glow {
+  position: absolute;
+  inset: -15% -10% auto;
+  height: 90%;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 1.1s var(--ease-spring);
+}
+
+/* Свечение проявляется, когда витрина показывает первый вайб. */
+#home-screen[data-vibe-glow] .home-glow {
+  opacity: 1;
+}
+
+.home-glow__layer {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  background: radial-gradient(
+    58% 62% at 50% 26%,
+    var(--glow-color, transparent),
+    transparent 72%
+  );
+  /* Ровный долгий кроссфейд, синхронный с текстом имени (1400 мс). */
+  transition: opacity 1400ms cubic-bezier(0.37, 0, 0.63, 1);
+}
+
+.home-glow__layer.is-active {
+  opacity: 1;
+}
+
+/* Витрина атмосфер: имя текущего вайба лежит на его свечении (палитре) в
+   верхней зоне первого экрана и «прописывается» по буквам, как от руки.
+   Два слоя наложены друг на друга (один grid-area), а JS перекрещивает их
+   медленным кроссфейдом. Кроссфейд ведёт ТОЛЬКО прозрачность слоя, а
+   рукописное проявление — отдельная анимация букв (transform + фильтр),
+   поэтому оба эффекта не конфликтуют. */
+.vibe-showcase {
+  position: absolute;
+  inset-inline: 0;
+  top: clamp(64px, 17vh, 150px);
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  padding: 0 1.25rem;
+  pointer-events: none;
+}
+
+.vibe-showcase__name {
+  /* Оба слоя лежат в одной ячейке — кроссфейд идёт строго поверх. */
+  grid-area: 1 / 1;
+  max-width: min(900px, 88vw);
+  /* Рукописный вордмарк: Alex Brush для латиницы (как бренд-надпись перехода)
+     и Marck Script для кириллицы — в Alex Brush её нет. Генерик cursive не
+     ставим: на Windows он тянет Comic Sans при промахе фолбэка. */
+  font-family: var(--font-script-latin);
+  font-size: clamp(1.6rem, 3vw, 2.15rem);
+  font-weight: 400;
+  line-height: 1.15;
+  letter-spacing: 0.01em;
+  text-align: center;
+  text-wrap: balance;
+  overflow-wrap: anywhere;
+  /* Полупрозрачное имя, окрашенное ореолом палитры активного вайба. */
+  color: rgba(255, 255, 255, 0.7);
+  text-shadow: 0 0 34px var(--preview-glow, transparent);
+  opacity: 0;
+  will-change: opacity;
+  /* Долгий и ровный, без пружины: длинная ease даёт ощущение дыхания. */
+  transition: opacity 1400ms cubic-bezier(0.37, 0, 0.63, 1);
+}
+
+/* Слово держим неразрывным: буква внутри — отдельный inline-block, поэтому без
+   обёртки слова переносились бы посередине. Перенос идёт по словам. */
+.vibe-word {
+  display: inline-block;
+  white-space: nowrap;
+}
+
+/* Одна буква вордмарка. Базовое состояние — «написано»: сдвиг и блюр снимает
+   анимация, поэтому при размонтировании слоя нет рывка. */
+.vibe-letter {
+  display: inline-block;
+}
+
+/* Рукописное проявление: буквы идут каскадом и «садятся» на место лёгким
+   поворотом и размытием. Правило привязано к активному слою, поэтому анимация
+   стартует ровно в момент смены вайба и каждый раз с чистого листа. */
+.vibe-showcase__name.is-active .vibe-letter {
+  animation: showcaseInk var(--ink-duration, 620ms) cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: var(--ink-delay, 0ms);
+}
+
+@keyframes showcaseInk {
+  from {
+    transform: translateY(9px) rotate(-5deg);
+    filter: blur(6px);
+  }
+  to {
+    transform: translateY(0) rotate(0deg);
+    filter: blur(0);
+  }
+}
+
+/* Активный слой: проявляется прозрачностью, буквы — рукописным каскадом. */
+.vibe-showcase__name.is-active {
+  opacity: 1;
+}
+
+/* Один оркестрированный вход: вордмарк, подзаголовок, кнопка и витрина
+   раскрываются ступенчатой волной. Кнопка и витрина анимируются только по
+   прозрачности: transform кнопки принадлежит 3D-наклону из JS, а витрину
+   ведёт собственный кроссфейд слоёв. */
+#home-screen.active .hero-wrap > h1,
+#home-screen.active .subtitle {
+  animation: hero-rise 700ms var(--ease-spring) both;
+}
+
+#home-screen.active .primary-btn,
+#home-screen.active .vibe-showcase {
+  animation: hero-fade 900ms var(--ease-spring) both;
+}
+
+#home-screen.active .hero-wrap > h1 {
+  animation-delay: 60ms;
+}
+
+#home-screen.active .subtitle {
+  animation-delay: 170ms;
+}
+
+#home-screen.active .primary-btn {
+  animation-delay: 400ms;
+}
+
+#home-screen.active .vibe-showcase {
+  animation-delay: 520ms;
+}
+
+@keyframes hero-rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes hero-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 #survey-screen {
@@ -636,14 +902,24 @@ input {
   box-shadow: 0 22px 48px -26px rgba(0, 0, 0, 0.6), var(--inset-highlight);
   transform-style: preserve-3d;
   will-change: transform, box-shadow;
+  --rotate-x: 0deg;
+  --rotate-y: 0deg;
+  --scale: 1;
+  /* Наклон собирается из переменных, а не приходит инлайн-трансформой. */
+  transform: perspective(1000px) rotateX(var(--rotate-x)) rotateY(var(--rotate-y))
+    scale3d(var(--scale), var(--scale), var(--scale));
   /* Премиальный переход: плавный вход и возврат к покою без рывков. */
-  transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.5s ease;
+  transition:
+    transform 0.5s var(--ease-spring),
+    --rotate-x 0.5s var(--ease-spring),
+    --rotate-y 0.5s var(--ease-spring),
+    box-shadow 0.5s ease;
 }
 
 /* Во время движения курсора внутри карточки трансформу ведём 1:1 (без
    переходного сглаживания), чтобы не было обратной связи и дрожания границ. */
 .survey-card.is-tilting {
-  transition: box-shadow 0.5s ease;
+  transition: none;
 }
 
 /* При наведении стекло становится глубже, а тень — заметнее. */
@@ -799,16 +1075,27 @@ input {
   text-align: right;
 }
 
+/* Главная кнопка: светлая пилюля с высоким контрастом на чёрном. Наведение
+   добавляет ореол в акценте выбранной карточки вайба, связывая кнопку,
+   витрину атмосфер и свечение фона в одну систему. */
 #home-screen .primary-btn {
-  border-color: rgba(220, 220, 220, 0.25);
-  background: linear-gradient(135deg, rgba(230, 230, 230, 0.1), rgba(110, 110, 110, 0.08));
-  color: #f4f4f4;
+  padding: 15px 34px;
+  border-color: transparent;
+  background: linear-gradient(180deg, #ffffff, #dcdde2);
+  color: #0a0a0c;
+  font-weight: 700;
+  font-size: var(--type-body-size);
+  letter-spacing: 0.005em;
+  box-shadow: 0 12px 30px -18px rgba(0, 0, 0, 0.9), 0 0 0 1px rgba(255, 255, 255, 0.06);
 }
 
 #home-screen .primary-btn:hover,
-#home-screen .primary-btn:active {
-  border-color: rgba(245, 245, 245, 0.62);
-  box-shadow: 0 0 24px rgba(225, 225, 225, 0.12);
+#home-screen .primary-btn:focus-visible {
+  --lift: -3px;
+  border-color: transparent;
+  box-shadow:
+    0 22px 50px -20px var(--preview-glow, rgba(255, 255, 255, 0.5)),
+    0 0 0 1px rgba(255, 255, 255, 0.08);
 }
 
 /* Discord support — стеклянная иконка-кнопка строго в правом нижнем углу
@@ -834,7 +1121,16 @@ input {
   box-shadow: var(--inset-highlight);
   backdrop-filter: var(--material-blur);
   -webkit-backdrop-filter: var(--material-blur);
-  transition: all 0.4s var(--ease-spring);
+  transition:
+    --press 0.2s var(--ease-spring),
+    --rotate-x 0.4s var(--ease-spring),
+    --rotate-y 0.4s var(--ease-spring),
+    --scale 0.4s var(--ease-spring),
+    --lift 0.4s var(--ease-spring),
+    color 0.4s var(--ease-spring),
+    background-color 0.4s var(--ease-spring),
+    border-color 0.4s var(--ease-spring),
+    box-shadow 0.4s var(--ease-spring);
 }
 
 /* Тач-цель расширена до 44pt при видимом размере 36px — HIG на мобильных. */
@@ -857,7 +1153,7 @@ input {
   color: var(--label-primary);
   border-color: rgba(255, 255, 255, 0.24);
   background: rgba(35, 35, 35, 0.55);
-  transform: translateY(-2px);
+  --lift: -2px;
   box-shadow: var(--inset-highlight), 0 8px 24px rgba(0, 0, 0, 0.35);
 }
 
@@ -868,8 +1164,8 @@ input {
 
 /* Физический отклик на нажатие — мгновенный и упругий */
 .discord-support:active {
-  transform: scale(0.96);
-  transition: transform 0.1s;
+  --press: 0.94;
+  transition: --press 0.08s ease-out;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1013,7 +1309,7 @@ body.theme-forest #vibe-screen {
 #vibe-screen[data-vibe="mysterious"] { --vibe-accent:#c49aff; color:#f0e8ff; background:radial-gradient(ellipse at 80% 10%,#392954,#151322 55%,#0e101b); }
 #vibe-screen[data-vibe="creative"] { --vibe-accent:#ff80bc; color:#fff0fa; background:linear-gradient(135deg,#392044,#282047 50%,#173849); }
 #vibe-screen[data-vibe="nature"] { --vibe-accent:#a8d67b; color:#eff9e6; background:radial-gradient(ellipse at 30% 10%,#415b37,#1c3428 58%,#11231f); }
-#vibe-screen[data-vibe="retro"] { --vibe-accent:#bdf35d; color:#e6f5c8; background:repeating-linear-gradient(0deg,#171b31 0 4px,#1d2036 4px 8px); font-family:"Courier New",monospace; }
+#vibe-screen[data-vibe="retro"] { --vibe-accent:#bdf35d; color:#e6f5c8; background:repeating-linear-gradient(0deg,#171b31 0 4px,#1d2036 4px 8px); font-family:var(--font-mono); }
 .vibe-navigation {
   position: fixed;
   z-index: 23;
@@ -1047,7 +1343,16 @@ body.theme-forest #vibe-screen {
   box-shadow: var(--inset-highlight);
   backdrop-filter: blur(20px) saturate(190%);
   -webkit-backdrop-filter: blur(20px) saturate(190%);
-  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  transition:
+    --press 0.2s var(--ease-spring),
+    --rotate-x 0.4s var(--ease-spring),
+    --rotate-y 0.4s var(--ease-spring),
+    --scale 0.4s var(--ease-spring),
+    --lift 0.4s var(--ease-spring),
+    color 0.4s var(--ease-spring),
+    background-color 0.4s var(--ease-spring),
+    border-color 0.4s var(--ease-spring),
+    box-shadow 0.4s var(--ease-spring);
 }
 
 .vibe-menu-toggle svg {
@@ -1066,13 +1371,13 @@ body.theme-forest #vibe-screen {
   color: var(--label-primary);
   border-color: rgba(255, 255, 255, 0.24);
   background: rgba(35, 35, 35, 0.55);
-  transform: translateY(-2px);
+  --lift: -2px;
   box-shadow: var(--inset-highlight), 0 8px 24px rgba(0, 0, 0, 0.35);
 }
 
 .vibe-menu-toggle:active {
-  transform: scale(0.96);
-  transition: transform 0.1s;
+  --press: 0.94;
+  transition: --press 0.08s ease-out;
 }
 
 .vibe-menu {
@@ -1253,11 +1558,11 @@ body.theme-forest #share-screen {
 #share-screen[data-vibe="mysterious"] { --vibe-accent:#c49aff; color:#f0e8ff; background:radial-gradient(ellipse at 80% 10%,#392954,#151322 55%,#0e101b); }
 #share-screen[data-vibe="creative"] { --vibe-accent:#ff80bc; color:#fff0fa; background:linear-gradient(135deg,#392044,#282047 50%,#173849); }
 #share-screen[data-vibe="nature"] { --vibe-accent:#a8d67b; color:#eff9e6; background:radial-gradient(ellipse at 30% 10%,#415b37,#1c3428 58%,#11231f); }
-#share-screen[data-vibe="retro"] { --vibe-accent:#bdf35d; color:#e6f5c8; background:repeating-linear-gradient(0deg,#171b31 0 4px,#1d2036 4px 8px); font-family:"Courier New",monospace; }
+#share-screen[data-vibe="retro"] { --vibe-accent:#bdf35d; color:#e6f5c8; background:repeating-linear-gradient(0deg,#171b31 0 4px,#1d2036 4px 8px); font-family:var(--font-mono); }
 #share-screen[data-vibe="cozy"] { --vibe-accent:#f3bd7d; color:#fff2df; background:radial-gradient(ellipse at 50% 5%,#75523e,#382c2a 58%,#201d23); }
 
 body.theme-retro #share-screen {
-  font-family: "Courier New", monospace;
+  font-family: var(--font-mono);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1275,20 +1580,16 @@ body.theme-retro #share-screen {
   }
 }
 
-@keyframes floaty {
-  0% { transform: translate3d(0, 0, 0) scale(1); }
-  100% { transform: translate3d(24px, -30px, 0) scale(1.15); }
-}
-
-@keyframes pulse {
-  0% { transform: scale(0.95); opacity: 0.7; }
-  100% { transform: scale(1.12); opacity: 1; }
-}
+/* @keyframes floaty и pulse удалены: они не используются ни в одном
+   animation-правиле (остались от прежней декоративной системы). */
 
 @media (max-width: 760px) {
-  .language-switcher {
-    top: max(14px, env(safe-area-inset-top));
-    left: max(14px, env(safe-area-inset-left));
+  /* Переключатель языка больше не живёт в левом верхнем углу: он внутри
+     шапки. Сохраняем только компактную геометрию на узких экранах. */
+  .home-header .language-toggle,
+  .home-header .discord-support {
+    min-width: 34px;
+    min-height: 34px;
   }
 
   .answers {
@@ -1365,38 +1666,9 @@ button:disabled {
     animation: none;
   }
 
-  .hero-glow {
-    animation: pulse-reduced 12s ease-in-out infinite alternate;
-  }
-
-  .ambient {
-    animation: floaty-reduced 18s ease-in-out infinite alternate;
-  }
-
-  .particle {
-    animation: drift var(--speed) linear infinite;
-  }
-
-  @keyframes pulse-reduced {
-    0% {
-      transform: scale(0.96);
-      opacity: 0.75;
-    }
-    100% {
-      transform: scale(1.08);
-      opacity: 1;
-    }
-  }
-
-  @keyframes floaty-reduced {
-    0% {
-      transform: translate3d(0, 0, 0) scale(1);
-    }
-    100% {
-      transform: translate3d(12px, -16px, 0) scale(1.06);
-    }
-  }
-
+  /* Удалены правила для .hero-glow / .ambient / .particle и их @keyframes
+     (pulse-reduced, floaty-reduced): сами элементы давно убраны из разметки,
+     а @keyframes drift вообще не был объявлен — это был мёртвый код. */
 }
 
 @media (max-width: 768px) {
@@ -1552,5 +1824,3044 @@ button:disabled {
     max-height: min(52vh, 420px);
   }
 
+}
+
+/* Витрина атмосфер на узких экранах: подпись поднимаем чуть выше. */
+@media (max-width: 760px) {
+  .vibe-showcase {
+    top: clamp(56px, 15vh, 110px);
+  }
+
+  .vibe-showcase__name {
+    font-size: clamp(1.25rem, 6vw, 1.7rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #home-screen.active .hero-wrap > h1,
+  #home-screen.active .subtitle,
+  #home-screen.active .vibe-showcase {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+
+  /* Вход кнопки — только прозрачность: transform принадлежит интерактиву. */
+  #home-screen.active .primary-btn {
+    animation: none;
+    opacity: 1;
+  }
+
+  /* Кроссфейд заменяем коротким ровным появлением: без движения, только цвет. */
+  .vibe-showcase__name {
+    transition: opacity 240ms linear;
+  }
+
+  /* Рукописный каскад выключаем: остаётся только ровное проявление слоя. */
+  .vibe-letter {
+    animation: none;
+  }
+
+  .home-glow {
+    transition: opacity 0.2s ease;
+  }
+
+  .home-glow__layer {
+    transition: opacity 240ms linear;
+  }
+
+  /* Наклон не подключается из JS вовсе, подъём и нажатие выключены:
+     остаётся только отклик рамкой и тенью. */
+  .primary-btn,
+  .language-toggle,
+  .discord-support,
+  .vibe-menu-toggle,
+  .survey-card {
+    transition: box-shadow 0.2s ease, border-color 0.2s ease;
+  }
+
+  .primary-btn:hover,
+  .primary-btn:focus-visible,
+  .language-toggle:hover,
+  .language-toggle:focus-visible,
+  .discord-support:hover,
+  .discord-support:focus-visible,
+  .vibe-menu-toggle:hover,
+  .vibe-menu-toggle:focus-visible,
+  .vibe-menu-toggle[aria-expanded="true"] {
+    --lift: 0px;
+  }
+
+  .primary-btn:active,
+  .language-toggle:active,
+  .discord-support:active,
+  .vibe-menu-toggle:active {
+    --press: 1;
+  }
+}
+
+/* ==========================================================================
+   Кинематографический вход (cinematic entrance)
+   Изолированный декоративный слой: полный вход на первом визите, укороченный
+   — на повторных. Вид управляется атрибутом data-intro на <html> (его ставит
+   js/intro.js), анимации — только transform/opacity. Слой никогда не
+   перехватывает ввод (pointer-events: none, aria-hidden) и не влияет на
+   экраны, роутинг, i18n и звук приложения.
+   ========================================================================== */
+
+:root {
+  /* Тайминги обязаны совпадать с FULL_HOLD_MS / FULL_FADE_MS / SHORT_* в js/intro.js. */
+  --intro-full-hold: 850ms;    /* сколько держим чистое затемнение */
+  --intro-full-fade: 1150ms;   /* снятие затемнения (итого ≈ 2 c) */
+  --intro-short-hold: 40ms;
+  --intro-short-fade: 320ms;   /* укороченный вход (итого ≈ 0.36 c) */
+}
+
+.cinematic-intro {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483646; /* выше контента, ниже .vibe-transition */
+  background: #000;
+  pointer-events: none; /* никогда не блокирует клики и тач */
+  opacity: 0;
+  isolation: isolate;
+  contain: layout style paint;
+}
+
+.cinematic-intro__bloom {
+  position: absolute;
+  inset: -10%;
+  /* Мягкое амбиентное свечение: рассеянный свет из верхней трети кадра.
+     Статичный radial-gradient: анимируем только opacity и transform(scale) —
+     без дорогих blur-фильтров на весь экран. */
+  background: radial-gradient(
+    62% 55% at 50% 32%,
+    rgba(190, 205, 255, 0.5),
+    rgba(120, 150, 255, 0.16) 42%,
+    transparent 72%
+  );
+  opacity: 0;
+  transform: scale(0.72);
+  transform-origin: 50% 34%;
+}
+
+.cinematic-intro__vignette {
+  position: absolute;
+  inset: 0;
+  /* Насыщенная виньетка: держит края кадра в темноте, фокусируя свет в центре. */
+  background: radial-gradient(
+    120% 100% at 50% 42%,
+    transparent 40%,
+    rgba(0, 0, 0, 0.55) 78%,
+    rgba(0, 0, 0, 0.9) 100%
+  );
+  opacity: 0;
+}
+
+.cinematic-intro__grain {
+  position: absolute;
+  inset: 0;
+  /* Лёгкая плёночная шероховатость без растра: повторяющийся радиальный
+     микроузор, а не PNG-шум (никаких лишних сетевых запросов и больших
+     ассетов). Очень низкая прозрачность. */
+  background-image:
+    radial-gradient(rgba(255, 255, 255, 0.045) 0.5px, transparent 0.6px),
+    radial-gradient(rgba(255, 255, 255, 0.03) 0.5px, transparent 0.6px);
+  background-size: 3px 3px, 5px 5px;
+  background-position: 0 0, 1px 2px;
+  opacity: 0;
+}
+
+/* --- Запас при сбое JS: страница не может остаться невидимой ---------------
+   Если модуль не выполнился, data-intro так и не появится — затемнение само
+   гаснет за ~1 c одним CSS, без опоры на JavaScript. */
+html:not([data-intro]) .cinematic-intro {
+  animation: intro-auto-release 620ms ease-out 1000ms both;
+}
+
+@keyframes intro-auto-release {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+/* Нет JS и включён reduced-motion: затемнение не показываем вовсе. */
+@media (prefers-reduced-motion: reduce) {
+  html:not([data-intro]) .cinematic-intro {
+    animation: none;
+    display: none;
+  }
+}
+
+/* --- Выключенный вход ------------------------------------------------------ */
+html[data-intro="none"] .cinematic-intro {
+  display: none;
+}
+
+/* --- Финальное состояние: слой выведен из отрисовки полностью ------------- */
+html[data-intro="done"] .cinematic-intro {
+  animation: none;
+  opacity: 0;
+  display: none;
+}
+
+/* --- Сам вход: раскрытие из темноты ---------------------------------------
+   Механика: на время входа слой мгновенно уходит в чёрный (без transition —
+   никакой белой вспышки), затем js/intro.js по таймеру навешивает
+   .is-revealed, и слой гаснет уже переходом. Ускоренное завершение по
+   взаимодействию JS задаёт инлайновым transition-duration. */
+html[data-intro="full"] .cinematic-intro,
+html[data-intro="short"] .cinematic-intro {
+  opacity: 1;
+  will-change: opacity;
+}
+
+/* Полное затемнение входа: длительность гашения задаётся переходом ниже. */
+html[data-intro="full"] .cinematic-intro.is-revealed {
+  opacity: 0;
+  transition: opacity var(--intro-full-fade) var(--ease-spring);
+}
+
+html[data-intro="short"] .cinematic-intro.is-revealed {
+  opacity: 0;
+  transition: opacity var(--intro-short-fade) var(--ease-spring);
+}
+
+/* Амбиентное свечение: расходится из точки и набирает силу. */
+html[data-intro="full"] .cinematic-intro__bloom {
+  animation: intro-bloom 1900ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+html[data-intro="short"] .cinematic-intro__bloom {
+  animation: intro-bloom-soft 420ms ease-out both;
+}
+
+html[data-intro="full"] .cinematic-intro__vignette {
+  animation: intro-vignette 700ms ease-out 60ms both;
+}
+
+html[data-intro="short"] .cinematic-intro__vignette {
+  animation: intro-vignette-soft 360ms ease-out both;
+}
+
+html[data-intro="full"] .cinematic-intro__grain {
+  animation: intro-grain 1200ms ease-in-out 120ms both;
+}
+
+html[data-intro="short"] .cinematic-intro__grain {
+  animation: intro-grain 420ms ease-in-out both;
+}
+
+@keyframes intro-bloom {
+  0% { opacity: 0; transform: scale(0.72); }
+  45% { opacity: 0.85; }
+  100% { opacity: 0.5; transform: scale(1.12); }
+}
+
+@keyframes intro-bloom-soft {
+  0% { opacity: 0; transform: scale(0.9); }
+  100% { opacity: 0.45; transform: scale(1.04); }
+}
+
+@keyframes intro-vignette {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+@keyframes intro-vignette-soft {
+  0% { opacity: 0; }
+  100% { opacity: 0.6; }
+}
+
+@keyframes intro-grain {
+  0% { opacity: 0; }
+  30% { opacity: 0.5; }
+  100% { opacity: 0.22; }
+}
+
+/* --- Согласованный выход интерфейса из темноты -----------------------------
+   Существующие экраны и так появляются анимацией (hero-rise / hero-fade).
+   Пока идёт вход, растягиваем её задержки, чтобы элементы «проявлялись» уже
+   из рассеивающейся темноты, а не вспыхивали мгновенно. Правила ограничены
+   атрибутом data-intro — вне входа поведение не меняется. */
+html[data-intro="full"] #home-screen.active .hero-wrap > h1,
+html[data-intro="full"] #home-screen.active .subtitle {
+  animation-duration: 900ms;
+}
+
+html[data-intro="full"] #home-screen.active .hero-wrap > h1 {
+  animation-delay: 620ms;
+}
+
+html[data-intro="full"] #home-screen.active .subtitle {
+  animation-delay: 780ms;
+}
+
+html[data-intro="full"] #home-screen.active .primary-btn {
+  animation-duration: 900ms;
+  animation-delay: 1050ms;
+}
+
+html[data-intro="full"] #home-screen.active .vibe-showcase {
+  animation-duration: 1100ms;
+  animation-delay: 1180ms;
+}
+
+html[data-intro="short"] #home-screen.active .hero-wrap > h1 {
+  animation-duration: 520ms;
+  animation-delay: 120ms;
+}
+
+html[data-intro="short"] #home-screen.active .subtitle {
+  animation-duration: 520ms;
+  animation-delay: 200ms;
+}
+
+html[data-intro="short"] #home-screen.active .primary-btn {
+  animation-duration: 560ms;
+  animation-delay: 300ms;
+}
+
+html[data-intro="short"] #home-screen.active .vibe-showcase {
+  animation-duration: 620ms;
+  animation-delay: 340ms;
+}
+
+/* Мобильные: убираем лишнюю работу с большими слоями, эффект сохраняем. */
+@media (max-width: 768px) {
+  .cinematic-intro__grain {
+    /* Плёночный узор на мелких экранах читается как шум — снимаем. */
+    display: none;
+  }
+
+  .cinematic-intro__bloom {
+    /* Свет держим ближе к центру, чтобы не тянуть пиксели по краям. */
+    inset: 0;
+  }
+}
+
+/* --- Reduced motion: вход пропускается целиком ----------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  html[data-intro] .cinematic-intro {
+    display: none;
+    animation: none;
+    transition: none;
+  }
+
+  /* Интерфейс видим сразу, без кинематографических задержек появления. */
+  html[data-intro] #home-screen.active .hero-wrap > h1,
+  html[data-intro] #home-screen.active .subtitle,
+  html[data-intro] #home-screen.active .primary-btn,
+  html[data-intro] #home-screen.active .vibe-showcase {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ===========================================================================
+   ФАЗА 2B — ДОМАШНИЙ ЭКРАН: DARK CINEMATIC + MINIMAL PREMIUM
+   Всё ниже — только дополнение. Существующие правила не удалены; точечные
+   переопределения помечены и сужены по селектору (шaпка, вторая CTA,
+   быстрый переход), чтобы не задевать остальные экраны.
+   =========================================================================== */
+
+/* --- Фон: почти чёрный + мягкое фиолетовое амбиентное свечение ------------- */
+/* Переопределяем только background у #home-screen (остальные токены из общего
+   правила #home-screen,#survey-screen,#creation-screen сохраняются). */
+#home-screen {
+  background:
+    radial-gradient(120% 72% at 50% -12%, rgba(255, 255, 255, 0.055), transparent 62%),
+    radial-gradient(90% 58% at 84% 6%, rgba(255, 255, 255, 0.028), transparent 56%),
+    #000000;
+  /* Верхний отступ уменьшен: переключатель языка больше не «висит» в левом
+     верхнем углу (он в шапке), поэтому большой запас под него не нужен. */
+  padding-top: clamp(20px, 2.5vh, 30px);
+}
+
+/* --- Колонка домашнего экрана --------------------------------------------- */
+/* #home-screen — flex-строка; единственный потоковый ребёнок .home-main её
+   заполняет и выстраивает контент в столбец (шапка → hero → каталог → подвал). */
+.home-main {
+  position: relative;
+  z-index: 2;
+  flex: 1 1 100%;
+  width: 100%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* --- Шапка: вордмарк слева, Discord справа -------------------------------- */
+.home-header {
+  position: relative;
+  z-index: 4; /* выше витрины атмосфер и hero, чтобы не перекрываться ими */
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  width: min(1180px, 100%);
+  margin: 0 auto;
+  padding: clamp(0.6rem, 2vw, 1rem) clamp(1rem, 4vw, 2rem) 0;
+}
+
+.home-wordmark {
+  font-family: var(--font-display);
+  font-size: clamp(1.05rem, 2.4vw, 1.3rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--label-primary);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.home-wordmark:hover,
+.home-wordmark:focus-visible {
+  color: #ffffff;
+}
+
+/* Discord переехал из нижнего угла в шапку: снимаем абсолютное позиционирование
+   только внутри шапки (базовое правило .discord-support не трогаем). */
+.home-header .discord-support {
+  position: relative;
+  bottom: auto;
+  right: auto;
+  inset: auto;
+  flex: none;
+}
+
+/* --- Hero: заголовок, подзаголовок, две CTA ------------------------------- */
+/* В потоковой колонке hero больше не «плавает» по вертикали на margin:auto —
+   вместо этого получает собственные отступы, читаемые как кинематографичный кадр. */
+.home-main .hero-wrap {
+  margin: 0 auto;
+  padding: clamp(3.5rem, 9vh, 6rem) 1.5rem clamp(2.5rem, 7vh, 4.5rem);
+  gap: 1.3rem;
+}
+
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.85rem;
+  margin-top: 0.35rem;
+}
+
+/* Вторичная CTA: «Смотреть вайбы» — прозрачное стекло с тонкой рамкой.
+   Намеренно тише главной кнопки. Автономна от #start-btn (только прокрутка). */
+#home-screen .explore-btn {
+  display: inline-block;
+  min-height: 44px;
+  padding: 15px 30px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--label-primary);
+  font: inherit;
+  font-weight: 600;
+  font-size: var(--type-body-size);
+  letter-spacing: 0.005em;
+  cursor: pointer;
+  box-shadow: var(--inset-highlight);
+  backdrop-filter: blur(10px) saturate(140%);
+  -webkit-backdrop-filter: blur(10px) saturate(140%);
+  transition:
+    transform 0.35s var(--ease-spring),
+    border-color 0.35s var(--ease-spring),
+    background-color 0.35s var(--ease-spring),
+    box-shadow 0.35s var(--ease-spring);
+}
+
+#home-screen .explore-btn:hover,
+#home-screen .explore-btn:focus-visible {
+  transform: translateY(-2px);
+  border-color: rgba(255, 255, 255, 0.32);
+  background: rgba(255, 255, 255, 0.07);
+  box-shadow: 0 14px 30px -18px rgba(0, 0, 0, 0.7), var(--inset-highlight);
+}
+
+#home-screen .explore-btn:active {
+  transform: translateY(-1px) scale(0.99);
+}
+
+/* ГЛАВНАЯ CTA (#start-btn): высококонтрастная брендовая кнопка с
+   сдержанным фиолетовым свечением. Поведение (слушатель + опрос)
+   не меняется — только стиль. */
+#home-screen .primary-btn {
+  padding: 15px 34px;
+  border: 1px solid transparent;
+  background: linear-gradient(180deg, #ffffff, #dcdde2);
+  color: #0a0a0c;
+  font-weight: 700;
+  font-size: var(--type-body-size);
+  letter-spacing: 0.005em;
+  box-shadow:
+    0 12px 30px -18px rgba(0, 0, 0, 0.9),
+    0 0 0 1px rgba(255, 255, 255, 0.06),
+    0 0 34px -16px rgba(124, 92, 255, 0.4);
+}
+
+#home-screen .primary-btn:hover,
+#home-screen .primary-btn:focus-visible {
+  --lift: -3px;
+  border-color: transparent;
+  box-shadow:
+    0 22px 50px -20px var(--preview-glow, rgba(255, 255, 255, 0.5)),
+    0 0 0 1px rgba(255, 255, 255, 0.08),
+    0 0 44px -14px rgba(124, 92, 255, 0.5);
+}
+
+/* Витрина атмосфер: теперь над hero есть шапка, поэтому чуть приглушаем и
+   поднимаем декоративную надпись — жизненный цикл (start/stopVibeShowcase)
+   не трогаем, меняется только подача. */
+#home-screen .vibe-showcase {
+  /* Держим декоративную надпись в зазоре между шапкой и заголовком: слой
+     лежит под контентом (z-index:1 против .home-main:2), поэтому даже при
+     близком соседстве читается как мягкий водяной знак, а не мешает hero. */
+  top: clamp(116px, 14vh, 168px);
+}
+
+#home-screen .vibe-showcase__name {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+/* --- Каталог атмосфер ----------------------------------------------------- */
+.vibe-catalog {
+  position: relative;
+  z-index: 2;
+  width: min(1180px, 100%);
+  margin: 0 auto;
+  padding: clamp(1.5rem, 4vw, 2.5rem) clamp(1rem, 4vw, 2rem) clamp(2rem, 5vw, 3.5rem);
+  display: flex;
+  flex-direction: column;
+  gap: clamp(1.1rem, 2.5vw, 1.6rem);
+}
+
+.catalog-head {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.catalog-title {
+  margin: 0;
+  font-size: clamp(1.5rem, 3.6vw, 2.2rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--label-primary);
+}
+
+
+/* Верхняя композиция: крупная карточка слева + две компактные справа. */
+.catalog-top {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  gap: clamp(0.9rem, 2.4vw, 1.4rem);
+}
+
+.catalog-top__side {
+  display: grid;
+  grid-template-rows: 1fr 1fr;
+  gap: clamp(0.9rem, 2.4vw, 1.4rem);
+}
+
+.vibe-catalog__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: clamp(0.9rem, 2.4vw, 1.4rem);
+}
+
+/* --- Карточка вайба ------------------------------------------------------- */
+.vibe-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  min-height: 152px;
+  padding: 1.15rem;
+  text-align: start;
+  cursor: pointer;
+  overflow: hidden;
+  font: inherit;
+  color: var(--label-primary);
+  background: linear-gradient(180deg, rgba(18, 18, 22, 0.9), rgba(9, 9, 12, 0.97));
+  border: 0.5px solid rgba(255, 255, 255, 0.1);
+  border-radius: 18px;
+  box-shadow: 0 20px 40px -30px rgba(0, 0, 0, 0.9), var(--inset-highlight);
+  transition:
+    transform 0.45s var(--ease-spring),
+    border-color 0.45s var(--ease-spring),
+    box-shadow 0.45s var(--ease-spring);
+}
+
+/* Крупная (витринная) карточка: выше и с более заметным названием. */
+.vibe-card--featured {
+  min-height: clamp(240px, 34vh, 340px);
+  padding: clamp(1.3rem, 2.4vw, 1.9rem);
+}
+
+.vibe-card__glow {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0.55;
+  background: radial-gradient(80% 72% at 50% 118%, var(--card-accent-glow, transparent), transparent 70%);
+  transition: opacity 0.45s var(--ease-spring);
+}
+
+.vibe-card__body {
+  position: relative;
+  z-index: 1;
+}
+
+.vibe-card__name {
+  display: block;
+  font-weight: 700;
+  font-size: 1.05rem;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+  /* Индивидуальный акцент темы — тонкая цветная метка, а не заливка. */
+  color: var(--label-primary);
+}
+
+.vibe-card--featured .vibe-card__name {
+  font-size: clamp(1.5rem, 3vw, 2.1rem);
+  letter-spacing: -0.025em;
+}
+
+/* Тонкая акцентная черта темы над названием крупной карточки. */
+.vibe-card--featured .vibe-card__body::before {
+  content: "";
+  display: block;
+  width: 34px;
+  height: 3px;
+  margin-bottom: 0.7rem;
+  border-radius: 999px;
+  background: var(--card-accent, #ffffff);
+  opacity: 0.85;
+}
+
+.vibe-card__arrow {
+  position: relative;
+  z-index: 1;
+  align-self: flex-start;
+  font-size: 1.05rem;
+  line-height: 1;
+  color: var(--label-secondary);
+  opacity: 0.7;
+  transition: transform 0.45s var(--ease-spring), opacity 0.45s var(--ease-spring), color 0.45s var(--ease-spring);
+}
+
+/* Наведение/фокус: лёгкий подъём и масштаб, ярче граница, мягкое фиолетовое
+   свечение в акценте темы и небольшой сдвиг стрелки. */
+.vibe-card:hover,
+.vibe-card:focus-visible {
+  transform: translateY(-4px) scale(1.012);
+  border-color: rgba(255, 255, 255, 0.22);
+  box-shadow:
+    0 30px 60px -34px rgba(0, 0, 0, 0.95),
+    0 0 0 1px var(--card-accent-soft, rgba(255, 255, 255, 0.12)),
+    0 22px 54px -26px var(--card-accent-glow, rgba(140, 110, 255, 0.3));
+  outline: none;
+}
+
+.vibe-card:hover .vibe-card__glow,
+.vibe-card:focus-visible .vibe-card__glow {
+  opacity: 1;
+}
+
+.vibe-card:hover .vibe-card__arrow,
+.vibe-card:focus-visible .vibe-card__arrow {
+  transform: translateX(4px);
+  opacity: 1;
+  color: var(--label-primary);
+}
+
+.vibe-card:focus-visible {
+  outline: 2px solid var(--card-accent, var(--primary));
+  outline-offset: 3px;
+}
+
+.vibe-card:active {
+  transform: translateY(-2px) scale(1.004);
+}
+
+/* --- Подвал ---------------------------------------------------------------- */
+.home-footer {
+  width: min(1180px, 100%);
+  margin: 0 auto;
+  padding: 0 clamp(1rem, 4vw, 2rem) clamp(2.5rem, 6vh, 4rem);
+}
+
+.home-footer__line {
+  margin: 0;
+  color: var(--label-tertiary);
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+/* --- Быстрый кинематографический переход при открытии вайба --------------- */
+/* Переиспользуем существующий #vibe-transition, но с короткой длительностью
+   для прямого открытия из каталога (без 4-секундной «сцены создания»). */
+.vibe-transition.is-quick {
+  transition-duration: 280ms;
+}
+
+/* --- Вход: шапка, CTA-блок, каталог и подвал в общем ступенчатом раскрытии -
+   Переиспользуем существующие hero-rise / hero-fade. Анимируем КОНТЕЙНЕРЫ
+   (opacity/небольшой сдвиг), поэтому hover-трансформы карточек не блокируются. */
+#home-screen.active .home-header {
+  animation: hero-fade 700ms var(--ease-spring) both;
+}
+
+#home-screen.active .hero-wrap > h1 {
+  animation-delay: 60ms;
+}
+
+#home-screen.active .subtitle {
+  animation-delay: 170ms;
+}
+
+#home-screen.active .hero-actions {
+  animation: hero-fade 900ms var(--ease-spring) both;
+  animation-delay: 320ms;
+}
+
+/* Внутри .hero-actions анимацию ведёт контейнер — собственную анимацию кнопки
+   отключаем, чтобы не было двойного проявления. Селектор намеренно длиннее
+   существующих html[data-intro="full"|"short"] #home-screen.active .primary-btn
+   (задержки 1050ms / 300ms), иначе #start-btn проявился бы дважды. */
+#home-screen.active .hero-actions .primary-btn,
+html[data-intro] #home-screen.active .hero-actions .primary-btn {
+  animation: none;
+}
+
+#home-screen.active .vibe-catalog {
+  animation: hero-rise 900ms var(--ease-spring) both;
+  animation-delay: 460ms;
+}
+
+#home-screen.active .home-footer {
+  animation: hero-fade 900ms var(--ease-spring) both;
+  animation-delay: 600ms;
+}
+
+/* Полный вход (~2 c): темнота → свечение → вордмарк → заголовок → CTA и карточки */
+html[data-intro="full"] #home-screen.active .home-header {
+  animation-duration: 900ms;
+  animation-delay: 560ms;
+}
+
+html[data-intro="full"] #home-screen.active .hero-wrap > h1 {
+  animation-duration: 900ms;
+  animation-delay: 720ms;
+}
+
+html[data-intro="full"] #home-screen.active .subtitle {
+  animation-duration: 900ms;
+  animation-delay: 860ms;
+}
+
+html[data-intro="full"] #home-screen.active .hero-actions {
+  animation-duration: 900ms;
+  animation-delay: 980ms;
+}
+
+html[data-intro="full"] #home-screen.active .vibe-catalog {
+  animation-duration: 1000ms;
+  animation-delay: 1120ms;
+}
+
+html[data-intro="full"] #home-screen.active .home-footer {
+  animation-duration: 900ms;
+  animation-delay: 1260ms;
+}
+
+/* Повторный вход (~0.4 c) */
+html[data-intro="short"] #home-screen.active .home-header {
+  animation-duration: 280ms;
+  animation-delay: 0ms;
+}
+
+html[data-intro="short"] #home-screen.active .hero-wrap > h1 {
+  animation-duration: 320ms;
+  animation-delay: 40ms;
+}
+
+html[data-intro="short"] #home-screen.active .subtitle {
+  animation-duration: 320ms;
+  animation-delay: 80ms;
+}
+
+html[data-intro="short"] #home-screen.active .hero-actions {
+  animation-duration: 340ms;
+  animation-delay: 120ms;
+}
+
+html[data-intro="short"] #home-screen.active .vibe-catalog {
+  animation-duration: 380ms;
+  animation-delay: 160ms;
+}
+
+html[data-intro="short"] #home-screen.active .home-footer {
+  animation-duration: 340ms;
+  animation-delay: 200ms;
+}
+
+/* --- Адаптив --------------------------------------------------------------- */
+@media (max-width: 900px) {
+  .catalog-top {
+    grid-template-columns: 1fr;
+  }
+
+  .catalog-top__side {
+    grid-template-rows: none;
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .catalog-top__side {
+    grid-template-columns: 1fr;
+  }
+
+  .vibe-catalog__grid {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  }
+
+  .hero-actions {
+    width: 100%;
+  }
+
+  #home-screen .explore-btn,
+  #home-screen .primary-btn {
+    flex: 1 1 auto;
+    text-align: center;
+  }
+}
+
+/* Тонкие устройства без hover: свечение и стрелка видны по умолчанию. */
+@media (hover: none) {
+  .vibe-card__glow {
+    opacity: 0.75;
+  }
+
+  .vibe-card__arrow {
+    opacity: 0.9;
+  }
+}
+
+/* --- RTL (арабский) -------------------------------------------------------- */
+[dir="rtl"] .home-header,
+[dir="rtl"] .catalog-head,
+[dir="rtl"] .home-footer {
+  text-align: right;
+}
+
+[dir="rtl"] .vibe-card:hover .vibe-card__arrow,
+[dir="rtl"] .vibe-card:focus-visible .vibe-card__arrow {
+  transform: translateX(-4px);
+}
+
+/* --- Reduced motion: новое содержимое появляется без движения -------------- */
+@media (prefers-reduced-motion: reduce) {
+  html[data-intro] #home-screen.active .home-header,
+  html[data-intro] #home-screen.active .hero-actions,
+  html[data-intro] #home-screen.active .vibe-catalog,
+  html[data-intro] #home-screen.active .home-footer {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+
+  #home-screen.active .home-header,
+  #home-screen.active .hero-actions,
+  #home-screen.active .vibe-catalog,
+  #home-screen.active .home-footer {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+
+  .vibe-card,
+  .vibe-card__glow,
+  .vibe-card__arrow,
+  #home-screen .explore-btn {
+    transition: none;
+  }
+
+  .vibe-card:hover,
+  .vibe-card:focus-visible,
+  .vibe-card:active {
+    transform: none;
+  }
+
+  .vibe-transition.is-quick {
+    transition-duration: 0.01ms;
+  }
+}
+
+/* ===========================================================================
+   ФАЗА 2B-REFINE — ИДЕНТИЧНОСТЬ БРЕНДА И ХАРАКТЕР КАРТОЧЕК
+   Дополнение к ФАЗЕ 2B. Правки точечные и сужены по селектору; данные тем
+   берутся из уже существующих --card-accent* (VIBE_CARD_ACCENTS), новых
+   ассетов и зависимостей нет. Ничего в поведении не меняется.
+   =========================================================================== */
+
+/* --- Шапка: между вордмарком и Discord появляется тонкая линия --------------
+   Служебная линия, никогда не попадает под палец/курсор. */
+.home-header::before {
+  content: "";
+  position: absolute;
+  inset-inline: clamp(1rem, 4vw, 2rem);
+  bottom: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1) 22%, rgba(255, 255, 255, 0.1) 78%, transparent);
+  pointer-events: none;
+}
+
+/* --- Логотип-локап: метка + вордмарк -------------------------------------- */
+.home-wordmark {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.62rem;
+  font-size: clamp(1.25rem, 2.8vw, 1.5rem);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1;
+}
+
+/* Планета .home-wordmark__mark удалена из разметки: все её стили убраны.
+   Единственное оставшееся правило — страховка ниже. */
+
+.home-wordmark__text {
+  color: #ffffff;
+  /* Вторая половина имени идёт в фиолетово-лавандовом оттенке — тихий
+     премиальный акцент, не мешающий читаемости. */
+  text-shadow: 0 0 26px rgba(124, 92, 255, 0.28);
+}
+
+/* --- Hero-композиция: направленный свет и градиентный заголовок ------------ */
+.home-main .hero-wrap {
+  position: relative;
+  padding-top: clamp(3.8rem, 10vh, 6.4rem);
+}
+
+/* Градиентный заголовок: от почти белого к лавандовому — «кинематографичный»
+   свет по буквам, без заливки всего текста цветом. */
+.home-main .hero-wrap > h1 {
+  background: linear-gradient(180deg, #ffffff 0%, #e3ddfb 58%, #b9a9ec 116%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 0 60px rgba(124, 92, 255, 0.22);
+}
+
+/* Фолбэк: браузеры без background-clip:text показывают сплошной белый. */
+@supports not ((-webkit-background-clip: text) or (background-clip: text)) {
+  .home-main .hero-wrap > h1 {
+    color: var(--label-primary);
+    -webkit-text-fill-color: currentColor;
+  }
+}
+
+.home-main .subtitle {
+  color: var(--label-secondary);
+  letter-spacing: 0.015em;
+}
+
+/* --- Вторичная CTA («Смотреть вайбы»): стекло остаётся тихим --------------- */
+#home-screen .explore-btn {
+  background: rgba(255, 255, 255, 0.035);
+  border-color: rgba(255, 255, 255, 0.2);
+  box-shadow: var(--inset-highlight);
+}
+
+/* --- Главная CTA («Поиск»): брендовый белый + сдержанное свечение ---------- */
+#home-screen .primary-btn {
+  border-color: transparent;
+  background: linear-gradient(180deg, #ffffff, #dcdde2);
+  color: #0a0a0c;
+  box-shadow:
+    0 12px 30px -18px rgba(0, 0, 0, 0.9),
+    0 0 0 1px rgba(255, 255, 255, 0.06),
+    0 0 34px -16px rgba(124, 92, 255, 0.38);
+}
+
+/* ===========================================================================
+   ХАРАКТЕР КАРТОЧЕК: индивидуальный CSS-пейзаж для каждой из 14 тем
+   Карточка уже несёт data-vibe="<key>" (ставит js/app.js из vibeThemes),
+   поэтому всё оформление ниже — чистый CSS по ключу темы. Никаких новых
+   тем, имён или ассетов; акценты берутся из --card-accent*.
+   =========================================================================== */
+
+/* Общий художественный слой: ощущение света/глубины внутри карточки, единое
+   для всех тем — так карточки читаются как один продукт. */
+.vibe-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background-image:
+    radial-gradient(130% 88% at 50% -22%, rgba(255, 255, 255, 0.06), transparent 58%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(0, 0, 0, 0.34) 90%);
+}
+
+/* Контент поднимаем над художественным слоем. У .vibe-card__glow уже есть
+   position: absolute — ему назначаем только z-index, position не переопределяем. */
+.vibe-card__body,
+.vibe-card__arrow {
+  position: relative;
+  z-index: 1;
+}
+
+.vibe-card__glow {
+  z-index: 1;
+}
+
+/* Базовое поле карточки: глубокий чёрный с лёгким верхним светом. */
+.vibe-card {
+  background: linear-gradient(180deg, rgba(17, 17, 21, 0.92), rgba(8, 8, 11, 0.98));
+}
+
+/* Крупная карточка получает больше живописи (сильнее свечение и текстуру). */
+.vibe-card--featured .vibe-card__glow {
+  opacity: 0.8;
+}
+
+/* --- Космос: глубокая ночь и звёздная пыль — тёмно-фиолетовое поле + точки --- */
+.vibe-card[data-vibe="cosmos"] {
+  background:
+    radial-gradient(120% 85% at 78% 8%, rgba(123, 92, 255, 0.28), transparent 55%),
+    radial-gradient(90% 70% at 12% 96%, rgba(91, 152, 255, 0.2), transparent 62%),
+    linear-gradient(160deg, #0a0e24 0%, #060814 60%, #04050c 100%);
+}
+.vibe-card[data-vibe="cosmos"]::before {
+  background-image:
+    radial-gradient(rgba(255, 255, 255, 0.5) 0.5px, transparent 1.1px),
+    radial-gradient(rgba(190, 205, 255, 0.35) 0.5px, transparent 1.1px),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(0, 0, 0, 0.3));
+  background-size: 46px 46px, 29px 29px, 100% 100%;
+  background-position: 0 0, 17px 23px, 0 0;
+}
+
+/* --- Заряженный (solar): тёплый солнечный рассвет сверху ------------------- */
+.vibe-card[data-vibe="solar"] {
+  background:
+    linear-gradient(180deg, rgba(251, 191, 36, 0.34), rgba(249, 115, 22, 0.11) 42%, transparent 68%),
+    linear-gradient(200deg, #231706 0%, #140d04 100%);
+}
+
+/* --- Неоновый (neon): пурпур и циан по чёрному ----------------------------- */
+.vibe-card[data-vibe="neon"] {
+  background:
+    radial-gradient(100% 85% at 100% 0%, rgba(244, 114, 182, 0.34), transparent 52%),
+    radial-gradient(100% 85% at 0% 100%, rgba(103, 232, 249, 0.28), transparent 56%),
+    linear-gradient(160deg, #0a0d1c 0%, #05070f 100%);
+}
+
+/* --- Уединённый (forest): влажный лес и мягкий свет сквозь листву ---------- */
+.vibe-card[data-vibe="forest"] {
+  background:
+    radial-gradient(125% 80% at 20% -6%, rgba(142, 196, 154, 0.34), transparent 58%),
+    linear-gradient(180deg, #0e1b14, #0a120d);
+}
+
+/* --- Ночной (night): тихая улица, окна и фонарь ---------------------------- */
+.vibe-card[data-vibe="night"] {
+  background:
+    radial-gradient(70% 45% at 82% 22%, rgba(112, 231, 255, 0.35), transparent 60%),
+    radial-gradient(60% 40% at 18% 72%, rgba(255, 190, 120, 0.14), transparent 62%),
+    linear-gradient(200deg, #071226 0%, #050a16 100%);
+}
+
+/* --- Меланхоличный (rainy): дождь на стекле, холодные вертикальные струи ---- */
+.vibe-card[data-vibe="melancholic"] {
+  background:
+    repeating-linear-gradient(102deg, rgba(255, 255, 255, 0.065) 0 1px, transparent 1px 16px),
+    linear-gradient(180deg, #26333f 0%, #141c26 100%);
+}
+
+/* --- Дзен (water): спокойная вода, круги от капли --------------------------- */
+.vibe-card[data-vibe="zen"] {
+  background:
+    repeating-radial-gradient(circle at 50% 118%, rgba(255, 255, 255, 0.09) 0 1px, transparent 1px 40px),
+    linear-gradient(180deg, #123033 0%, #0b1a1f 100%);
+}
+
+/* --- Хаотичный (chaotic): угловатые цветные импульсы ----------------------- */
+.vibe-card[data-vibe="chaotic"] {
+  background:
+    repeating-linear-gradient(52deg, rgba(255, 92, 116, 0.26) 0 22px, transparent 22px 44px),
+    linear-gradient(160deg, #2a0e24 0%, #150818 100%);
+}
+
+/* --- Позитивный (happy): тёплые мазки и лёгкая цветная пыль ---------------- */
+.vibe-card[data-vibe="happy"] {
+  background:
+    radial-gradient(rgba(255, 202, 72, 0.42) 1px, transparent 2px),
+    linear-gradient(180deg, #2a2010 0%, #1a1220 100%);
+  background-size: 28px 28px, 100% 100%;
+}
+
+/* --- Загадочный (mysterious): туман и одинокой свет ------------------------ */
+.vibe-card[data-vibe="mysterious"] {
+  background:
+    radial-gradient(72% 62% at 26% 26%, rgba(196, 154, 255, 0.34), transparent 60%),
+    linear-gradient(160deg, #1b1630 0%, #0b0a16 100%);
+}
+
+/* --- Вдохновленный (creative): цветовые градиенты по диагонали ------------- */
+.vibe-card[data-vibe="creative"] {
+  background:
+    linear-gradient(135deg, rgba(255, 128, 188, 0.3), rgba(168, 142, 255, 0.26) 48%, rgba(120, 210, 255, 0.22)),
+    linear-gradient(180deg, #231733 0%, #100f22 100%);
+}
+
+/* --- Природный (nature): зелёные тропы и воздух ---------------------------- */
+.vibe-card[data-vibe="nature"] {
+  background:
+    radial-gradient(120% 82% at 88% 108%, rgba(168, 214, 123, 0.34), transparent 60%),
+    linear-gradient(180deg, #14210f 0%, #0b130c 100%);
+}
+
+/* --- Ностальгический (retro): пиксельная сетка и сканлайны ----------------- */
+.vibe-card[data-vibe="retro"] {
+  background:
+    repeating-linear-gradient(0deg, rgba(189, 243, 93, 0.09) 0 2px, transparent 2px 5px),
+    repeating-linear-gradient(90deg, rgba(189, 243, 93, 0.06) 0 2px, transparent 2px 5px),
+    linear-gradient(180deg, #0f1420 0%, #080b13 100%);
+}
+
+/* --- Ламповый (cozy): тёплый свет настольной лампы ------------------------- */
+.vibe-card[data-vibe="cozy"] {
+  background:
+    radial-gradient(70% 58% at 74% 12%, rgba(243, 189, 125, 0.42), transparent 60%),
+    linear-gradient(180deg, #251c15 0%, #150f0b 100%);
+}
+
+/* Акцентная вертикальная черта темы — у компактных карточек (у крупной уже
+   есть горизонтальная). Даёт мгновенную узнаваемость без «раскраски». */
+.vibe-card--grid::after,
+.vibe-card--side::after {
+  content: "";
+  position: absolute;
+  inset-block: 1.05rem;
+  inset-inline-start: 1.15rem;
+  width: 2px;
+  border-radius: 999px;
+  background: var(--card-accent, #ffffff);
+  opacity: 0.55;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Сдвигаем содержимое компактных карточек вправо от акцентной черты. */
+.vibe-card--grid,
+.vibe-card--side {
+  padding-inline-start: 1.75rem;
+}
+
+/* --- Контраст: на ярких тёплых полях название чуть притемняем края свечения,
+   чтобы текст оставался максимально читаемым (WCAG по светлому тексту). */
+.vibe-card--featured .vibe-card__name {
+  text-shadow: 0 2px 22px rgba(0, 0, 0, 0.55);
+}
+
+/* --- Reduced motion: тонкие эффекты карточек не анимируем ------------------ */
+@media (prefers-reduced-motion: reduce) {
+  .vibe-card::before,
+  .vibe-card--grid::after,
+  .vibe-card--side::after {
+    transition: none;
+  }
+}
+
+/* --- Мобильные: тяжёлые многослойные фоны упрощаем, характер сохраняем ----- */
+@media (max-width: 640px) {
+  .vibe-card[data-vibe="cosmos"]::before {
+    /* Звёздное поле на мелком экране читается как шум — оставляем мягкий свет. */
+    background-size: 60px 60px, 40px 40px, 100% 100%;
+    opacity: 0.7;
+  }
+
+}
+
+/* ===========================================================================
+   ФАЗА 3 — ГИБРИДНАЯ АНИМАЦИЯ
+   Кинематографичный амбиентный фон, отклик указателя, уточнённые микровзаимодействия.
+   Анимируются только transform/opacity; слои декоративны (pointer-events:none)
+   и работают ТОЛЬКО пока первый экран активен (#home-screen.is-home-active).
+   =========================================================================== */
+
+/* --- Фон: фоновая подсветка + наклон карточек не должны обрезаться --------- */
+/* #home-screen уже задаёт overflow-x:hidden; overflow-y:auto. Декоративные слои
+   выходят за края (вьюпорт), поэтому страховка от вертикальной полосы прокрутки. */
+#home-screen {
+  --home-mx: 0.5;
+  --home-my: 0.34;
+}
+
+/* --- Слой 1: амбиентное поле (медленно дышащие фиолетовые огни) ------------ */
+.home-ambient {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 0; /* проявляется на входе */
+}
+
+#home-screen.is-home-active .home-ambient {
+  opacity: 1;
+  transition: opacity 700ms var(--ease-spring);
+}
+
+.home-ambient__field {
+  position: absolute;
+  inset: -25%;
+  background:
+    radial-gradient(42% 36% at 30% 28%, rgba(124, 92, 255, 0.3), transparent 62%),
+    radial-gradient(38% 32% at 72% 20%, rgba(150, 118, 255, 0.22), transparent 60%),
+    radial-gradient(46% 40% at 58% 84%, rgba(92, 120, 255, 0.18), transparent 64%);
+  filter: blur(10px);
+  will-change: transform;
+  animation: ambientFieldDrift 46s ease-in-out infinite alternate;
+}
+
+/* --- Слой 2: дрейфующая мгла (текстурная глубина, очень низкая контрастность) */
+.home-ambient__haze {
+  position: absolute;
+  inset: -30%;
+  opacity: 0.4;
+  background:
+    radial-gradient(30% 26% at 22% 62%, rgba(180, 150, 255, 0.16), transparent 66%),
+    radial-gradient(34% 30% at 84% 72%, rgba(120, 170, 255, 0.13), transparent 68%);
+  filter: blur(14px);
+  will-change: transform;
+  animation: ambientHazeDrift 62s ease-in-out infinite alternate;
+}
+
+/* --- Слой 3: фиксированная виньетка — держит края в темноте, фокус в центре -- */
+/* Единый слой: удаляет любой автоперебор палитр и делает фон «одним кадром». */
+.home-ambient__vignette {
+  position: absolute;
+  inset: 0;
+  /* Дымка ослаблена намеренно: прежние 0.55/0.9 в сумме с фиолетовыми
+     радиалами гасили звёздное поле канваса почти до нуля. */
+  background:
+    radial-gradient(112% 88% at 50% -8%, rgba(124, 92, 255, 0.08), transparent 55%),
+    radial-gradient(120% 100% at 50% 42%, transparent 50%, rgba(0, 0, 0, 0.3) 84%, rgba(0, 0, 0, 0.6) 100%);
+}
+
+@keyframes ambientFieldDrift {
+  0% { transform: translate3d(-2%, -1.5%, 0) scale(1); }
+  100% { transform: translate3d(2.5%, 2%, 0) scale(1.08); }
+}
+
+@keyframes ambientHazeDrift {
+  0% { transform: translate3d(1.5%, 1%, 0) scale(1.04); }
+  100% { transform: translate3d(-2.5%, -2%, 0) scale(1.12); }
+}
+
+/* --- Отклик указателя: мягкий свет, следящий за курсором ------------------- */
+/* Отдельный слой поверх поля, но под контентом; координаты пишет js/app.js
+   (--home-mx/--home-my). Только на точном курсоре и вне reduced-motion. */
+@media (hover: hover) and (pointer: fine) {
+  .home-ambient__field::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(
+      26% 22% at calc(var(--home-mx) * 100%) calc(var(--home-my) * 100%),
+      rgba(170, 142, 255, 0.16),
+      transparent 70%
+    );
+    opacity: 0;
+    transition: opacity 600ms var(--ease-spring);
+  }
+
+  #home-screen.is-home-active .home-ambient__field::after {
+    opacity: 1;
+  }
+}
+
+/* --- Карточки: наклон через составной transform (не конфликтует с hover) ---- */
+/* Базовое состояние уже задаёт transition для transform; переменные наклона
+   добавляются в тот же transform, поэтому подъём и наклон складываются. */
+.vibe-card {
+  --tilt-x: 0deg;
+  --tilt-y: 0deg;
+  /* Переменные интерактивного 3D-наклона (пишет js/app.js):
+     параллакс планов и положение блика. */
+  --par-x: 0px;
+  --par-y: 0px;
+  /* Центр вращения строго по центру — иначе rotateX «проваливает» карточку. */
+  transform-origin: 50% 50%;
+  transform: perspective(900px) rotateX(var(--tilt-x)) rotateY(var(--tilt-y));
+  /* ВАЖНО: will-change здесь НЕ ставим. Он на 14 карточках означал бы 14
+     постоянных composited-слоёв и лишнюю память GPU при полностью статичной
+     странице. Промоушен включается только на время наклона (.is-tilting). */
+  transform-style: preserve-3d;
+}
+
+/* Промоушен слоя — лишь пока пользователь реально двигает карточку. */
+#home-screen .vibe-card.is-tilting {
+  will-change: transform;
+}
+
+.vibe-card:hover,
+.vibe-card:focus-visible {
+  transform: perspective(900px) rotateX(var(--tilt-x)) rotateY(var(--tilt-y)) translateY(-4px) scale(1.012);
+}
+
+.vibe-card:active {
+  transform: perspective(900px) rotateX(var(--tilt-x)) rotateY(var(--tilt-y)) translateY(-2px) scale(1.004);
+}
+
+/* Во время ведения курсора наклон идёт 1:1 (без сглаживания) — нет дрожания. */
+.vibe-card.is-tilting {
+  transition:
+    border-color 0.3s var(--ease-spring),
+    box-shadow 0.3s var(--ease-spring);
+}
+
+/* --- Кнопки: уточнённые pressed-состояния --------------------------------- */
+#home-screen .explore-btn:active {
+  transform: translateY(-1px) scale(0.985);
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.34);
+}
+
+#home-screen .primary-btn:active {
+  /* --press уже даёт просадку через составной transform; усиливаем тень. */
+  box-shadow:
+    0 8px 20px -16px rgba(0, 0, 0, 0.95),
+    0 0 0 1px rgba(255, 255, 255, 0.05),
+    0 0 26px -18px rgba(124, 92, 255, 0.34);
+}
+
+/* --- Пауза эффектов вне первого экрана ------------------------------------ */
+/* Экран уходит: анимации слоёв и подсветка указателя останавливаются, ноль
+   фоновой работы. Витрина при этом уже погашена stopVibeShowcase(). */
+#home-screen:not(.is-home-active) .home-ambient__field,
+#home-screen:not(.is-home-active) .home-ambient__haze {
+  animation-play-state: paused;
+}
+
+#home-screen:not(.is-home-active) .home-ambient {
+  opacity: 0;
+  transition: none;
+}
+
+/* --- Ступенчатое появление карточек на входе ------------------------------ */
+/* Анимируется ТОЛЬКО opacity: transform остаётся свободным для hover-подъёма
+   и наклона, поэтому «залипания» (animation fill) не возникает. */
+@keyframes cardReveal {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+#home-screen.active .vibe-card {
+  animation: cardReveal 560ms var(--ease-spring) both;
+  animation-delay: var(--reveal-delay, 0ms);
+}
+
+/* ===========================================================================
+   АУДИТ + АРТ-ДИРЕКЦИЯ: ИСПРАВЛЕНИЕ ХАРАКТЕРА И ДВИЖЕНИЯ
+   Причина прошлого результата: амплитуда дрейфа была ±2% за 46 c (глазом не
+   читается), вход карточек был только по прозрачности, а интерфейс оставался
+   набором скруглённых стеклянных карточек. Здесь: жёсткая геометрия, меньше
+   радиусов/свечений/стекла, осмысленное движение с реальной амплитудой.
+   Все правки — только домашний экран; блок идёт последним и осознанно
+   переопределяет прежние декоративные правила.
+   =========================================================================== */
+
+/* --- 1. ГЕОМЕТРИЯ: резкие, чертёжные формы вместо скруглённых карточек ----- */
+#home-screen .vibe-card,
+#home-screen .vibe-card--featured,
+#home-screen .catalog-top__side,
+#home-screen .home-header .discord-support {
+  border-radius: 3px;
+}
+
+/* Кнопки: 2px — почти прямоугольник, читается как «интерфейс», не «пилюля». */
+#home-screen .explore-btn,
+#home-screen .primary-btn {
+  border-radius: 2px;
+}
+
+/* --- 2. УБРАТЬ ГЕНЕРИЧНОЕ СТЕКЛО, БЛИКИ И ПАРАЗИТНЫЕ СВЕЧЕНИЯ -------------- */
+/* Бегущий блик на кнопках главного экрана больше не нужен: он не сообщает
+   ничего о продукте. Правило глобальное на #home-screen, другие экраны целы. */
+#home-screen .glass-glare-effect {
+  display: none;
+}
+
+/* Тяжёлые тени и внутренние подсветки карточек сняты: глубину задаёт свет
+   темы и граница, а не «плавающая карточка». */
+#home-screen .vibe-card {
+  box-shadow: none;
+}
+
+/* Декоративное свечение-ореол под карточкой отключено — на его месте работает
+   акцентная граница темы. */
+#home-screen .vibe-card__glow {
+  display: none;
+}
+
+/* Акцентная граница вместо свечения: на hover/focus рамка берёт цвет темы. */
+#home-screen .vibe-card:hover,
+#home-screen .vibe-card:focus-visible {
+  border-color: var(--card-accent, rgba(255, 255, 255, 0.5));
+  box-shadow: none;
+  transform: perspective(900px) rotateX(var(--tilt-x)) rotateY(var(--tilt-y)) translateY(-3px);
+}
+
+/* Вертикальная акцентная черта компактных карточек — тоньше и строже. */
+#home-screen .vibe-card--grid::after,
+#home-screen .vibe-card--side::after {
+  width: 1px;
+  inset-block: 0.9rem;
+  inset-inline-start: 1.1rem;
+  opacity: 0.8;
+}
+
+/* Бар над названием крупной карточки: короткая строгая риска вместо «капли». */
+#home-screen .vibe-card--featured .vibe-card__body::before {
+  border-radius: 0;
+  height: 2px;
+  width: 28px;
+  opacity: 1;
+}
+
+/* --- 3. ТИПОГРАФИКА И ИЕРАРХИЯ --------------------------------------------- */
+/* Вордмарк: плотнее и весомее, метка — ромб (чертёжная, не «планета»). */
+.home-wordmark {
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.home-wordmark__text {
+  text-shadow: none;
+}
+
+/* Заголовок: плотнее по трекингу, направленнее; градиент снят — типографика
+   держит экран сама, без «подсветки текста». */
+.home-main .hero-wrap > h1 {
+  background: none;
+  -webkit-background-clip: border-box;
+  background-clip: border-box;
+  color: #ffffff;
+  -webkit-text-fill-color: currentColor;
+  font-size: clamp(2.9rem, 7.4vw, 5.4rem);
+  letter-spacing: -0.05em;
+  line-height: 0.98;
+  text-shadow: none;
+  max-width: 15ch;
+}
+
+.home-main .subtitle {
+  max-width: 40ch;
+  color: var(--label-secondary);
+}
+
+/* --- 4. CTA: главная — плотный брендовый прямоугольник; вторая — текст ------ */
+/* #start-btn: высокий контраст, без ореола; поведение и ID не тронуты. */
+#home-screen .primary-btn {
+  padding: 16px 34px;
+  border-radius: 2px;
+  border: 1px solid transparent;
+  background: #ffffff;
+  color: #08080a;
+  font-weight: 700;
+  box-shadow: none;
+}
+
+#home-screen .primary-btn:hover,
+#home-screen .primary-btn:focus-visible {
+  --lift: -2px;
+  background: #ffffff;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.35);
+}
+
+#home-screen .primary-btn:active {
+  box-shadow: none;
+}
+
+/* «Смотреть вайбы»: не кнопка-коробка, а текстовое действие с подчёркиванием —
+   так иерархия очевидна и интерфейс перестаёт быть «набором пилюль». */
+#home-screen .explore-btn {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 15px 6px;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  color: var(--label-secondary);
+}
+
+#home-screen .explore-btn .control-label {
+  text-decoration: underline;
+  text-underline-offset: 6px;
+  text-decoration-thickness: 1px;
+  text-decoration-color: rgba(255, 255, 255, 0.3);
+}
+
+#home-screen .explore-btn:hover,
+#home-screen .explore-btn:focus-visible {
+  transform: none;
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+  color: var(--label-primary);
+}
+
+#home-screen .explore-btn:hover .control-label,
+#home-screen .explore-btn:focus-visible .control-label {
+  text-decoration-color: currentColor;
+}
+
+#home-screen .explore-btn:active {
+  transform: none;
+  opacity: 0.7;
+}
+
+/* --- 5. ДВИЖЕНИЕ: реальная, но медленная амплитуда фона -------------------- */
+/* Прежние ±2% за 46–62 c физически не воспринимались. Дрейф усилен до ~6–11%
+   и ускорен до 27–38 c: движение читается, оставаясь фоновым. */
+@keyframes ambientFieldDrift {
+  0% { transform: translate3d(-5%, -3%, 0) scale(1.02); }
+  100% { transform: translate3d(6.5%, 4.5%, 0) scale(1.16); }
+}
+
+@keyframes ambientHazeDrift {
+  0% { transform: translate3d(4%, 2.5%, 0) scale(1.06); }
+  100% { transform: translate3d(-6%, -4%, 0) scale(1.18); }
+}
+
+.home-ambient__field {
+  animation: ambientFieldDrift 27s ease-in-out infinite alternate;
+}
+
+.home-ambient__haze {
+  animation: ambientHazeDrift 38s ease-in-out infinite alternate;
+}
+
+/* Медленное «дыхание» света: свет не переливается цветом, а тихо живёт. */
+@keyframes ambientBreathe {
+  0% { opacity: 0.78; }
+  100% { opacity: 1; }
+}
+
+.home-ambient__vignette {
+  animation: ambientBreathe 19s ease-in-out infinite alternate;
+}
+
+/* Точечный «прожектор»: медленно смещается сам, курсор лишь добавляет локальный
+   свет (--home-mx/my). Это даёт заметное движение без движения текста. */
+@keyframes ambientSpotSweep {
+  0% { transform: translate3d(-6%, 3%, 0); }
+  100% { transform: translate3d(7%, -3%, 0); }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .home-ambient__field::after {
+    animation: ambientSpotSweep 21s ease-in-out infinite alternate;
+  }
+}
+
+/* --- 6. ВХОД: темнота → атмосфера → бренд → заголовок → CTA/каталог -------- */
+/* Проявление самого фона отдельной анимацией (а не «мгновенно»): именно это
+   связывает затемнение #cinematic-intro с атмосферой, а не оставляет чёрный. */
+@keyframes ambientIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.home-ambient {
+  transition: none;
+}
+
+html[data-intro="full"] #home-screen.active .home-ambient {
+  animation: ambientIn 1300ms var(--ease-spring) 40ms both;
+}
+
+html[data-intro="short"] #home-screen.active .home-ambient {
+  animation: ambientIn 420ms var(--ease-spring) both;
+}
+
+/* Заголовок и подзаголовок получают более выраженный подъём, чем прежние 14px:
+   на плотной типографике это читается как «кадр проявляется». */
+@keyframes hero-rise-strong {
+  from { opacity: 0; transform: translateY(26px); clip-path: inset(0 0 45% 0); }
+  to { opacity: 1; transform: translateY(0); clip-path: inset(0 0 0 0); }
+}
+
+#home-screen.active .hero-wrap > h1,
+html[data-intro] #home-screen.active .hero-wrap > h1 {
+  animation: hero-rise-strong 900ms var(--ease-spring) both;
+}
+
+#home-screen.active .subtitle,
+html[data-intro] #home-screen.active .subtitle {
+  animation: hero-rise-strong 800ms var(--ease-spring) both;
+}
+
+#home-screen.active .hero-wrap > h1 { animation-delay: 60ms; }
+#home-screen.active .subtitle { animation-delay: 170ms; }
+html[data-intro="full"] #home-screen.active .hero-wrap > h1 { animation-delay: 720ms; }
+html[data-intro="full"] #home-screen.active .subtitle { animation-delay: 880ms; }
+html[data-intro="short"] #home-screen.active .hero-wrap > h1 { animation-delay: 60ms; }
+html[data-intro="short"] #home-screen.active .subtitle { animation-delay: 130ms; }
+
+/* --- 7. КАТАЛОГ: ступенчатый вход карточек -------------------------------
+   Прежняя реализация «появления при прокрутке» через animation-timeline: view()
+   удалена как источник бага: она ЗАМЕНЯЛА входную анимацию карточек
+   (#home-screen.active .vibe-card) на scroll-driven таймлайн. У карточек
+   верхней композиции (крупная + боковые), которые уже в начальном вьюпорте,
+   диапазон entry/cover «прокручен», поэтому @keyframes залипал в кадре from
+   (opacity: 0) — карточки выглядели невидимыми, вход пропадал.
+   Теперь вход идёт по ВРЕМЕНИ (cardReveal + cardBodyRise) — надёжно на всех
+   браузерах и при любой высоте вьюпорта. */
+@keyframes cardBodyRise {
+  from { transform: translateY(26px); }
+  to { transform: translateY(0); }
+}
+
+/* Надёжный вход содержимого карточки: анимируем ТОЛЬКО внутренний блок,
+   поэтому hover-трансформ карточки и наклоны остаются свободными. */
+#home-screen.active .vibe-card .vibe-card__body {
+  animation: cardBodyRise 620ms var(--ease-spring) both;
+  animation-delay: calc(var(--reveal-delay, 0ms) + 60ms);
+}
+
+/* УДАЛЕНО (T3-ФИКС): блок @supports (animation-timeline: view()) намеренно убран.
+   Он ЗАМЕНЯЛ входную анимацию карточек (#home-screen.active .vibe-card) на
+   scroll-driven таймлайн. У карточек верхней композиции (крупная + боковые),
+   которые уже находятся в начальном вьюпорте, диапазон entry/cover «прокручен»,
+   поэтому @keyframes cardScrollFade залипал в кадре from (opacity: 0) —
+   карточки выглядели невидимыми/статичными, и вход пропадал. Именно это и
+   давало эффект «анимации не работают». Ниже — надёжный вход без scroll-timeline. */
+
+/* --- 8. REDUCED MOTION: без движения, но с сохранённой атмосферой ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .home-ambient__field,
+  .home-ambient__haze,
+  .home-ambient__vignette,
+  .home-ambient__field::after {
+    animation: none;
+  }
+
+  #home-screen .vibe-card,
+  #home-screen.active .vibe-card,
+  #home-screen .vibe-card .vibe-card__body,
+  html[data-intro] #home-screen.active .home-ambient,
+  #home-screen.active .hero-wrap > h1,
+  #home-screen.active .subtitle,
+  html[data-intro] #home-screen.active .hero-wrap > h1,
+  html[data-intro] #home-screen.active .subtitle {
+    animation: none;
+    opacity: 1;
+    transform: none;
+    clip-path: none;
+  }
+
+  .home-ambient {
+    opacity: 1;
+  }
+}
+
+/* --- 9. МОБИЛЬНЫЕ: тяжёлые слои упрощаем, амплитуду сохраняем -------------- */
+@media (max-width: 640px) {
+  .home-ambient__haze {
+    opacity: 0.28;
+  }
+
+  .home-ambient__field {
+    filter: blur(8px);
+  }
+
+  .home-main .hero-wrap > h1 {
+    font-size: clamp(2.4rem, 11vw, 3.4rem);
+    max-width: none;
+  }
+}
+
+/* --- Reduced motion: без непрерывного движения, без подсветки, без наклона -- */
+@media (prefers-reduced-motion: reduce) {
+  .home-ambient__field,
+  .home-ambient__haze {
+    animation: none;
+    will-change: auto;
+  }
+
+  .home-ambient__field::after {
+    display: none;
+  }
+
+  .vibe-card,
+  .vibe-card:hover,
+  .vibe-card:focus-visible,
+  .vibe-card:active {
+    --tilt-x: 0deg;
+    --tilt-y: 0deg;
+    transform: none;
+    will-change: auto;
+  }
+
+  .vibe-card:hover,
+  .vibe-card:focus-visible {
+    transform: none;
+    border-color: rgba(255, 255, 255, 0.22);
+  }
+
+  .home-ambient {
+    opacity: 1;
+    transition: none;
+  }
+}
+
+/* ===========================================================================
+   ВОССТАНОВЛЕНИЕ ВИЗУАЛЬНОГО КАЧЕСТВА: ОСМЫСЛЕННАЯ ГЕОМЕТРИЯ И ГЛУБИНА
+   Предыдущая правка сделала все углы почти прямыми (2–3px) — интерфейс стал
+   жёстким и «дешёвым». Возвращаем ИЕРАРХИЮ радиусов и выверенную глубину,
+   сохраняя удачные решения: акцентную границу темы, строгую типографику,
+   живой амбиентный фон, вход и scroll-появление карточек.
+   =========================================================================== */
+
+/* --- 1. Иерархия радиусов (не один на всё) --------------------------------
+   контролы 10px · карточки 14px · крупная карточка и её колонка 20/16px ·
+   декоративные волосяные линии остаются прямыми. */
+#home-screen .vibe-card {
+  border-radius: 14px;
+}
+
+#home-screen .vibe-card--featured {
+  border-radius: 20px;
+}
+
+#home-screen .catalog-top__side {
+  border-radius: 16px;
+}
+
+#home-screen .home-header .discord-support {
+  border-radius: 10px;
+}
+
+/* --- 2. Глубина карточек: мягкая многослойная тень + верхний свет ---------- */
+/* Убираем «плоский прямоугольник» прошлой правки: тематические фоны и
+   акцентная граница темы остаются, добавляется аккуратная глубина. */
+#home-screen .vibe-card {
+  border-color: rgba(255, 255, 255, 0.09);
+  box-shadow:
+    0 22px 46px -38px rgba(0, 0, 0, 0.95),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+/* --- 3. Hover: подъём, акцентный край, очень сдержанное свечение темы ------ */
+#home-screen .vibe-card:hover,
+#home-screen .vibe-card:focus-visible {
+  border-color: var(--card-accent, rgba(255, 255, 255, 0.4));
+  transform: perspective(900px) rotateX(var(--tilt-x)) rotateY(var(--tilt-y)) translateY(-4px) scale(1.006);
+  box-shadow:
+    0 34px 64px -40px rgba(0, 0, 0, 0.95),
+    0 18px 44px -30px var(--card-accent-glow, rgba(0, 0, 0, 0)),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+/* --- 4. Главная CTA: плотный белый контрол с мягкой тенью ------------------ */
+#home-screen .primary-btn {
+  border-radius: 10px;
+  box-shadow: 0 14px 30px -20px rgba(0, 0, 0, 0.9);
+}
+
+#home-screen .primary-btn:hover,
+#home-screen .primary-btn:focus-visible {
+  box-shadow: 0 20px 40px -22px rgba(0, 0, 0, 0.95), 0 0 0 1px rgba(255, 255, 255, 0.35);
+}
+
+/* --- 5. Вторичное действие: текстовая ссылка со спокойным ритмом ----------- */
+#home-screen .explore-btn {
+  border-radius: 8px;
+  padding: 12px 14px;
+}
+
+#home-screen .explore-btn:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.5);
+  outline-offset: 2px;
+}
+
+/* --- 6. Акцентная черта компактных карточек: скруглённая, аккуратнее ------- */
+#home-screen .vibe-card--grid::after,
+#home-screen .vibe-card--side::after {
+  border-radius: 999px;
+  inset-block: 1rem;
+  inset-inline-start: 1.15rem;
+  opacity: 0.72;
+}
+
+#home-screen .vibe-card--grid,
+#home-screen .vibe-card--side {
+  padding-inline-start: 1.7rem;
+}
+
+/* --- 7. Крупная карточка: больше воздуха и внутреннего света --------------- */
+#home-screen .vibe-card--featured {
+  padding: clamp(1.5rem, 2.6vw, 2.1rem);
+}
+
+#home-screen .vibe-card--featured .vibe-card__body::before {
+  border-radius: 999px;
+  width: 30px;
+}
+
+/* --- 8. Композиция каталога: больше воздуха, ясная иерархия ----------------- */
+#home-screen .vibe-catalog {
+  gap: clamp(1.4rem, 3vw, 2rem);
+}
+
+#home-screen .catalog-head {
+  gap: 0.55rem;
+}
+
+/* --- 9. Reduced motion не меняем: правки статичны (радиусы/тени) ----------- */
+
+/* ===========================================================================
+   МОНОХРОМНАЯ АРТ-ДИРЕКЦИЯ ДОМАШНЕГО ЭКРАНА
+   Единая чёрно-белая палитра: уголь/графит для поверхностей, белый для
+   типографики, серебро для линий и света. Убираем фиолетовый, синий, циан,
+   розовый и цветные фоны 14 карточек — при этом каждая карточка сохраняет
+   СВОЮ текстуру (звёзды, дождь, круги, сетка), только в градациях серого.
+   Палитра задаётся токенами и переиспользуется по всему экрану.
+   =========================================================================== */
+#home-screen {
+  --mono-0: #000000;                     /* глубокая чернота */
+  --mono-1: #08090b;                     /* почти чёрный фон */
+  --mono-2: #101114;                     /* графит: поверхности */
+  --mono-3: #17181c;                     /* уголь: приподнятые поверхности */
+  --mono-line: rgba(255, 255, 255, 0.08);
+  --mono-line-strong: rgba(255, 255, 255, 0.16);
+  --mono-text: #f2f3f5;                  /* основной текст */
+  --mono-muted: rgba(255, 255, 255, 0.52);
+  --mono-silver: #c8ccd4;                /* серебро: детали, свет */
+  --mono-silver-dim: rgba(200, 204, 212, 0.42);
+}
+
+/* --- 1. Фон: нейтральные серые радиалы вместо фиолетовых ------------------- */
+#home-screen {
+  background:
+    radial-gradient(120% 72% at 50% -12%, rgba(255, 255, 255, 0.055), transparent 62%),
+    radial-gradient(90% 58% at 84% 6%, rgba(255, 255, 255, 0.028), transparent 56%),
+    var(--mono-1);
+}
+
+/* --- 2. Амбиентный фон: серебро и графит без оттенков ---------------------- */
+#home-screen .home-ambient__field {
+  background:
+    radial-gradient(42% 36% at 30% 28%, rgba(255, 255, 255, 0.07), transparent 62%),
+    radial-gradient(38% 32% at 72% 20%, rgba(200, 204, 212, 0.05), transparent 60%),
+    radial-gradient(46% 40% at 58% 84%, rgba(255, 255, 255, 0.035), transparent 64%);
+}
+
+#home-screen .home-ambient__haze {
+  background:
+    radial-gradient(30% 26% at 22% 62%, rgba(255, 255, 255, 0.045), transparent 66%),
+    radial-gradient(34% 30% at 84% 72%, rgba(200, 204, 212, 0.035), transparent 68%);
+}
+
+#home-screen .home-ambient__vignette {
+  background:
+    radial-gradient(112% 88% at 50% -8%, rgba(255, 255, 255, 0.045), transparent 55%),
+    radial-gradient(120% 100% at 50% 42%, transparent 50%, rgba(0, 0, 0, 0.34) 84%, rgba(0, 0, 0, 0.68) 100%);
+}
+
+/* Локальный свет указателя — тоже нейтральный. */
+@media (hover: hover) and (pointer: fine) {
+  #home-screen .home-ambient__field::after {
+    background: radial-gradient(
+      26% 22% at calc(var(--home-mx) * 100%) calc(var(--home-my) * 100%),
+      rgba(255, 255, 255, 0.07),
+      transparent 70%
+    );
+  }
+}
+
+/* --- 3. Шапка и бренд-метка: белое серебро --------------------------------- */
+#home-screen .home-header::before {
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.12) 22%, rgba(255, 255, 255, 0.12) 78%, transparent);
+}
+
+.home-wordmark__text {
+  color: #ffffff;
+  text-shadow: 0 0 26px rgba(255, 255, 255, 0.12);
+}
+
+/* --- 4. Hero: белая типографика без цветного ореола ------------------------ */
+.home-main .hero-wrap > h1 {
+  color: var(--mono-text);
+  text-shadow: 0 0 64px rgba(255, 255, 255, 0.07);
+}
+
+.home-main .subtitle {
+  color: var(--mono-muted);
+}
+
+/* --- 5. CTA: чистая иерархия белый/серебро --------------------------------- */
+#home-screen .primary-btn {
+  background: #ffffff;
+  color: #0a0a0c;
+  box-shadow: 0 14px 30px -20px rgba(0, 0, 0, 0.9);
+}
+
+#home-screen .primary-btn:hover,
+#home-screen .primary-btn:focus-visible {
+  background: #ffffff;
+  box-shadow: 0 20px 40px -22px rgba(0, 0, 0, 0.95), 0 0 0 1px rgba(255, 255, 255, 0.38);
+}
+
+#home-screen .explore-btn {
+  color: var(--mono-muted);
+}
+
+#home-screen .explore-btn .control-label {
+  text-decoration-color: rgba(255, 255, 255, 0.32);
+}
+
+#home-screen .explore-btn:hover,
+#home-screen .explore-btn:focus-visible {
+  color: #ffffff;
+}
+
+/* --- 6. Каталог: заголовки в нейтрали -------------------------------------- */
+#home-screen .catalog-title {
+  color: var(--mono-text);
+}
+
+#home-screen .catalog-subtitle {
+  color: var(--mono-muted);
+}
+
+/* --- 7. 14 карточек: градации серого, но каждая со своей текстурой --------
+   Цветные фоны тем заменены. Отличимость сохранена через ХАРАКТЕР текстуры
+   (звёзды, дождь, круги, сетка, полосы), а не через цвет. */
+#home-screen .vibe-card {
+  border-color: var(--mono-line);
+  box-shadow:
+    0 22px 46px -38px rgba(0, 0, 0, 0.95),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+/* cosmos — глубокий уголь + белая звёздная пыль */
+#home-screen .vibe-card[data-vibe="cosmos"] {
+  --mono-accent: #dfe3ea;
+  background:
+    radial-gradient(120% 85% at 78% 8%, rgba(255, 255, 255, 0.09), transparent 55%),
+    linear-gradient(160deg, #14161b 0%, #0b0c10 60%, #070809 100%);
+}
+#home-screen .vibe-card[data-vibe="cosmos"]::before {
+  background-image:
+    radial-gradient(rgba(255, 255, 255, 0.55) 0.5px, transparent 1.1px),
+    radial-gradient(rgba(255, 255, 255, 0.3) 0.5px, transparent 1.1px),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(0, 0, 0, 0.3));
+  background-size: 46px 46px, 29px 29px, 100% 100%;
+  background-position: 0 0, 17px 23px, 0 0;
+}
+
+/* solar — светлое серебро, льётся сверху */
+#home-screen .vibe-card[data-vibe="solar"] {
+  --mono-accent: #ffffff;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.24), rgba(255, 255, 255, 0.05) 42%, transparent 68%),
+    linear-gradient(200deg, #1c1d20 0%, #0e0f11 100%);
+}
+
+/* neon — контрастные серебряные полосы по чёрному */
+#home-screen .vibe-card[data-vibe="neon"] {
+  --mono-accent: #eef0f4;
+  background:
+    repeating-linear-gradient(115deg, rgba(255, 255, 255, 0.1) 0 2px, transparent 2px 14px),
+    linear-gradient(160deg, #16171b 0%, #08090b 100%);
+}
+
+/* forest — мягкие вертикальные волокна (стволы) */
+#home-screen .vibe-card[data-vibe="forest"] {
+  --mono-accent: #cfd3da;
+  background:
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.055) 0 1px, transparent 1px 22px),
+    linear-gradient(180deg, #15161a 0%, #0b0c0e 100%);
+}
+
+/* night — одинокий свет «окна» сверху справа */
+#home-screen .vibe-card[data-vibe="night"] {
+  --mono-accent: #f4f6f9;
+  background:
+    radial-gradient(34% 26% at 82% 22%, rgba(255, 255, 255, 0.3), transparent 62%),
+    linear-gradient(200deg, #101216 0%, #070809 100%);
+}
+
+/* melancholic — диагональный дождь по стеклу */
+#home-screen .vibe-card[data-vibe="melancholic"] {
+  --mono-accent: #c8ccd4;
+  background:
+    repeating-linear-gradient(102deg, rgba(255, 255, 255, 0.075) 0 1px, transparent 1px 16px),
+    linear-gradient(180deg, #1a1c20 0%, #0e0f12 100%);
+}
+
+/* zen — концентрические круги на воде */
+#home-screen .vibe-card[data-vibe="zen"] {
+  --mono-accent: #d6dae1;
+  background:
+    repeating-radial-gradient(circle at 50% 118%, rgba(255, 255, 255, 0.1) 0 1px, transparent 1px 40px),
+    linear-gradient(180deg, #14161a 0%, #0a0b0d 100%);
+}
+
+/* chaotic — угловатые серебряные грани */
+#home-screen .vibe-card[data-vibe="chaotic"] {
+  --mono-accent: #ffffff;
+  background:
+    repeating-linear-gradient(52deg, rgba(255, 255, 255, 0.14) 0 18px, transparent 18px 44px),
+    linear-gradient(160deg, #17181c 0%, #0a0b0d 100%);
+}
+
+/* happy — светлая серебряная пыль */
+#home-screen .vibe-card[data-vibe="happy"] {
+  --mono-accent: #f8f9fb;
+  background:
+    radial-gradient(rgba(255, 255, 255, 0.42) 1px, transparent 2px),
+    linear-gradient(180deg, #1b1c20 0%, #101114 100%);
+  background-size: 28px 28px, 100% 100%;
+}
+
+/* mysterious — серебристый туман и одинокий свет */
+#home-screen .vibe-card[data-vibe="mysterious"] {
+  --mono-accent: #d9dde4;
+  background:
+    radial-gradient(72% 62% at 26% 26%, rgba(255, 255, 255, 0.14), transparent 60%),
+    linear-gradient(160deg, #15161a 0%, #090a0c 100%);
+}
+
+/* creative — диагональный серебряный блик */
+#home-screen .vibe-card[data-vibe="creative"] {
+  --mono-accent: #ffffff;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.07) 48%, rgba(255, 255, 255, 0.02)),
+    linear-gradient(180deg, #18191d 0%, #0d0e10 100%);
+}
+
+/* nature — свет снизу, как отражение */
+#home-screen .vibe-card[data-vibe="nature"] {
+  --mono-accent: #ccd0d7;
+  background:
+    radial-gradient(120% 82% at 88% 108%, rgba(255, 255, 255, 0.16), transparent 60%),
+    linear-gradient(180deg, #14161a 0%, #0a0b0d 100%);
+}
+
+/* retro — пиксельная сетка и сканлайны */
+#home-screen .vibe-card[data-vibe="retro"] {
+  --mono-accent: #e8eaee;
+  background:
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.075) 0 2px, transparent 2px 5px),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.05) 0 2px, transparent 2px 5px),
+    linear-gradient(180deg, #121317 0%, #08090b 100%);
+}
+
+/* cozy — тёплая по смыслу, но монохромная: мягкий серебряный свет лампы */
+#home-screen .vibe-card[data-vibe="cozy"] {
+  --mono-accent: #f2f3f5;
+  background:
+    radial-gradient(70% 58% at 74% 12%, rgba(255, 255, 255, 0.26), transparent 60%),
+    linear-gradient(180deg, #1a1b1f 0%, #0e0f11 100%);
+}
+
+/* Акцентные детали карточек: серебро, а не цвет темы. */
+#home-screen .vibe-card--grid::after,
+#home-screen .vibe-card--side::after {
+  background: var(--mono-accent, var(--mono-silver));
+  opacity: 0.9;
+}
+
+#home-screen .vibe-card--featured .vibe-card__body::before {
+  background: var(--mono-accent, #ffffff);
+}
+
+#home-screen .vibe-card:hover,
+#home-screen .vibe-card:focus-visible {
+  border-color: rgba(255, 255, 255, 0.42);
+  box-shadow:
+    0 34px 64px -40px rgba(0, 0, 0, 0.95),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+/* --- 8. Подвал -------------------------------------------------------------- */
+.home-footer__line {
+  color: rgba(255, 255, 255, 0.34);
+}
+
+/* ===========================================================================
+   ЖИВОЕ НОЧНОЕ НЕБО — канвас-слой первого экрана
+   Рисуется в js/sky.js. Лежит под контентом, не перехватывает события.
+   Порядок слоёв (исправлено): фон 0 → небо 1 → контент 2.
+   position: fixed — небо не едет при прокрутке; виден только на первом экране.
+   =========================================================================== */
+
+/* Контент обязан быть ВЫШЕ неба: иначе fixed-канвас (z-index:1) перекрыл бы
+   заголовок и карточки. Явный слой 2 убирает любую двусмысленность. */
+.home-header,
+.home-main .hero-wrap,
+#home-screen .vibe-catalog,
+.home-footer {
+  position: relative;
+  z-index: 2;
+}
+/* ВАЖНО: .screen.active задаёт transform: translateY(0), а transform у предка
+   делает position: fixed потомка «абсолютным» — небо не держалось бы вьюпорта.
+   Для первого экрана transform нейтрализуем (значение покоя то же —
+   translateY(0) ≡ none), поэтому канвас снова привязан к вьюпорту. */
+#home-screen.active {
+  transform: none;
+}
+
+/* ===========================================================================
+   КИНЕМАТОГРАФИЧНЫЕ СЦЕНЫ ВАЙБОВ — ГЛУБИНА И АВТОНОМНОЕ ДВИЖЕНИЕ
+   Каждая карточка получает свою монохромную SVG-сцену из js/card-art.js.
+   Глубина сделана СЛОЯМИ: .d-far (даль, с blur) → .d-fog/.haze-drift (дымка)
+   → .d-mid (средний план) → .d-near (передний план, кадр сцены) → .d-reflect
+   (отражение). Слои движутся с РАЗНЫМИ скоростями и амплитудами — получается
+   параллакс, а не «объекты едут влево-вправо». Анимируются только
+   transform/opacity; сцены статично выглядят полноценно, поэтому при
+   reduced-motion они просто перестают двигаться.
+   =========================================================================== */
+
+/* --- 1. Контейнер иллюстрации: под контентом, не перехватывает события ---- */
+#home-screen .vibe-card__art {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+#home-screen .vibe-card__art .art-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  /* Немного увеличиваем, чтобы мягкий дрейф не оголял края. */
+  transform: scale(1.06);
+  transform-origin: 50% 55%;
+}
+
+/* --- 2. Градиент читаемости: гарантирует контраст названия на любой сцене -- */
+/* Раньше это была почти непрозрачная «шторка», гасившая всю сцену. Теперь
+   затемнение строго НАПРАВЛЕННОЕ и локальное: низ (там, где название) —
+   плотный, середина — лёгкая дымка, верх — полностью прозрачный, чтобы
+   источники света и силуэты читались. */
+#home-screen .vibe-card__art::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  /* Затемнение только там, где нужен контраст под текст: нижние ~35%.
+     Верх и середина сцены остаются полностью открытыми — свет, силуэты и
+     фактура видны, карточки перестают выглядеть чёрными прямоугольниками. */
+  background:
+    linear-gradient(180deg, rgba(4, 5, 6, 0) 0%, rgba(4, 5, 6, 0) 56%, rgba(4, 5, 6, 0.5) 80%, rgba(4, 5, 6, 0.86) 100%);
+}
+
+/* --- ПАРАЛЛАКС ПЛАНОВ (интерактивный, от 3D-наклона) -----------------------
+   ВАЖНО: используем отдельное свойство `translate`, а НЕ `transform`.
+   Слои сцены анимируются через `transform` (параллакс покоя из ambient-системы),
+   поэтому два движения складываются по спецификации CSS
+   (translate → rotate → scale → transform) и не перезаписывают друг друга. */
+#home-screen .vibe-card__art .d-far {
+  translate: calc(var(--par-x) * 0.18) calc(var(--par-y) * 0.18);
+}
+#home-screen .vibe-card__art .d-fog,
+#home-screen .vibe-card__art .haze-drift,
+#home-screen .vibe-card__art .fog-a,
+#home-screen .vibe-card__art .fog-b,
+#home-screen .vibe-card__art .mist-a {
+  translate: calc(var(--par-x) * 0.36) calc(var(--par-y) * 0.36);
+}
+#home-screen .vibe-card__art .d-mid {
+  translate: calc(var(--par-x) * 0.6) calc(var(--par-y) * 0.6);
+}
+#home-screen .vibe-card__art .d-near {
+  translate: calc(var(--par-x) * 1) calc(var(--par-y) * 1);
+}
+#home-screen .vibe-card__art .d-reflect {
+  translate: calc(var(--par-x) * 0.8) calc(var(--par-y) * 0.8);
+}
+
+/* Название — чуть выступает вперёд (эффект «поверх стекла»). */
+#home-screen .vibe-card__body {
+  translate: calc(var(--par-x) * 0.42) calc(var(--par-y) * 0.42);
+}
+#home-screen .vibe-card__arrow {
+  translate: calc(var(--par-x) * 0.5) calc(var(--par-y) * 0.5);
+}
+
+/* Плавность: во время ведения курсора translate идёт 1:1 (сглаживает JS),
+   а при отпускании — короткий переход к нулю. */
+#home-screen .vibe-card:not(.is-tilting) .vibe-card__art *,
+#home-screen .vibe-card:not(.is-tilting) .vibe-card__body {
+  transition: translate 520ms var(--ease-spring);
+}
+
+/* --- БЛИК: мягкое серое отражение, следующее за курсором ------------------- */
+/* Спекуляр как на премиальном матовом стекле: широкий, слабый, без «белого
+   круга». Лежит ПОД текстом и над иллюстрацией, поэтому картинку не засвечивает. */
+/* Курсорный блик ПОЛНОСТЬЮ УДАЛЁН по запросу.
+   Слой .vibe-card__specular больше не создаётся в js/app.js, а правила ниже
+   оставлены только как страховка от кэшированной разметки. Никакого
+   света, следующего за курсором, на карточках нет. */
+#home-screen .vibe-card__specular {
+  display: none !important;
+}
+
+/* Тонкая внутренняя кромка: читается как «фаска» физической панели. */
+#home-screen .vibe-card.is-tilting {
+  box-shadow:
+    0 30px 58px -40px rgba(0, 0, 0, 0.95),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+
+/* Reduced motion: наклон и блик отключены, параллакс в ноль — статичная подача. */
+@media (prefers-reduced-motion: reduce) {
+  /* Селекторы намеренно такой же специфичности, что и базовые parallax-правила
+     (#home-screen .vibe-card__art .d-*), иначе `translate: none` не перебил бы
+     их и параллакс остался бы активным при reduced-motion. */
+  #home-screen .vibe-card__art .d-far,
+  #home-screen .vibe-card__art .d-fog,
+  #home-screen .vibe-card__art .d-mid,
+  #home-screen .vibe-card__art .d-near,
+  #home-screen .vibe-card__art .d-reflect,
+  #home-screen .vibe-card__art .haze-drift,
+  #home-screen .vibe-card__art .fog-a,
+  #home-screen .vibe-card__art .fog-b,
+  #home-screen .vibe-card__art .mist-a,
+  #home-screen .vibe-card__body,
+  #home-screen .vibe-card__arrow {
+    translate: none !important;
+    transition: none;
+  }
+
+}
+
+/* --- 3a. Кейфреймы глубины: три плана + дымка ----------------------------- */
+/* Даль ходит мало (её ведёт масштаб), ближний план — сильнее всего. Именно
+   разная амплитуда при разной длительности даёт ощущение пространства. */
+@keyframes parallaxFar {
+  0%   { transform: translate3d(-1.2%, 0.6%, 0) scale(1.03); }
+  100% { transform: translate3d(1.2%, -0.6%, 0) scale(1.06); }
+}
+@keyframes parallaxMid {
+  0%   { transform: translate3d(2.2%, -1%, 0); }
+  100% { transform: translate3d(-2.6%, 1.2%, 0); }
+}
+@keyframes parallaxNear {
+  0%   { transform: translate3d(-4.4%, 1.6%, 0); }
+  100% { transform: translate3d(4.8%, -1.8%, 0); }
+}
+@keyframes fogDrift {
+  0%   { transform: translate3d(-5%, 0.8%, 0) scale(1.04); }
+  100% { transform: translate3d(5.5%, -0.8%, 0) scale(1.1); }
+}
+@keyframes reflectShift {
+  0%   { transform: translate3d(1.6%, 0, 0) scaleY(1); opacity: 0.85; }
+  100% { transform: translate3d(-1.8%, 0, 0) scaleY(1.06); opacity: 1; }
+}
+
+/* --- 3b. Кейфреймы света: дыхание, луч, окна ------------------------------ */
+@keyframes lightBreathe {
+  0%, 100% { opacity: 0.62; transform: scale(0.97); }
+  50%      { opacity: 1;    transform: scale(1.05); }
+}
+@keyframes beamShift {
+  0%   { transform: rotate(-2.2deg) translateX(-1.5%); opacity: 0.22; }
+  100% { transform: rotate(2.2deg) translateX(1.5%);  opacity: 0.34; }
+}
+@keyframes winPulse {
+  0%, 88%, 100% { opacity: 1; }
+  92%           { opacity: 0.28; }
+  96%           { opacity: 0.9; }
+}
+@keyframes twinkle {
+  0%, 100% { opacity: 0.28; }
+  50%      { opacity: 1; }
+}
+@keyframes grainPulse {
+  0%, 100% { opacity: 0.035; }
+  50%      { opacity: 0.06; }
+}
+
+/* --- 3c. Кейфреймы материала: листва, вода, дождь, пыль -------------------- */
+@keyframes swayLeaf {
+  0%, 100% { transform: rotate(-1.4deg) translateY(0); }
+  50%      { transform: rotate(1.4deg) translateY(-0.9%); }
+}
+@keyframes rippleOut {
+  0%   { transform: scale(0.55); opacity: 0.55; }
+  70%  { opacity: 0.18; }
+  100% { transform: scale(1.35); opacity: 0; }
+}
+@keyframes rainFall {
+  0%   { transform: translate3d(0, -22%, 0); opacity: 0; }
+  12%  { opacity: 0.85; }
+  88%  { opacity: 0.85; }
+  100% { transform: translate3d(-4%, 132%, 0); opacity: 0; }
+}
+@keyframes beadRun {
+  0%, 60%, 100% { transform: translateY(0); }
+  80%           { transform: translateY(14%); }
+}
+@keyframes dustRise {
+  0%   { transform: translate3d(-2%, 4%, 0); opacity: 0.75; }
+  100% { transform: translate3d(2.5%, -6%, 0); opacity: 1; }
+}
+@keyframes floatY {
+  0%, 100% { transform: translate3d(-1.6%, 2.4%, 0) rotate(-1.2deg); }
+  50%      { transform: translate3d(1.8%, -2.6%, 0) rotate(1.2deg); }
+}
+@keyframes brushLift {
+  0%, 100% { transform: translate3d(0, 0, 0) rotate(0deg); }
+  50%      { transform: translate3d(1.6%, -1.4%, 0) rotate(-0.8deg); }
+}
+@keyframes shardA {
+  0%   { transform: translate3d(-2.4%, 1.2%, 0) rotate(-1.4deg); }
+  100% { transform: translate3d(2.8%, -1.6%, 0) rotate(1.6deg); }
+}
+@keyframes shardB {
+  0%   { transform: translate3d(2.2%, -1%, 0) rotate(1.2deg); }
+  100% { transform: translate3d(-2.6%, 1.4%, 0) rotate(-1.6deg); }
+}
+@keyframes shardC {
+  0%   { transform: translate3d(0, 2%, 0) rotate(0.8deg); }
+  100% { transform: translate3d(0, -2.4%, 0) rotate(-1.2deg); }
+}
+@keyframes burstDrift {
+  0%   { transform: translate3d(-3%, 0, 0) scale(1); }
+  100% { transform: translate3d(3%, 0, 0) scale(1.04); }
+}
+@keyframes streakMove {
+  0%, 100% { opacity: 0.22; transform: translate3d(0, 0, 0); }
+  50%      { opacity: 0.5;  transform: translate3d(-3%, 2%, 0); }
+}
+@keyframes gridTravel {
+  0%   { transform: translate3d(0, 0, 0); }
+  100% { transform: translate3d(0, 12px, 0); }
+}
+@keyframes bandShift {
+  0%   { transform: translate3d(0, -1.6%, 0); }
+  100% { transform: translate3d(0, 1.6%, 0); }
+}
+@keyframes scanTravel {
+  0%   { transform: translate3d(0, -20px, 0); }
+  100% { transform: translate3d(0, 190px, 0); }
+}
+
+/* --- 3. Параллакс по планам: чем ближе слой, тем короче и заметнее ход ------ */
+/* Даль: очень медленный, огромный ход — «дыхание» мира. */
+#home-screen .d-far {
+  animation: parallaxFar 118s cubic-bezier(0.45, 0, 0.55, 1) infinite alternate;
+}
+/* Дымка: своя скорость и направление — прослойка между планами. */
+#home-screen .d-fog {
+  animation: fogDrift 74s ease-in-out infinite alternate;
+}
+/* Средний план: заметно быстрее дали. */
+#home-screen .d-mid {
+  animation: parallaxMid 58s cubic-bezier(0.45, 0, 0.55, 1) infinite alternate;
+}
+/* Передний план: самая большая амплитуда — кадр «проплывает» мимо. */
+#home-screen .d-near {
+  animation: parallaxNear 34s cubic-bezier(0.45, 0, 0.55, 1) infinite alternate;
+}
+/* Отражение: живёт своим ритмом и слабее по контрасту. */
+#home-screen .d-reflect {
+  animation: reflectShift 46s ease-in-out infinite alternate;
+}
+
+/* Туман: две независимые волны, чтобы просветы не повторялись. */
+#home-screen .fog-a  { animation: fogDrift 62s ease-in-out infinite alternate; }
+#home-screen .fog-b  { animation: fogDrift 88s ease-in-out infinite alternate-reverse; }
+#home-screen .mist-a { animation: fogDrift 96s ease-in-out infinite alternate; }
+#home-screen .haze-drift { animation: fogDrift 68s ease-in-out infinite alternate-reverse; }
+
+/* Колыхание листвы — только через transform-origin у корня ветви. */
+#home-screen .sway-a { animation: swayLeaf 15s ease-in-out infinite; transform-origin: 12% 0%; }
+#home-screen .sway-b { animation: swayLeaf 21s ease-in-out infinite; transform-origin: 88% 100%; }
+
+/* Мерцание: пять независимых фаз вместо синхронного мигания. */
+#home-screen .tw0 { animation: twinkle 4.1s ease-in-out infinite; }
+#home-screen .tw1 { animation: twinkle 6.4s ease-in-out infinite; animation-delay: -1.7s; }
+#home-screen .tw2 { animation: twinkle 5.2s ease-in-out infinite; animation-delay: -3.1s; }
+#home-screen .tw3 { animation: twinkle 7.8s ease-in-out infinite; animation-delay: -0.9s; }
+#home-screen .tw4 { animation: twinkle 3.6s ease-in-out infinite; animation-delay: -2.4s; }
+
+/* Живые окна: свет гаснет и зажигается с разными интервалами. */
+#home-screen .win0 { animation: winPulse 9s ease-in-out infinite; }
+#home-screen .win1 { animation: winPulse 13s ease-in-out infinite; animation-delay: -4s; }
+#home-screen .win2 { animation: winPulse 7.5s ease-in-out infinite; animation-delay: -2.2s; }
+#home-screen .win3 { animation: winPulse 16s ease-in-out infinite; animation-delay: -7s; }
+#home-screen .win4 { animation: winPulse 11s ease-in-out infinite; animation-delay: -5.5s; }
+#home-screen .win5 { animation: winPulse 19s ease-in-out infinite; animation-delay: -9s; }
+
+/* Медленное «дыхание» источников света и объёмного луча. */
+#home-screen .haze-pulse     { animation: lightBreathe 23s ease-in-out infinite; transform-origin: 50% 50%; }
+#home-screen .light-breathe  { animation: lightBreathe 17s ease-in-out infinite; transform-origin: 50% 50%; }
+#home-screen .beam           { animation: beamShift 39s ease-in-out infinite alternate; transform-origin: 50% 0%; }
+
+/* Вода: три волны расходятся вразнобой (не «пульс», а распространение). */
+#home-screen .ripple-a { animation: rippleOut 11s ease-out infinite; transform-origin: 158px 118px; }
+#home-screen .ripple-b { animation: rippleOut 11s ease-out infinite; animation-delay: -3.6s; transform-origin: 158px 118px; }
+#home-screen .ripple-c { animation: rippleOut 11s ease-out infinite; animation-delay: -7.2s; transform-origin: 158px 118px; }
+
+/* Дождь: один слой, разная высота капель заложена в геометрии. */
+#home-screen .rain-a { animation: rainFall 7.2s linear infinite; }
+#home-screen .bead-a { animation: beadRun 14s ease-in-out infinite; }
+#home-screen .bead-b { animation: beadRun 19s ease-in-out infinite; animation-delay: -6s; }
+#home-screen .bead-c { animation: beadRun 11s ease-in-out infinite; animation-delay: -3s; }
+
+/* Осколки хаоса: несколько разных траекторий, не одно движение. */
+#home-screen .shard0 { animation: shardA 12s ease-in-out infinite alternate; }
+#home-screen .shard1 { animation: shardB 15s ease-in-out infinite alternate; }
+#home-screen .shard2 { animation: shardC 10s ease-in-out infinite alternate; }
+#home-screen .shard3 { animation: shardB 18s ease-in-out infinite alternate-reverse; }
+#home-screen .shard4 { animation: shardA 21s ease-in-out infinite alternate-reverse; }
+#home-screen .burst-a { animation: burstDrift 26s ease-in-out infinite alternate; }
+#home-screen .streak  { animation: streakMove 9s ease-in-out infinite; }
+#home-screen .streak2 { animation: streakMove 12s ease-in-out infinite reverse; }
+
+/* Сферы: разные высоты и стадии — «плывут» независимо. */
+#home-screen .b-far   { animation: floatY 34s ease-in-out infinite; }
+#home-screen .b-far-b { animation: floatY 28s ease-in-out infinite; animation-delay: -11s; }
+#home-screen .b-mid   { animation: floatY 25s ease-in-out infinite; animation-delay: -5s; }
+#home-screen .b-near  { animation: floatY 19s ease-in-out infinite; animation-delay: -8s; }
+
+/* Творчество: три мазка живут с разной инерцией. */
+#home-screen .stroke-a { animation: brushLift 17s ease-in-out infinite; transform-origin: 20% 70%; }
+#home-screen .stroke-b { animation: brushLift 23s ease-in-out infinite reverse; transform-origin: 18% 80%; }
+#home-screen .stroke-c { animation: brushLift 13s ease-in-out infinite; animation-delay: -4s; transform-origin: 30% 50%; }
+
+/* Ретро: сетка уезжает в перспективу, солнце медленно поднимается. */
+#home-screen .grid-drift { animation: gridTravel 14s linear infinite; }
+#home-screen .sunbands   { animation: bandShift 22s ease-in-out infinite alternate; }
+#home-screen .scanline   { animation: scanTravel 6.5s linear infinite; }
+
+/* Пылинки: всплывают отдельным слоем. */
+#home-screen .dust { animation: dustRise 44s ease-in-out infinite alternate; }
+
+/* Зерно: незаметная пульсация текстуры (не «шум», а жизнь материала). */
+#home-screen .grain { animation: grainPulse 12s steps(2, end) infinite; }
+
+/* Расфазировка между карточками: 14 кадров не дышат в унисон. */
+#home-screen .vibe-card:nth-child(2n) .d-near { animation-delay: -7s; }
+#home-screen .vibe-card:nth-child(3n) .d-near { animation-delay: -13s; }
+#home-screen .vibe-card:nth-child(2n) .d-mid  { animation-delay: -11s; }
+#home-screen .vibe-card:nth-child(3n) .d-far  { animation-delay: -19s; }
+#home-screen .vibe-card:nth-child(4n) .d-fog  { animation-delay: -23s; }
+
+/* --- 4. Экономия работы: вне первого экрана анимации карточек на паузе ---- */
+/* Карточки существуют только на главной; когда экран неактивен (ушли в опрос
+   или в вайб), движение останавливается — ноль фоновой нагрузки. */
+#home-screen:not(.is-home-active) .vibe-card__art * {
+  animation-play-state: paused;
+}
+
+/* --- 5. Reduced motion: движение выключено, иллюстрации остаются ----------- */
+/* Сцены статичны сами по себе, поэтому карточки выглядят законченными:
+   ничего не скрывается, вёрстка и читаемость не страдают. */
+@media (prefers-reduced-motion: reduce) {
+  #home-screen .vibe-card__art * {
+    animation: none !important;
+  }
+
+  /* Статичные круги на воде остаются видимыми как «застывшая» рябь. */
+  #home-screen .ripple-a,
+  #home-screen .ripple-b,
+  #home-screen .ripple-c {
+    opacity: 0.4;
+  }
+}
+
+/* --- 6. Мобильные: движение чуть спокойнее (меньше перерисовок) ----------- */
+@media (hover: none) and (max-width: 640px) {
+  #home-screen .d-near { animation-duration: 46s; }
+  #home-screen .d-mid  { animation-duration: 78s; }
+  #home-screen .d-fog  { animation-duration: 96s; }
+  #home-screen .rain-a { animation-duration: 9.5s; }
+}
+
+/* ===========================================================================
+   УТОЧНЕНИЕ UI: КОМПАКТНЫЕ КАРТОЧКИ, БЕЗ СТРЕЛОК, ЛОГОТИП, ШАПКА
+   Точечные правки поверх существующего дизайна. Палитра, типографика,
+   анимации фона и общая геометрия не меняются.
+   =========================================================================== */
+
+/* --- 1. Планета удалена --------------------------------------------------
+   .home-wordmark__mark (круг-«атмосфера» с орбитой) полностью убран из
+   разметки по требованию: слева от вордмарка больше нет иконки.
+   Правила оставлены как страховка для кэшированной разметки. */
+.home-wordmark__mark {
+  display: none !important;
+}
+
+/* --- 2. Шапка: правый блок с языком и Discord рядом ------------------------ */
+.home-header__controls {
+  position: relative; /* точка отсчёта для выпадающего списка языков */
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: none;
+}
+
+/* --- Бренд: вордмарк + оригинальный логотип IT.Москва --------------------- */
+/* Бренд-лок: VibeFinder — ведущий элемент, IT.Москва — небольшое дополнение
+   справа. Оба центрируются по строке (flex + align-items: center), поэтому
+   центры букв совпадают, а размеры соотносятся пропорционально. */
+.home-brand {
+  /* Единый размер бренда: от него считается и вордмарк, и логотип, поэтому
+     соотношение сохраняется на всех экранах. */
+  --brand-size: clamp(1.3rem, 3vw, 1.7rem);
+  display: flex;
+  align-items: center;
+  gap: clamp(0.55rem, 1.4vw, 0.85rem);
+  min-width: 0;
+}
+
+/* --- VibeFinder: ведущий бренд, крупнее и плотнее --------------------------
+   Вес 700 — реально доступный у Space Grotesk (прежние 750/800 браузер
+   синтезировал), поэтому буквы выглядят чётко, без «жирных» артефактов. */
+.home-brand .home-wordmark {
+  font-size: var(--brand-size);
+  font-weight: var(--weight-bold);
+  letter-spacing: -0.03em;
+  line-height: 1;
+  color: #ffffff;
+  min-width: 0;
+}
+
+/* --- IT.Москва: маленький вторичный знак, ~38% от кегля вордмарка ----------
+   Высота привязана к --brand-size (а НЕ к унаследованному font-size img,
+   иначе em считался бы от 16px). Ассет обрезан по буквам и отрендерен в 4x
+   (464×58, пропорции ровно 8.000): даже уменьшенный до ~10px он остаётся
+   резким, потому что исходник вчетверо крупнее отображаемого размера.
+   Никаких фильтров, рамок, подложек и изменения прозрачности. */
+.home-brand__logo {
+  display: block;
+  height: calc(var(--brand-size) * 0.38);
+  width: auto;
+  object-fit: contain;
+  flex: none;
+  background: none;
+  border: 0;
+  box-shadow: none;
+  filter: none;
+  opacity: 1;
+}
+
+@media (max-width: 480px) {
+  .home-brand {
+    gap: 0.45rem;
+  }
+}
+
+/* Переключатель языка теперь внутри шапки: снимаем fixed-позиционирование.
+   Именно оно заставляло контрол «висеть» на экране и ехать при прокрутке. */
+.home-header .language-switcher {
+  position: static;
+  top: auto;
+  left: auto;
+  inset: auto;
+  z-index: auto;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+/* Список языков раскрывается под кнопкой, выровнен по правому краю блока.
+   .home-header__controls уже имеет position: relative (см. выше) — он и
+   служит точкой отсчёта, поэтому список не «улетает» при прокрутке. */
+.home-header .language-options {
+  position: absolute;
+  top: calc(100% + 0.45rem);
+  inset-inline-end: 0;
+  z-index: 12;
+}
+
+/* Переключатель и Discord в шапке — одного размера и стиля. */
+.home-header .language-toggle {
+  min-width: 36px;
+  min-height: 36px;
+}
+
+/* --- 3. Переключатель языка — только на главной ---------------------------- */
+/* Видимость управляется существующим механизмом экранов:
+   .page-shell[data-active-screen] уже проставляется в showScreen(). */
+.language-switcher[data-home-only] {
+  display: none;
+}
+
+.page-shell[data-active-screen="home"] .language-switcher[data-home-only] {
+  display: flex;
+}
+
+/* Внутри шапки flex задаёт контейнер, поэтому display приводим к flex. */
+
+/* --- 4. Компактные карточки каталога --------------------------------------- */
+/* Уменьшаем «вес» карточки: меньше высоты, отступов и внутренних зазоров.
+   Текстуры тем, границы и hover сохраняются — только скромнее масштаб. */
+#home-screen .catalog-top {
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  gap: clamp(0.6rem, 1.5vw, 0.9rem);
+}
+
+#home-screen .catalog-top__side {
+  gap: clamp(0.6rem, 1.5vw, 0.9rem);
+}
+
+#home-screen .vibe-catalog__grid {
+  grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
+  gap: clamp(0.6rem, 1.5vw, 0.9rem);
+}
+
+#home-screen .vibe-card {
+  min-height: 104px;
+  padding: 0.85rem 0.9rem;
+  gap: 0.4rem;
+  border-radius: 10px;
+}
+
+#home-screen .vibe-card--featured {
+  min-height: clamp(150px, 22vh, 210px);
+  padding: 1.1rem 1.2rem;
+  border-radius: 14px;
+}
+
+#home-screen .catalog-top__side {
+  border-radius: 12px;
+}
+
+/* Название — единственный смысловой элемент карточки: чуть компактнее. */
+#home-screen .vibe-card__name {
+  font-size: 0.95rem;
+  line-height: 1.18;
+}
+
+#home-screen .vibe-card--featured .vibe-card__name {
+  font-size: clamp(1.25rem, 2.4vw, 1.7rem);
+}
+
+/* Акцентная черта компактных карточек — короче и ближе к краю. */
+#home-screen .vibe-card--grid::after,
+#home-screen .vibe-card--side::after {
+  inset-block: 0.7rem;
+  inset-inline-start: 0.85rem;
+}
+
+#home-screen .vibe-card--grid,
+#home-screen .vibe-card--side {
+  padding-inline-start: 1.25rem;
+}
+
+#home-screen .vibe-card--featured .vibe-card__body::before {
+  width: 22px;
+  height: 2px;
+  margin-bottom: 0.5rem;
+}
+
+/* --- 5. Убираем стрелки на карточках (маркап и анимации) ------------------- */
+/* Стрелка больше не создаётся в js/app.js; правило оставлено как страховка
+   для уже отрисованных/кэшированных карточек. Пустого места не остаётся,
+   потому что элемент не добавляется в DOM. */
+.vibe-card__arrow {
+  display: none !important;
+}
+
+.vibe-card:hover .vibe-card__arrow,
+.vibe-card:focus-visible .vibe-card__arrow,
+[dir="rtl"] .vibe-card:hover .vibe-card__arrow,
+[dir="rtl"] .vibe-card:focus-visible .vibe-card__arrow {
+  transform: none;
+  display: none !important;
+}
+
+/* Hover без стрелки: только граница и очень сдержанная тень. */
+#home-screen .vibe-card:hover,
+#home-screen .vibe-card:focus-visible {
+  transform: perspective(900px) rotateX(var(--tilt-x)) rotateY(var(--tilt-y)) translateY(-2px);
+  border-color: rgba(255, 255, 255, 0.34);
+  box-shadow:
+    0 18px 34px -30px rgba(0, 0, 0, 0.95),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+/* --- 6. Заголовок «Атмосферы» без описания: компактный ритм ---------------- */
+/* Описание удалено из разметки; уменьшаем отступ снизу, чтобы заголовок и
+   карточки читались как одна композиция. */
+#home-screen .catalog-head {
+  gap: 0;
+}
+
+#home-screen .vibe-catalog {
+  gap: clamp(0.9rem, 2vw, 1.3rem);
+}
+
+#home-screen .catalog-title {
+  font-size: clamp(1.2rem, 2.6vw, 1.6rem);
+  letter-spacing: -0.02em;
+}
+
+/* ===========================================================================
+   ТИПОГРАФИЧЕСКАЯ СИСТЕМА VIBEFINDER
+   Единый стек (--font-sans): Space Grotesk → Manrope → системные CJK/Arabic.
+   Space Grotesk применяется первым и перекрывает только латиницу; кириллица
+   автоматически уходит в Manrope, CJK и арабский — в системные шрифты.
+   Правила ниже задают ТОЛЬКО шрифт, вес и (для RTL) трекинг. Размеры,
+   межстрочные интервалы, отступы и геометрия не меняются.
+   =========================================================================== */
+
+/* Наследование шрифта для всех интерактивных элементов и форм. */
+button, input, select, textarea {
+  font-family: inherit;
+}
+
+/* --- Заголовки: Space Grotesk 700 (латиница), Manrope 700 (кириллица) ------ */
+.home-main .hero-wrap > h1,
+#catalog-title,
+.catalog-title,
+.vibe-header h2,
+.share-card h1,
+.survey-card h2,
+.card-kicker,
+.theme-tag,
+.share-kicker {
+  font-family: var(--font-display);
+  font-weight: var(--weight-bold);
+}
+
+/* Крупный заголовок первого экрана — самый тяжелый акцент на странице. */
+.home-main .hero-wrap > h1 {
+  font-weight: 700; /* было 800: Space Grotesk не имеет 800, не даём синтетику */
+}
+
+/* Служебные надписи (ТВОЙ ВАЙБ, ОПРОС, МОЙ ВАЙБ СЕГОДНЯ) — плотнее, но тише. */
+.card-kicker,
+.theme-tag,
+.share-kicker {
+  font-weight: var(--weight-semibold);
+}
+
+/* --- Карточки каталога: 600 ------------------------------------------------- */
+.vibe-card__name {
+  font-family: var(--font-display);
+  font-weight: var(--weight-semibold);
+}
+
+.vibe-card--featured .vibe-card__name {
+  font-weight: var(--weight-bold);
+}
+
+/* --- Кнопки: 600 (для белой CTA — 700, она главная) ------------------------ */
+#home-screen .primary-btn,
+#home-screen .explore-btn,
+.share-button,
+.tetris-restart-btn,
+.option-btn {
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+}
+
+#home-screen .primary-btn {
+  font-weight: var(--weight-bold);
+}
+
+/* --- Навигация, меню, переключатель языка: 500–600 ------------------------- */
+.language-toggle,
+.language-options button,
+.vibe-menu-toggle,
+.vibe-menu button,
+.survey-back-btn,
+.vibe-card__arrow {
+  font-family: var(--font-sans);
+  font-weight: var(--weight-medium);
+}
+
+.vibe-menu button,
+.language-toggle,
+.language-options button {
+  font-weight: var(--weight-semibold); /* компактные подписи читаются плотнее */
+}
+
+/* --- Основной текст и описания: 400 --------------------------------------- */
+.subtitle,
+.vibe-description-wrap,
+.catalog-subtitle,
+.share-invitation,
+.home-footer__line,
+.option-btn,
+.share-feedback,
+.progress-label {
+  font-family: var(--font-sans);
+  font-weight: var(--weight-body);
+}
+
+.option-btn {
+  font-weight: var(--weight-body); /* длинные варианты ответа — не жирним */
+}
+
+/* --- Вордмарк: 700 (было 800/750 — синтетическая жирность) ----------------- */
+.home-wordmark,
+.home-wordmark__text {
+  font-family: var(--font-display);
+  font-weight: var(--weight-bold);
+}
+
+/* --- Скрипт-шрифты (рукописные) ------------------------------------------- */
+.cursive-brand-text {
+  font-family: var(--font-script-latin); /* латинская бренд-надпись перехода */
+}
+
+.vibe-showcase__name {
+  /* Витрина показывает названия тем то на латинице, то на кириллице,
+     поэтому стек двойной: Alex Brush (лат.) → Marck Script (кир.). */
+  font-family: var(--font-script-latin);
+}
+
+/* --- Monospace: сохраняем функциональное назначение ------------------------ */
+#vibe-screen[data-vibe="retro"],
+body.theme-retro #share-screen,
+#tetris-canvas {
+  font-family: inherit;
+}
+
+#vibe-screen[data-vibe="retro"],
+body.theme-retro #share-screen {
+  font-family: var(--font-mono); /* ретро-вайб и его экран шаринга */
+}
+
+/* --- RTL: убираем латинский трекинг у арабского --------------------------- */
+/* Арабская вязь не должна получать отрицательный/разреженный трекинг, он
+   ломает соединение букв. Отключаем точечно, только для арабского. */
+[dir="rtl"] .home-main .hero-wrap > h1,
+[dir="rtl"] #catalog-title,
+[dir="rtl"] .catalog-title,
+[dir="rtl"] .vibe-header h2,
+[dir="rtl"] .share-card h1,
+[dir="rtl"] .survey-card h2,
+[dir="rtl"] .home-wordmark,
+[dir="rtl"] .vibe-card__name {
+  font-family: var(--font-sans);
+  letter-spacing: 0;
+}
+
+/* ---------------------------------------------------------------------------
+   ЖИВОЕ НОЧНОЕ НЕБО — канвас-слой первого экрана
+   (правила ниже относятся к фону, не к типографике)
+   --------------------------------------------------------------------------- */
+.sky-canvas {
+  position: fixed;
+  inset: 0;
+  z-index: 1; /* НАД амбиентом (z-index:0), ПОД контентом (z-index:2) — иначе
+                 .home-ambient, идущий позже в DOM, перекрывал звёзды */
+  display: block;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  /* Полная непрозрачность канваса: звёзды должны читаться. Раньше 0.92
+     дополнительно гасило и без того слабые точки. */
+  opacity: 1;
+}
+
+/* Вне первого экрана слой полностью убираем из отрисовки — ноль фоновой работы. */
+#home-screen:not(.active) .sky-canvas {
+  display: none;
+}
+
+/* Для устройств без точного указателя небо чуть спокойнее (по плотности,
+   но НЕ по яркости — иначе звёзды снова пропадают). */
+@media (hover: none) {
+  .sky-canvas {
+    opacity: 1;
+  }
+}
+
+/* Reduced motion: статичный кадр, без анимационного цикла (рисует сам модуль). */
+@media (prefers-reduced-motion: reduce) {
+  .sky-canvas {
+    opacity: 1;
+  }
+}
+
+/* ===========================================================================
+   ЯВНЫЙ OVERRIDE АНИМАЦИЙ — html[data-motion="force"]
+   Ставится скриптом в <head> по параметру ?motion=on (см. index.html).
+
+   ЗАЧЕМ: в Windows с выключенными «Эффектами анимации» (MinAnimate = 0)
+   браузер сообщает prefers-reduced-motion: reduce, и VibeFinder НАМЕРЕННО
+   показывает статичную подачу — это корректное поведение доступности, но для
+   разработки и проверки нужно уметь включить движение.
+
+   ВАЖНО: блок стоит В САМОМ КОНЦЕ файла и использует !important, поэтому
+   перебивает все @media (prefers-reduced-motion: reduce) выше. Без атрибута
+   data-motion="force" НИ ОДНО правило здесь не применяется.
+   =========================================================================== */
+
+html[data-motion="force"] {
+  /* Возвращаем кинематографический вход целиком. */
+  .cinematic-intro {
+    display: block !important;
+  }
+
+  /* Вход первого экрана: заголовок, подзаголовок, CTA, каталог, шапка, подвал. */
+  #home-screen.active .hero-wrap > h1 {
+    animation: hero-rise-strong 900ms var(--ease-spring) 60ms both !important;
+    opacity: 1;
+    clip-path: none;
+  }
+
+  #home-screen.active .subtitle {
+    animation: hero-rise-strong 800ms var(--ease-spring) 170ms both !important;
+    opacity: 1;
+    clip-path: none;
+  }
+
+  #home-screen.active .hero-actions,
+  #home-screen.active .primary-btn {
+    animation: hero-fade 900ms var(--ease-spring) 320ms both !important;
+    opacity: 1;
+    transform: none;
+  }
+
+  #home-screen.active .vibe-catalog {
+    animation: hero-rise 900ms var(--ease-spring) 460ms both !important;
+    opacity: 1;
+    transform: none;
+  }
+
+  #home-screen.active .home-header {
+    animation: hero-fade 700ms var(--ease-spring) 40ms both !important;
+    opacity: 1;
+  }
+
+  #home-screen.active .home-footer {
+    animation: hero-fade 900ms var(--ease-spring) 600ms both !important;
+    opacity: 1;
+  }
+
+  #home-screen.active .home-ambient {
+    animation: ambientIn 1300ms var(--ease-spring) 40ms both !important;
+    opacity: 1;
+  }
+
+  /* Карточки каталога: ступенчатый вход по времени. */
+  #home-screen.active .vibe-card {
+    animation: cardReveal 560ms var(--ease-spring) both !important;
+    animation-delay: var(--reveal-delay, 0ms) !important;
+    opacity: 1;
+  }
+
+  #home-screen.active .vibe-card .vibe-card__body {
+    animation: cardBodyRise 620ms var(--ease-spring) both !important;
+    animation-delay: calc(var(--reveal-delay, 0ms) + 60ms) !important;
+    transform: none;
+    translate: calc(var(--par-x) * 0.42) calc(var(--par-y) * 0.42);
+  }
+
+  /* Сцены вайбов: возвращаем слои глубины, свет, окна, материал. */
+  #home-screen .vibe-card__art * {
+    animation-play-state: running !important;
+  }
+
+  #home-screen .d-far { animation: parallaxFar 118s cubic-bezier(0.45, 0, 0.55, 1) infinite alternate !important; }
+  #home-screen .haze-drift,
+  #home-screen .fog-a,
+  #home-screen .fog-b,
+  #home-screen .mist-a { animation: fogDrift 74s ease-in-out infinite alternate !important; }
+  #home-screen .d-fog { animation: fogDrift 74s ease-in-out infinite alternate !important; translate: calc(var(--par-x) * 0.36) calc(var(--par-y) * 0.36) !important; }
+  #home-screen .d-mid { animation: parallaxMid 58s cubic-bezier(0.45, 0, 0.55, 1) infinite alternate !important; }
+  #home-screen .d-near { animation: parallaxNear 34s cubic-bezier(0.45, 0, 0.55, 1) infinite alternate !important; }
+  #home-screen .d-reflect { animation: reflectShift 46s ease-in-out infinite alternate !important; }
+  #home-screen .sway-a { animation: swayLeaf 15s ease-in-out infinite !important; transform-origin: 12% 0%; }
+  #home-screen .sway-b { animation: swayLeaf 21s ease-in-out infinite !important; transform-origin: 88% 100%; }
+  #home-screen .tw0 { animation: twinkle 4.1s ease-in-out infinite !important; }
+  #home-screen .tw1 { animation: twinkle 6.4s ease-in-out infinite -1.7s !important; }
+  #home-screen .tw2 { animation: twinkle 5.2s ease-in-out infinite -3.1s !important; }
+  #home-screen .tw3 { animation: twinkle 7.8s ease-in-out infinite -0.9s !important; }
+  #home-screen .tw4 { animation: twinkle 3.6s ease-in-out infinite -2.4s !important; }
+  #home-screen .win0 { animation: winPulse 9s ease-in-out infinite !important; }
+  #home-screen .win1 { animation: winPulse 13s ease-in-out infinite -4s !important; }
+  #home-screen .win2 { animation: winPulse 7.5s ease-in-out infinite -2.2s !important; }
+  #home-screen .win3 { animation: winPulse 16s ease-in-out infinite -7s !important; }
+  #home-screen .win4 { animation: winPulse 11s ease-in-out infinite -5.5s !important; }
+  #home-screen .win5 { animation: winPulse 19s ease-in-out infinite -9s !important; }
+  #home-screen .haze-pulse,
+  #home-screen .light-breathe { animation: lightBreathe 19s ease-in-out infinite !important; }
+  #home-screen .beam { animation: beamShift 39s ease-in-out infinite alternate !important; transform-origin: 50% 0%; }
+  #home-screen .ripple-a { animation: rippleOut 11s ease-out infinite !important; transform-origin: 158px 118px; }
+  #home-screen .ripple-b { animation: rippleOut 11s ease-out infinite -3.6s !important; transform-origin: 158px 118px; }
+  #home-screen .ripple-c { animation: rippleOut 11s ease-out infinite -7.2s !important; transform-origin: 158px 118px; }
+  #home-screen .rain-a { animation: rainFall 7.2s linear infinite !important; }
+  #home-screen .bead-a { animation: beadRun 14s ease-in-out infinite !important; }
+  #home-screen .bead-b { animation: beadRun 19s ease-in-out infinite -6s !important; }
+  #home-screen .bead-c { animation: beadRun 11s ease-in-out infinite -3s !important; }
+  #home-screen .shard0 { animation: shardA 12s ease-in-out infinite alternate !important; }
+  #home-screen .shard1 { animation: shardB 15s ease-in-out infinite alternate !important; }
+  #home-screen .shard2 { animation: shardC 10s ease-in-out infinite alternate !important; }
+  #home-screen .shard3 { animation: shardB 18s ease-in-out infinite alternate-reverse !important; }
+  #home-screen .shard4 { animation: shardA 21s ease-in-out infinite alternate-reverse !important; }
+  #home-screen .burst-a { animation: burstDrift 26s ease-in-out infinite alternate !important; }
+  #home-screen .streak { animation: streakMove 9s ease-in-out infinite !important; }
+  #home-screen .streak2 { animation: streakMove 12s ease-in-out infinite reverse !important; }
+  #home-screen .b-far { animation: floatY 34s ease-in-out infinite !important; }
+  #home-screen .b-far-b { animation: floatY 28s ease-in-out infinite -11s !important; }
+  #home-screen .b-mid { animation: floatY 25s ease-in-out infinite -5s !important; }
+  #home-screen .b-near { animation: floatY 19s ease-in-out infinite -8s !important; }
+  #home-screen .stroke-a { animation: brushLift 17s ease-in-out infinite !important; transform-origin: 20% 70%; }
+  #home-screen .stroke-b { animation: brushLift 23s ease-in-out infinite reverse !important; transform-origin: 18% 80%; }
+  #home-screen .stroke-c { animation: brushLift 13s ease-in-out infinite -4s !important; transform-origin: 30% 50%; }
+  #home-screen .grid-drift { animation: gridTravel 14s linear infinite !important; }
+  #home-screen .sunbands { animation: bandShift 22s ease-in-out infinite alternate !important; }
+  #home-screen .scanline { animation: scanTravel 6.5s linear infinite !important; }
+  #home-screen .dust { animation: dustRise 44s ease-in-out infinite alternate !important; }
+  #home-screen .grain { animation: grainPulse 12s steps(2, end) infinite !important; }
+
+  /* Фон первого экрана и подсветка указателя. */
+  #home-screen .home-ambient__field { animation: ambientFieldDrift 27s ease-in-out infinite alternate !important; }
+  #home-screen .home-ambient__haze { animation: ambientHazeDrift 38s ease-in-out infinite alternate !important; }
+  #home-screen .home-ambient__vignette { animation: ambientBreathe 19s ease-in-out infinite alternate !important; }
+  #home-screen .home-ambient__field::after {
+    display: block !important;
+    animation: ambientSpotSweep 21s ease-in-out infinite alternate !important;
+  }
+
+  /* Параллакс и блик карточек снова активны. */
+  #home-screen .vibe-card__art .d-far { translate: calc(var(--par-x) * 0.18) calc(var(--par-y) * 0.18) !important; }
+  #home-screen .vibe-card__art .d-mid { translate: calc(var(--par-x) * 0.6) calc(var(--par-y) * 0.6) !important; }
+  #home-screen .vibe-card__art .d-near { translate: calc(var(--par-x) * 1) calc(var(--par-y) * 1) !important; }
+  #home-screen .vibe-card__art .d-reflect { translate: calc(var(--par-x) * 0.8) calc(var(--par-y) * 0.8) !important; }
+  #home-screen .vibe-card__arrow { translate: calc(var(--par-x) * 0.5) calc(var(--par-y) * 0.5) !important; }
+
+  /* Живой отклик кнопок и меню. */
+  .vibe-card,
+  .primary-btn,
+  .language-toggle,
+  .discord-support,
+  .vibe-menu-toggle {
+    transition: box-shadow 0.4s var(--ease-spring), border-color 0.4s var(--ease-spring), transform 0.4s var(--ease-spring) !important;
+  }
+
+  .vibe-menu {
+    animation: vibe-menu-enter 0.5s var(--ease-spring) both !important;
+  }
 }
 

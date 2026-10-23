@@ -4,6 +4,16 @@
 import { questions } from './data/questions.js';
 import { vibeThemes, vibeShareSlugs, vibeKeysByShareSlug } from './data/themes.js';
 import { initI18n, translateText } from './i18n/index.js';
+import { initCinematicIntro } from './intro.js';
+// Версия в URL нужна из-за immutable-кэша статики: иначе браузер может
+// оставить старую копию sky.js и «небо» не появится.
+import { initSky, setSkyActive } from './sky.js?v=4';
+// Иллюстрации вайбов: по одной уникальной SVG-сцене на каждую из 14 тем.
+import { cardArtSVG } from './card-art.js?v=20';
+
+// Кинематографический вход запускаем первым: он должен выставить состояние
+// затемнения (data-intro на <html>) до того, как отрисуется первый экран.
+initCinematicIntro();
 
 const screens = {
   home: document.getElementById('home-screen'),
@@ -30,6 +40,13 @@ const answersContainer = document.getElementById('answers');
 const themeName = document.getElementById('theme-name');
 const themeDescription = document.getElementById('theme-description');
 const vibeGame = document.getElementById('vibe-game');
+const vibeShowcase = document.getElementById('vibe-showcase');
+const vibeShowcaseLayers = vibeShowcase
+  ? Array.from(vibeShowcase.querySelectorAll('.vibe-showcase__name'))
+  : [];
+const homeGlowLayers = Array.from(
+  document.querySelectorAll('#home-screen .home-glow__layer'),
+);
 const tetrisCanvas = document.getElementById('tetris-canvas');
 const vibeQuoteText = document.getElementById('vibe-quote-text');
 const tetrisGameOver = document.getElementById('tetris-game-over');
@@ -140,6 +157,10 @@ function init3DTiltEffect(elementSelector, maxTiltAngle) {
     : elementSelector;
   if (!element) return null;
 
+  // Пользователи с prefers-reduced-motion не получают 3D-наклон: остаётся
+  // спокойный отклик рамкой и тенью из CSS.
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return null;
+
   const glare = element.querySelector('.glass-glare-effect');
   const state = { rect: null, pointer: null, frame: 0, max: maxTiltAngle };
 
@@ -152,9 +173,11 @@ function init3DTiltEffect(elementSelector, maxTiltAngle) {
     const relativeY = (state.pointer.y - top) / height;
     const tiltX = (relativeX - 0.5) * 2;
     const tiltY = (relativeY - 0.5) * 2;
-    element.style.transform =
-      `perspective(1000px) rotateX(${-tiltY * state.max}deg) ` +
-      `rotateY(${tiltX * state.max}deg) scale3d(1.02, 1.02, 1.02)`;
+    // Пишем только CSS-переменные, а сам transform собирает CSS: так наклон
+    // складывается с hover-подъёмом и нажатием и не перезаписывает их inline-стилем.
+    element.style.setProperty('--rotate-x', `${(-tiltY * state.max).toFixed(2)}deg`);
+    element.style.setProperty('--rotate-y', `${(tiltX * state.max).toFixed(2)}deg`);
+    element.style.setProperty('--scale', '1.018');
     if (glare) {
       glare.style.setProperty('--mouse-x', `${relativeX * 100}%`);
       glare.style.setProperty('--mouse-y', `${relativeY * 100}%`);
@@ -185,7 +208,9 @@ function init3DTiltEffect(elementSelector, maxTiltAngle) {
       state.frame = 0;
     }
     element.classList.remove('is-tilting');
-    element.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)';
+    element.style.setProperty('--rotate-x', '0deg');
+    element.style.setProperty('--rotate-y', '0deg');
+    element.style.setProperty('--scale', '1');
     if (glare) {
       glare.style.setProperty('--mouse-x', '50%');
       glare.style.setProperty('--mouse-y', '50%');
@@ -236,6 +261,205 @@ function initGlassTilt() {
    а не увеличивал его. Прежний код строил клон всей страницы и водил линзу
    по маршруту «заголовок → подзаголовок → Discord». */
 
+// ---------------------------------------------------------------------------
+// Витрина атмосфер на первом экране: акцентный цвет каждого вайба. Цвет играет
+// свечение фона и ореол печатаемого названия в бесконечном цикле витрины.
+// ---------------------------------------------------------------------------
+const VIBE_CARD_ACCENTS = {
+  cosmos: '#9d8bff',
+  solar: '#fbbf24',
+  neon: '#67e8f9',
+  forest: '#8ec49a',
+  night: '#70e7ff',
+  melancholic: '#a8d8f0',
+  zen: '#a7ead4',
+  chaotic: '#ff5c74',
+  happy: '#ffca48',
+  mysterious: '#c49aff',
+  creative: '#ff80bc',
+  nature: '#a8d67b',
+  retro: '#bdf35d',
+  cozy: '#f3bd7d',
+};
+
+function hexToRgba(hex, alpha) {
+  const value = hex.replace('#', '');
+  const full = value.length === 3
+    ? value.split('').map((channel) => channel + channel).join('')
+    : value;
+  const numeric = Number.parseInt(full, 16);
+  const red = (numeric >> 16) & 255;
+  const green = (numeric >> 8) & 255;
+  const blue = numeric & 255;
+  return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
+}
+
+// ---------------------------------------------------------------------------
+// Витрина атмосфер: бесконечный цикл. Каждый вайб держится на экране
+// SHOWCASE_HOLD_MS, затем слои перекрещиваются кроссфейдом — имя и свечение
+// перетекают в следующий вайб без пустой паузы и рывков.
+//
+// Цвет свечения идёт НЕ через одну анимируемую переменную (её интерполяция
+// проходит через грязные промежуточные оттенки), а через два слоя с
+// фиксированными цветами: входящий проявляется, уходящий гаснет — один цвет
+// постепенно заменяет другой, как и задумано.
+// ---------------------------------------------------------------------------
+const VIBE_SHOWCASE_ORDER = Object.keys(vibeThemes);
+const SHOWCASE_HOLD_MS = 3000; // сколько вайб держится целиком
+const SHOWCASE_FADE_MS = 1400; // длительность кроссфейда (совпадает с CSS)
+// Плотность свечения: должно читаться как мягкая палитра, а не пятно.
+const SHOWCASE_GLOW_ALPHA = 0.4;
+// Рукописное проявление имени: длительность штриха одной буквы и шаг каскада.
+// Каскад укладывается в окно кроссфейда (SHOWCASE_FADE_MS), поэтому буквы
+// «дописываются» ровно вовремя и не тянутся в удержание.
+const SHOWCASE_INK_DURATION = 620;
+const SHOWCASE_INK_STEP = 34;
+
+const showcase = {
+  order: [],
+  index: 0,
+  active: false,
+  // Индексы текущих слоёв: имя и свечение идут на «другом» слое каждый шаг,
+  // поэтому смена всегда кроссфейд, а не перезапуск одного элемента.
+  layer: 1,
+  glowLayer: 1,
+  holdTimer: null,
+};
+
+function stopShowcaseTimers() {
+  if (showcase.holdTimer !== null) {
+    window.clearTimeout(showcase.holdTimer);
+    showcase.holdTimer = null;
+  }
+}
+
+// Окрашивает ореол имени в акцент вайба. Значение ставится один раз на показ —
+// имя проявляется целиком вместе с ореолом, поэтому интерполяция не нужна.
+function setShowcaseAccent(key) {
+  const accent = VIBE_CARD_ACCENTS[key] || '#ffffff';
+  screens.home.style.setProperty('--preview-glow', hexToRgba(accent, SHOWCASE_GLOW_ALPHA));
+}
+
+// Кроссфейд свечения: входящий слой получает фиксированный цвет вайба и
+// проявляется, уходящий гаснет — один цвет постепенно заменяет другой.
+function crossfadeShowcaseGlow(key) {
+  if (homeGlowLayers.length < 2) return;
+  const accent = VIBE_CARD_ACCENTS[key] || '#ffffff';
+  const previousLayer = showcase.glowLayer;
+  const nextLayer = 1 - previousLayer;
+  const incoming = homeGlowLayers[nextLayer];
+  // Цвет фиксируем ДО проявления: слой не интерполирует оттенок через грязь.
+  incoming.style.setProperty('--glow-color', hexToRgba(accent, SHOWCASE_GLOW_ALPHA));
+  incoming.classList.add('is-active');
+  homeGlowLayers[previousLayer].classList.remove('is-active');
+  showcase.glowLayer = nextLayer;
+}
+
+function clearShowcaseGlow() {
+  screens.home.removeAttribute('data-vibe-glow');
+  screens.home.style.removeProperty('--preview-glow');
+  homeGlowLayers.forEach((layer) => {
+    layer.classList.remove('is-active');
+    layer.style.removeProperty('--glow-color');
+  });
+}
+
+// Записывает имя в указанный слой, разбивая его на слова и буквы: так каждая
+// буква получает свою задержку рукописного каскада. Разметка пересоздаётся
+// целиком, а имя приходит уже переведённым из showShowcaseVibe, поэтому смена
+// языка просто перерисовывает витрину на новом языке.
+function paintShowcaseLayer(layer, label) {
+  layer.classList.remove('is-active');
+  layer.textContent = '';
+  const words = String(label).split(' ');
+  let letterIndex = 0;
+  words.forEach((word, wordIndex) => {
+    // Пробел между словами оставляем обычным текстовым узлом: он даёт перенос
+    // по словам, пока буквы внутри слова склеены inline-block.
+    if (wordIndex > 0) layer.appendChild(document.createTextNode(' '));
+    const wordNode = document.createElement('span');
+    wordNode.className = 'vibe-word';
+    // Array.from итерирует по код-поинтам: не разрывает суррогатные пары
+    // (важно для CJK и любой не-латинской локали).
+    Array.from(word).forEach((char) => {
+      const letterNode = document.createElement('span');
+      letterNode.className = 'vibe-letter';
+      letterNode.textContent = char;
+      letterNode.style.setProperty('--ink-delay', `${letterIndex * SHOWCASE_INK_STEP}ms`);
+      letterNode.style.setProperty('--ink-duration', `${SHOWCASE_INK_DURATION}ms`);
+      wordNode.appendChild(letterNode);
+      letterIndex += 1;
+    });
+    layer.appendChild(wordNode);
+  });
+}
+
+function showShowcaseVibe() {
+  if (!showcase.active || !vibeShowcaseLayers.length) return;
+  const key = showcase.order[showcase.index];
+  const vibe = vibeThemes[key];
+  if (!vibe) return;
+
+  setShowcaseAccent(key);
+  crossfadeShowcaseGlow(key);
+  screens.home.setAttribute('data-vibe-glow', '');
+
+  const label = translateText(vibe.title);
+  const previousLayer = showcase.layer;
+  const nextLayer = 1 - previousLayer;
+
+  // Наполняем скрытый слой и проявляем его, пока предыдущий гаснет своим
+  // переходом — оба переплетаются кроссфейдом.
+  paintShowcaseLayer(vibeShowcaseLayers[nextLayer], label);
+  void vibeShowcaseLayers[nextLayer].offsetWidth; // перезапуск перехода
+  vibeShowcaseLayers[nextLayer].classList.add('is-active');
+  vibeShowcaseLayers[previousLayer].classList.remove('is-active');
+
+  showcase.layer = nextLayer;
+  // Полное время показа = проявление (кроссфейд) + удержание целиком.
+  showcase.holdTimer = window.setTimeout(advanceShowcase, SHOWCASE_HOLD_MS + SHOWCASE_FADE_MS);
+}
+
+function advanceShowcase() {
+  if (!showcase.active) return;
+  showcase.holdTimer = null;
+  showcase.index = (showcase.index + 1) % showcase.order.length;
+  showShowcaseVibe();
+}
+
+// ФАЗА 3: витрина атмосфер временно отключена на первом экране. Код, данные и
+// таймеры сохранены целиком — достаточно вернуть true, чтобы вернуть витрину.
+const HOME_SHOWCASE_ENABLED = false;
+
+function startVibeShowcase() {
+  if (!HOME_SHOWCASE_ENABLED) return;
+  if (!vibeShowcase || !vibeShowcaseLayers.length) return;
+  showcase.order = VIBE_SHOWCASE_ORDER.filter((key) => vibeThemes[key]);
+  if (!showcase.order.length) return;
+  showcase.active = true;
+  showcase.index = 0;
+  // Стартуем «с другого» слоя, чтобы первый показ уже шёл кроссфейдом.
+  showcase.layer = 1;
+  showcase.glowLayer = 0;
+  stopShowcaseTimers();
+  vibeShowcaseLayers.forEach((layer) => layer.classList.remove('is-active'));
+  homeGlowLayers.forEach((layer) => {
+    layer.classList.remove('is-active');
+    layer.style.removeProperty('--glow-color');
+  });
+  showShowcaseVibe();
+}
+
+function stopVibeShowcase() {
+  showcase.active = false;
+  stopShowcaseTimers();
+  vibeShowcaseLayers.forEach((layer) => {
+    layer.classList.remove('is-active');
+    layer.textContent = '';
+  });
+  clearShowcaseGlow();
+}
+
 function showScreen(name) {
   Object.entries(screens).forEach(([key, screen]) => {
     screen.classList.toggle('active', key === name);
@@ -245,6 +469,20 @@ function showScreen(name) {
   if (name !== 'vibe') closeVibeMenu();
   // Вне экрана вайба тетрис и карусель цитат должны быть полностью остановлены.
   if (name !== 'vibe') stopVibeGame();
+  // Амбиентный фон и общий указатель-свет (ФАЗА 3) работают только на первом
+  // экране: класс .is-home-active включает/выключает их работу и анимации.
+  screens.home.classList.toggle('is-home-active', name === 'home');
+  if (name === 'home') {
+    startVibeShowcase(); // no-op, пока HOME_SHOWCASE_ENABLED = false
+    startAmbientPointer();
+    setSkyActive(true); // «живое небо» рисуется только на первом экране
+  } else {
+    stopVibeShowcase();
+    stopAmbientPointer();
+    setSkyActive(false);
+    // Уходя с главной, закрываем список языков, чтобы он не остался «висеть».
+    closeLanguageMenu();
+  }
 }
 
 function closeVibeMenu(returnFocus = false) {
@@ -1111,6 +1349,8 @@ window.addEventListener('vibe-language-change', () => {
   if (state.quoteList && state.quoteList.length) {
     showQuote(game.quoteIndex);
   }
+  // Перезапускаем витрину, чтобы имя текущего вайба сразу встало на новом языке.
+  if (screens.home.classList.contains('active')) startVibeShowcase();
   shareFeedback.textContent = '';
 });
 document.addEventListener('click', (event) => {
@@ -1125,13 +1365,418 @@ document.addEventListener('keydown', (event) => {
   }
 });
 
+// ---------------------------------------------------------------------------
+// Каталог атмосфер на домашнем экране. Карточки строятся из ТЕХ ЖЕ данных, что
+// и подбор вайба (vibeThemes), поэтому имена, id и палитра всегда совпадают с
+// источником: никаких придуманных вайбов и жёстко прописанных названий.
+// ------
+const catalogTop = document.getElementById('vibe-catalog-top');
+const catalogGrid = document.getElementById('vibe-catalog-grid');
+const exploreVibesBtn = document.getElementById('explore-vibes-btn');
+// Переключатель языка — элемент, общий для всего приложения, но видимый
+// только на первом экране (управляется через существующий data-active-screen).
+const languageSwitcher = document.querySelector('.language-switcher');
+const languageOptions = document.getElementById('language-options');
+const languageToggle = document.getElementById('language-toggle');
+
+// Закрывает раскрытый список языков — вызывается при уходе с главной.
+function closeLanguageMenu() {
+  if (!languageOptions || !languageToggle) return;
+  languageOptions.hidden = true;
+  languageToggle.setAttribute('aria-expanded', 'false');
+}
+
+// Крупная карточка витрины. cosmos есть в vibeThemes, поэтому берём его;
+// если бы ключа не было — renderVibeCatalog подставил бы первый доступный.
+const FEATURED_VIBE_KEY = 'cosmos';
+// Сколько компактных карточек идёт в верхнюю композицию рядом с крупной.
+const CATALOG_SIDE_COUNT = 2;
+
+let catalogOpenTimer = null;
+
+// Одна карточка вайба. Акцент берём из общей карты VIBE_CARD_ACCENTS, поэтому
+// все 14 карточек окрашены так же, как свечение витрины на первом экране.
+function buildVibeCard(vibeKey, variant, revealIndex = 0) {
+  const vibe = vibeThemes[vibeKey];
+  if (!vibe) return null;
+
+  const accent = VIBE_CARD_ACCENTS[vibeKey] || '#ffffff';
+  const card = document.createElement('button');
+  card.type = 'button';
+  card.className = `vibe-card vibe-card--${variant}`;
+  card.dataset.vibe = vibeKey;
+  // Ступенчатое появление карточек на входе: только opacity (transform не
+  // анимируем, чтобы не «залипал» hover-подъём/наклон). Шаг ограничен сверху.
+  card.style.setProperty('--reveal-delay', `${Math.min(revealIndex, 12) * 45}ms`);
+  card.style.setProperty('--card-accent', accent);
+  card.style.setProperty('--card-accent-soft', hexToRgba(accent, 0.22));
+  card.style.setProperty('--card-accent-glow', hexToRgba(accent, 0.3));
+
+  // Иллюстрация вайба: своя сцена для каждой темы (js/card-art.js).
+  // Это фоновый слой .vibe-card__art; поверх него — градиент читаемости,
+  // затем название. Анимации слоёв задаёт CSS и они автономны (без hover).
+  const art = document.createElement('span');
+  art.className = 'vibe-card__art';
+  art.setAttribute('aria-hidden', 'true');
+  art.innerHTML = cardArtSVG(vibeKey);
+
+
+  const glow = document.createElement('span');
+  glow.className = 'vibe-card__glow';
+  glow.setAttribute('aria-hidden', 'true');
+
+  const body = document.createElement('span');
+  body.className = 'vibe-card__body';
+
+  const name = document.createElement('span');
+  name.className = 'vibe-card__name';
+  // Русский заголовок из данных — источник локализации (см. js/i18n/index.js),
+  // поэтому перевод ставится наблюдателем i18n без дублирования словаря.
+  name.textContent = vibe.title;
+
+  body.appendChild(name);
+
+  // Стрелка убрана по требованию арт-дирекции: карточка теперь строится только
+  // из названия и декоративного слоя. Hover-отклик остался на границе/тени.
+  card.append(art, glow, body);
+  card.addEventListener('click', () => openVibeFromCatalog(vibeKey));
+  return card;
+}
+
+// Раскладка каталога: одна крупная карточка + две компактные в верхней
+// композиции, остальные — в адаптивной сетке. Каждый вайб ровно один раз.
+function renderVibeCatalog() {
+  if (!catalogTop || !catalogGrid) return;
+
+  const order = Object.keys(vibeThemes).filter((key) => vibeThemes[key]);
+  if (!order.length) return;
+
+  const featuredKey = order.includes(FEATURED_VIBE_KEY) ? FEATURED_VIBE_KEY : order[0];
+  const restKeys = order.filter((key) => key !== featuredKey);
+  const sideKeys = restKeys.slice(0, CATALOG_SIDE_COUNT);
+  const gridKeys = restKeys.slice(CATALOG_SIDE_COUNT);
+
+  catalogTop.textContent = '';
+  const featured = buildVibeCard(featuredKey, 'featured', 0);
+  if (featured) catalogTop.appendChild(featured);
+
+  const side = document.createElement('div');
+  side.className = 'catalog-top__side';
+  sideKeys.forEach((key, index) => {
+    const card = buildVibeCard(key, 'side', index + 1);
+    if (card) side.appendChild(card);
+  });
+  catalogTop.appendChild(side);
+
+  catalogGrid.textContent = '';
+  gridKeys.forEach((key, index) => {
+    const card = buildVibeCard(key, 'grid', index + sideKeys.length + 1);
+    if (card) catalogGrid.appendChild(card);
+  });
+}
+
+// Плавная прокрутка к каталогу. Прокручивается ближайший контейнер
+// (#home-screen), сам #start-btn и опрос не трогаются; hash не меняется.
+function scrollToCatalog() {
+  const target = document.getElementById('vibe-catalog');
+  if (!target) return;
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  target.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' });
+}
+
+// Открытие вайба с карточки: используем существующую машинерию экранов
+// (renderVibe + showScreen + #vibe-transition). Короткий кинематографический
+// фейд, без 4-секундной последовательности «создания» и без новых маршрутов.
+function openVibeFromCatalog(vibeKey) {
+  if (!vibeThemes[vibeKey]) return;
+
+  closeVibeMenu();
+  cancelVibeCreation();
+  renderVibe(vibeKey);
+  state.activeVibe = vibeKey;
+
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reduced) {
+    showScreen('vibe');
+    return;
+  }
+
+  if (catalogOpenTimer !== null) {
+    window.clearTimeout(catalogOpenTimer);
+    catalogOpenTimer = null;
+  }
+  vibeTransition.classList.add('is-quick', 'is-visible');
+  catalogOpenTimer = window.setTimeout(() => {
+    showScreen('vibe');
+    catalogOpenTimer = window.setTimeout(() => {
+      vibeTransition.classList.remove('is-visible', 'is-quick');
+      catalogOpenTimer = null;
+    }, 140);
+  }, 280);
+}
+
+// ---------------------------------------------------------------------------
+// ФАЗА 3 — ГИБРИДНАЯ АНИМАЦИЯ
+// 1) Общий «фонарь» указателя: один цикл requestAnimationFrame, который живёт
+//    ТОЛЬКО пока активен первый экран, только на устройствах с точным курсором
+//    и только вне prefers-reduced-motion. Он ничего не пересчитывает и не двигает
+//    DOM — сам амбиент анимируется средствами CSS; JS лишь подтверждает, что
+//    эффект уместен и должен быть активен.
+// 2) Наклон карточек: ОДИН набор слушателей на контейнер каталога с
+//    делегированием, вместо отдельных обработчиков на 14 карточек.
+// ---------------------------------------------------------------------------
+let ambientCleanup = null;
+
+function isHomeActive() {
+  return screens.home.classList.contains('is-home-active');
+}
+
+// Локальный хелпер: единая проверка reduced-motion для эффектов ФАЗЫ 3.
+function reducedMotionPref() {
+  // Единая точка проверки с учётом явного override (?motion=on|off).
+  const forced = document.documentElement.dataset.motion;
+  if (forced === 'force') return false;
+  if (forced === 'off') return true;
+  return typeof window.matchMedia === 'function'
+    && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
+function ambientSupported() {
+  return !reducedMotionPref()
+    && window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+}
+
+// Один общий пассивный обработчик на весь первый экран: пишет две CSS-переменные
+// (--home-mx/--home-my) с троттлингом через requestAnimationFrame. Никаких
+// обработчиков на отдельных элементах; на touch и в reduced-motion не включается.
+function startAmbientPointer() {
+  if (ambientCleanup) return; // уже работает
+  if (!ambientSupported()) return;
+  if (!isHomeActive()) return;
+
+  const home = screens.home;
+  let frame = 0;
+  let px = 0.5;
+  let py = 0.34;
+
+  const apply = () => {
+    frame = 0;
+    home.style.setProperty('--home-mx', px.toFixed(4));
+    home.style.setProperty('--home-my', py.toFixed(4));
+  };
+
+  const onMove = (event) => {
+    if (event.pointerType && event.pointerType !== 'mouse') return;
+    const rect = home.getBoundingClientRect();
+    if (rect.width < 1 || rect.height < 1) return;
+    px = (event.clientX - rect.left) / rect.width;
+    py = (event.clientY - rect.top) / rect.height;
+    if (!frame) frame = window.requestAnimationFrame(apply);
+  };
+
+  home.addEventListener('pointermove', onMove, { passive: true });
+
+  ambientCleanup = () => {
+    if (frame) window.cancelAnimationFrame(frame);
+    home.removeEventListener('pointermove', onMove);
+    home.style.removeProperty('--home-mx');
+    home.style.removeProperty('--home-my');
+    ambientCleanup = null;
+  };
+}
+
+function stopAmbientPointer() {
+  if (ambientCleanup) ambientCleanup();
+}
+
+// Наклон карточек каталога: делегирование на #vibe-catalog. Пишем только две
+// CSS-переменные (--tilt-x/--tilt-y), transform собирает CSS. Общая рект-кэшка
+// берётся на входе в карточку (как в init3DTiltEffect) — без layout-thrash.
+/* ---------------------------------------------------------------------------
+   Премиальный 3D-наклон карточек (Apple-подход).
+   Ключевые решения:
+   1) ИНТЕРПОЛЯЦИЯ. Целевые углы не ставятся напрямую — rAF-цикл плавно
+      «догоняет» цель (lerp), поэтому вход/выход курсора без рывков, а возврат
+      в нейтраль — затухающий. Цикл живёт ТОЛЬКО пока есть движение.
+   2) ПАРАЛЛАКС СЛОЁВ через отдельное свойство `translate`, а НЕ `transform`:
+      анимации слоёв используют `transform`, поэтому они складываются и не
+      конфликтуют (translate применяется до transform по спецификации).
+   3) БЛИК — мягкий серый радиальный градиент, следующий за курсором.
+   4) Один делегированный набор слушателей на контейнер. Touch не блокирует
+      прокрутку (passive, без preventDefault) и не мешает открытию вайба.
+   --------------------------------------------------------------------------- */
+function initCardTilt() {
+  const root = document.getElementById('vibe-catalog');
+  if (!root) return;
+  // reduced-motion: интерактивный наклон не подключаем вовсе (статичная подача).
+  if (reducedMotionPref()) return;
+  // Слабые устройства: 3D-наклон + параллакс + блик не окупаются по цене.
+  // Оставляем спокойную статику — функциональность не страдает.
+  if ((navigator.hardwareConcurrency || 4) <= 2) return;
+
+  const MAX_TILT = 7.5;   // градусов в каждую сторону (в диапазоне 6–10)
+  const MAX_PAR = 7;      // px максимального параллакса переднего плана
+  const LERP = 0.14;      // скорость догона цели
+  const EPS = 0.02;       // порог остановки цикла
+
+  let activeCard = null;
+  let rect = null;
+  const target = { x: 0, y: 0 };   // цель, -1..1
+  const current = { x: 0, y: 0 };  // текущее, -1..1
+  let frame = 0;
+  let touchX = 0; let touchY = 0; let touchActive = false;
+
+  const render = () => {
+    frame = 0;
+    if (!activeCard) return;
+    current.x += (target.x - current.x) * LERP;
+    current.y += (target.y - current.y) * LERP;
+
+    const near = EPS / 2;
+    // Пока не сошлось — продолжаем цикл; иначе фиксируем и снимаем наклон.
+    if (Math.abs(target.x - current.x) > near || Math.abs(target.y - current.y) > near) {
+      frame = window.requestAnimationFrame(render);
+    } else if (target.x === 0 && target.y === 0) {
+      current.x = 0; current.y = 0;
+      release();
+      return;
+    }
+
+    const card = activeCard;
+    // Наклон: вправо курсор → право «уходит», вверх → верх «уходит».
+    card.style.setProperty('--tilt-x', `${(-current.y * MAX_TILT).toFixed(2)}deg`);
+    card.style.setProperty('--tilt-y', `${(current.x * MAX_TILT).toFixed(2)}deg`);
+    // Параллакс планов (px): ближний сильнее дальнего.
+    card.style.setProperty('--par-x', `${(-current.x * MAX_PAR).toFixed(2)}px`);
+    card.style.setProperty('--par-y', `${(-current.y * MAX_PAR).toFixed(2)}px`);
+    // Курсорный блик полностью удалён из проекта; здесь только наклон и параллакс.
+  };
+
+  const schedule = () => {
+    if (!frame) frame = window.requestAnimationFrame(render);
+  };
+
+  const release = () => {
+    const card = activeCard;
+    if (card) {
+      card.classList.remove('is-tilting');
+      card.style.removeProperty('--tilt-x');
+      card.style.removeProperty('--tilt-y');
+      card.style.removeProperty('--par-x');
+      card.style.removeProperty('--par-y');
+      card.style.removeProperty('--par-x');
+      card.style.removeProperty('--par-y');
+    }
+    activeCard = null;
+    rect = null;
+  };
+
+  const cancel = () => {
+    if (frame) { window.cancelAnimationFrame(frame); frame = 0; }
+  };
+
+  // Возврат в нейтраль: цель в 0, цикл сам доведёт и вызовет release().
+  const settle = () => {
+    target.x = 0; target.y = 0;
+    if (activeCard) schedule();
+    else cancel();
+  };
+
+  const onMove = (event) => {
+    if (!rect) return;
+    const rx = (event.clientX - rect.left) / rect.width;
+    const ry = (event.clientY - rect.top) / rect.height;
+    target.x = Math.max(-1, Math.min(1, rx * 2 - 1));
+    target.y = Math.max(-1, Math.min(1, ry * 2 - 1));
+    schedule();
+  };
+
+  const activate = (card) => {
+    if (card === activeCard) return;
+    if (activeCard) { target.x = 0; target.y = 0; }
+    activeCard = card;
+    current.x = 0; current.y = 0;
+    target.x = 0; target.y = 0;
+    rect = card.getBoundingClientRect();
+    card.classList.add('is-tilting');
+  };
+
+  // --- Мышь / стилус: непрерывное отслеживание ---
+  const onPointerMove = (event) => {
+    if (event.pointerType !== 'mouse' && event.pointerType !== 'pen') return;
+    const card = event.target.closest('.vibe-card');
+    if (!card) return;
+    if (card !== activeCard) activate(card);
+    onMove(event);
+  };
+
+  const onPointerLeave = (event) => {
+    if (event.pointerType === 'touch') return;
+    if (!activeCard) return;
+    if (event.relatedTarget && root.contains(event.relatedTarget)) return;
+    settle();
+  };
+
+  // --- Touch: тянем пальцем, скролл НЕ блокируем ---
+  const onTouchStart = (event) => {
+    const card = event.target.closest('.vibe-card');
+    if (!card) return;
+    if (card !== activeCard) activate(card);
+    touchActive = true;
+    const t = event.touches[0];
+    touchX = t.clientX; touchY = t.clientY;
+    onMove({ clientX: touchX, clientY: touchY });
+  };
+
+  const onTouchMove = (event) => {
+    if (!touchActive || !activeCard) return;
+    const t = event.touches[0];
+    if (!t) return;
+    // Если палец явно скроллит (вертикально больше, чем горизонтально) —
+    // наклон отпускаем, чтобы не мешать прокрутке.
+    const dx = Math.abs(t.clientX - touchX);
+    const dy = Math.abs(t.clientY - touchY);
+    if (dy > 14 && dy > dx * 1.4) { touchActive = false; settle(); return; }
+    onMove({ clientX: t.clientX, clientY: t.clientY });
+  };
+
+  const onTouchEnd = () => {
+    if (!touchActive) return;
+    touchActive = false;
+    settle();
+  };
+
+  root.addEventListener('pointermove', onPointerMove, { passive: true });
+  root.addEventListener('pointerleave', onPointerLeave, { passive: true });
+  root.addEventListener('touchstart', onTouchStart, { passive: true });
+  root.addEventListener('touchmove', onTouchMove, { passive: true });
+  root.addEventListener('touchend', onTouchEnd, { passive: true });
+  root.addEventListener('touchcancel', onTouchEnd, { passive: true });
+  // Потеря фокуса окном не должна оставлять карточку «застрявшей».
+  window.addEventListener('blur', () => { cancel(); release(); }, { passive: true });
+}
+
+if (exploreVibesBtn) {
+  exploreVibesBtn.addEventListener('click', scrollToCatalog);
+}
+
 // Порядок важен: сначала локализация (переводит статические тексты и запускает
 // наблюдатель за динамическими узлами), затем построение UI.
 initI18n('ru');
+// Каталог строим после i18n: наблюдатель перевода уже активен и переведёт
+// названия карточек сразу при их добавлении в DOM.
+renderVibeCatalog();
 initGlassTilt();
 renderQuestion();
 showScreen('home');
 handleHashRoute();
+
+// ФАЗА 3: включаем JS-зависимые эффекты только теперь (после сборки UI и
+// определения стартового экрана) — без мигания и лишней работы на загрузке.
+document.documentElement.classList.add('vf-js');
+initSky();
+initCardTilt();
+startAmbientPointer();
 
 // Аудио стартует лениво — только после первого взаимодействия пользователя.
 // Так аудио-буферы не конкурируют с рендером первого экрана, частицами

@@ -9,18 +9,46 @@ const localeMetadata = {
 
 const translationCatalog = {
   'Vibe Finder': ['Vibe Finder', 'Vibe Finder', 'Vibe Finder'],
+  'Найди свою атмосферу.': [
+    'Find your own atmosphere.',
+    '找到属于你的氛围。',
+    'اكتشف أجواءك الخاصة.',
+  ],
+  '14 вайбов. 14 разных миров.': [
+    '14 vibes. 14 different worlds.',
+    '14 种氛围，14 个不同的世界。',
+    '١٤ أجواءً. ١٤ عالمًا مختلفًا.',
+  ],
+  'Смотреть вайбы': ['Explore vibes', '浏览氛围', 'استكشف الأجواء'],
+  'Логотип колледжа IT.Москва': [
+    'IT.Moscow college logo',
+    'IT.Москва 学院徽标',
+    'شعار كلية IT.موسكو',
+  ],
+  'Атмосфера': ['Vibe', '氛围', 'أجواء'],
+  'Открой мир, который подстроится под тебя.': [
+    'Open a world that adapts to you.',
+    '打开一个为你而生的世界。',
+    'افتح عالمًا يتكيّف معك.',
+  ],
+  'Каждый вайб — небольшой мир, в который можно войти.': [
+    'Every vibe is a small world you can step into.',
+    '每种氛围都是一个可以走进的小世界。',
+    'كل أجواء عالم صغير يمكنك الدخول إليه.',
+  ],
   'created by the Bsoul team': ['created by the Bsoul team', 'Bsoul 团队创作', 'من إنشاء فريق Bsoul'],
   'Найди своё настроение и войди в атмосферу, которая подстроится под тебя.': [
     'Find your mood and step into an atmosphere made for you.',
     '找到此刻的心情，进入为你定制的氛围。',
     'اكتشف مزاجك وادخل أجواءً صُممت لتناسبك.',
   ],
-  'Начать': ['Start', '开始', 'ابدأ'],
+  'Поиск': ['Search', '搜索', 'بحث'],
   '14 атмосфер · 10 вопросов': [
     '14 atmospheres · 10 questions',
     '14 种氛围 · 10 个问题',
     '14 أجواء · 10 أسئلة',
   ],
+  'Атмосферы': ['Atmospheres', '氛围', 'الأجواء'],
   'Вопрос 1 из 10': ['Question 1 of 10', '第 1 题，共 10 题', 'السؤال 1 من 10'],
   'Вернуться к предыдущему вопросу': [
     'Back to the previous question',
