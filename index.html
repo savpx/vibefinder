@@ -56,12 +56,19 @@
          с max-age=31536000, immutable, поэтому без смены URL браузер НЕ
          запрашивает обновлённые style.css/app.js и правки просто не видны.
          Меняйте номер версии при каждом деплое изменений. -->
-    <link rel="stylesheet" href="css/style.css?v=20" />
+    <link rel="stylesheet" href="css/style.css?v=27" />
     <!-- Native ES-module preload: fetches js/app.js and its import graph in parallel (no bundler). -->
-    <link rel="modulepreload" href="js/app.js?v=20" />
+    <link rel="modulepreload" href="js/app.js?v=27" />
   </head>
   <body>
     <div class="page-shell">
+
+      <!-- «Живое ночное небо» (Canvas 2D) — ОБЩИЙ неподвижный фон приложения.
+           Прямой ребёнок .page-shell (position: fixed, z-index:1), поэтому
+           горизонтальный свайп-переход между лендингом и опросом его НЕ двигает:
+           звёзды и частицы остаются непрерывными и не перезапускаются. Модуль
+           отрисовки — js/sky.js; видимостью управляет data-active-screen. -->
+      <canvas id="sky-canvas" class="sky-canvas" aria-hidden="true"></canvas>
 
       <section id="home-screen" class="screen active">
         <!-- Мягкое свечение первого экрана. Внутри — два слоя с фиксированными
@@ -84,16 +91,18 @@
         <!-- Единственный потоковый ребёнок #home-screen: колонка
              (шапка → hero → каталог → подвал). Так существующая flex-строка
              #home-screen не ломается, а контент выстраивается в столбец. -->
+        <!-- Слой цветового отклика фона: плоская низкоальфовая подложка в цвет
+             активного вайба. Прямой ребёнок #home-screen (z-index:0) — лежит ПОД
+             частицами (z-index:1 у .sky-canvas) и под контентом (.home-main:2),
+             поэтому звёзды и частицы не перекрашиваются. Цвет меняется
+             CSS-переменной --vibe-tint с коротким переходом (см. CSS). -->
+        <div class="home-tint" aria-hidden="true"></div>
         <div class="home-main">
-          <!-- «Живое ночное небо» (Canvas 2D): звёздное поле, редкие частицы и
-               далёкий холодный свет. Рисуется в js/sky.js, лежит ЗА всем
-               контентом (z-index:0), не перехватывает события и работает только
-               пока первый экран активен. В reduced-motion — статичный кадр. -->
-          <canvas id="sky-canvas" class="sky-canvas" aria-hidden="true"></canvas>
           <!-- Кинематографичный амбиентный фон первого экрана (ФАЗА 3).
                Живёт ВНУТРИ колонки, поэтому растягивается на всю высоту
                прокручиваемого контента (атмосфера сохраняется и у каталога).
-               Три слоя: фиолетовые световые пятна, дрейфующая мгла, виньетка.
+               При свайп-переходе уходит вместе со всем экраном целиком.
+               Три слоя: мягкие световые пятна, дрейфующая мгла, виньетка.
                Анимируются только transform/opacity, слои pointer-events:none,
                отключаются вне первого экрана (.is-home-active) и при
                prefers-reduced-motion. -->
@@ -138,13 +147,14 @@
                   aria-expanded="false"
                   aria-controls="language-options"
                 >
-                  <span class="control-label">RU</span>
+                  <!-- Ярлык «RU/EN» — машинный код, а не локализуемый текст:
+                       помечен data-no-i18n, чтобы наблюдатель перевода не
+                       откатывал его к исходному значению. -->
+                  <span class="control-label" data-no-i18n>RU</span>
                 </button>
                 <div id="language-options" class="language-options" role="group" aria-label="Choose language" hidden>
                   <button type="button" data-language="en" aria-label="English">EN</button>
                   <button type="button" data-language="ru" aria-label="Russian">RU</button>
-                  <button type="button" data-language="zh" aria-label="Chinese">ZH</button>
-                  <button type="button" data-language="ar" aria-label="Arabic">AR</button>
                 </div>
               </div>
               <!-- Поддержка Discord: видимого текста нет, поэтому перевод не
@@ -174,12 +184,11 @@
                    ID, класс, обработчик (resetSurvey) и всё поведение сохранены
                    без изменений — изменён только порядок и визуальный вес. -->
               <button id="start-btn" class="primary-btn">
-                <div class="glass-glare-effect" aria-hidden="true"></div>
                 <span class="control-label">Поиск</span>
               </button>
               <!-- Вторичное действие: прокрутка к каталогу. Опрос не запускает. -->
               <button id="explore-vibes-btn" class="explore-btn" type="button">
-                <span class="control-label">Смотреть вайбы</span>
+                <span class="control-label">Каталог</span>
               </button>
             </div>
           </div>
@@ -192,46 +201,47 @@
             <div class="catalog-head">
               <h2 id="catalog-title" class="catalog-title">Атмосферы</h2>
             </div>
-            <div id="vibe-catalog-top" class="catalog-top"></div>
-            <div id="vibe-catalog-grid" class="vibe-catalog__grid"></div>
+            <!-- Ультра-минимальный список: только названия вайбов, набранные прямо
+                 на фоне. Ни карточек, ни картинок, ни рамок — список строит
+                 js/app.js из тех же данных (vibeThemes), что и подбор вайба. -->
+            <div id="vibe-list" class="vibe-list"></div>
           </section>
 
-          <footer class="home-footer">
-            <p class="home-footer__line">Каждый вайб — небольшой мир, в который можно войти.</p>
-          </footer>
         </div>
 
       </section>
 
       <section id="survey-screen" class="screen">
         <div class="survey-panel">
+          <!-- Компактная шапка: «назад» и реальный счётчик вопросов.
+               Итог берётся из данных (см. updateProgress в js/app.js),
+               поэтому на «10» ничего не захардкожено. -->
           <div class="survey-header">
-            <div class="survey-header__row">
-              <button
-                id="survey-back-btn"
-                class="survey-back-btn"
-                type="button"
-                aria-label="Вернуться к предыдущему вопросу"
-                hidden
-              >‹</button>
-              <span id="progress-label" class="progress-label">Вопрос 1 из 10</span>
-            </div>
-            <div
-              class="progress-bar"
-              role="progressbar"
-              aria-label="Прогресс опроса"
-              aria-valuemin="1"
-              aria-valuemax="10"
-              aria-valuenow="1"
-            >
-              <span id="progress-fill"></span>
-            </div>
+            <button
+              id="survey-back-btn"
+              class="survey-back-btn"
+              type="button"
+              aria-label="Вернуться к предыдущему вопросу"
+              hidden
+            >‹</button>
+            <span id="progress-label" class="progress-label">Вопрос 1 из 10</span>
+          </div>
+          <!-- Тонкая линия прогресса — почти hairline, чтобы не спорить с вопросом. -->
+          <div
+            class="progress-bar"
+            role="progressbar"
+            aria-label="Прогресс опроса"
+            aria-valuemin="1"
+            aria-valuemax="10"
+            aria-valuenow="1"
+          >
+            <span id="progress-fill"></span>
           </div>
 
-          <div class="survey-card">
-            <div class="glass-glare-effect" aria-hidden="true"></div>
-            <p class="card-kicker">Опрос</p>
-            <h2 id="question-text">Какое у тебя настроение прямо сейчас?</h2>
+          <!-- Текстовый холст вопроса. Ни стеклянной карточки, ни теней:
+               вертикальный штрих слева связывает вопрос с ответами. -->
+          <div class="survey-stage">
+            <h2 id="question-text" class="survey-question">Какое у тебя настроение прямо сейчас?</h2>
             <div id="answers" class="answers" aria-live="polite"></div>
           </div>
         </div>
@@ -303,7 +313,6 @@
           aria-expanded="false"
           aria-controls="vibe-menu"
         >
-          <div class="glass-glare-effect" aria-hidden="true"></div>
           <svg viewBox="0 0 20 20" aria-hidden="true">
             <path d="M3 5h14M3 10h14M3 15h14"></path>
           </svg>
@@ -328,6 +337,6 @@
       <span class="cinematic-intro__grain"></span>
     </div>
 
-    <script type="module" src="js/app.js?v=20"></script>
+    <script type="module" src="js/app.js?v=27"></script>
   </body>
 </html>

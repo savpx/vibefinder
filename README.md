@@ -65,14 +65,13 @@ Each vibe comes with a different small game — calm, playful, or curious, but n
 
 ## Languages
 
-The interface is available in four languages, with Russian as the default:
+The interface is available in two languages, with Russian as the default:
 
-- 🇬🇧 English
-- 🇷🇺 Русский
-- 🇨🇳 简体中文
-- 🇸🇦 العربية (with right-to-left layout)
+- Русский
+- English
 
-Switch the language anytime from the button in the top-left corner.
+Switch the language anytime from the button in the header. Your choice is
+remembered for your next visit.
 
 ---
 
