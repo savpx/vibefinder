@@ -56,9 +56,9 @@
          с max-age=31536000, immutable, поэтому без смены URL браузер НЕ
          запрашивает обновлённые style.css/app.js и правки просто не видны.
          Меняйте номер версии при каждом деплое изменений. -->
-    <link rel="stylesheet" href="css/style.css?v=27" />
+    <link rel="stylesheet" href="css/style.css?v=28" />
     <!-- Native ES-module preload: fetches js/app.js and its import graph in parallel (no bundler). -->
-    <link rel="modulepreload" href="js/app.js?v=27" />
+    <link rel="modulepreload" href="js/app.js?v=28" />
   </head>
   <body>
     <div class="page-shell">
@@ -98,19 +98,10 @@
              CSS-переменной --vibe-tint с коротким переходом (см. CSS). -->
         <div class="home-tint" aria-hidden="true"></div>
         <div class="home-main">
-          <!-- Кинематографичный амбиентный фон первого экрана (ФАЗА 3).
-               Живёт ВНУТРИ колонки, поэтому растягивается на всю высоту
-               прокручиваемого контента (атмосфера сохраняется и у каталога).
-               При свайп-переходе уходит вместе со всем экраном целиком.
-               Три слоя: мягкие световые пятна, дрейфующая мгла, виньетка.
-               Анимируются только transform/opacity, слои pointer-events:none,
-               отключаются вне первого экрана (.is-home-active) и при
-               prefers-reduced-motion. -->
-          <div class="home-ambient" aria-hidden="true">
-            <span class="home-ambient__field"></span>
-            <span class="home-ambient__haze"></span>
-            <span class="home-ambient__vignette"></span>
-          </div>
+          <!-- Амбиентный фон удалён: его размытые световые пятна и виньетка
+               давали искусственное свечение поверх общего космоса и делали
+               первый экран светлее опроса. Фон первого экрана теперь — тот же
+               звёздный канвас, что и в опросе (js/sky.js). -->
           <header class="home-header">
             <!-- Логотип-локап: CSS-метка «атмосферы» + вордмарк. Метка —
                  чистый CSS (без внешних ассетов), поэтому бренд остаётся
@@ -337,6 +328,6 @@
       <span class="cinematic-intro__grain"></span>
     </div>
 
-    <script type="module" src="js/app.js?v=27"></script>
+    <script type="module" src="js/app.js?v=28"></script>
   </body>
 </html>

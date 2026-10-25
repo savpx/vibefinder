@@ -430,8 +430,8 @@ function advanceShowcase() {
   showShowcaseVibe();
 }
 
-// ФАЗА 3: витрина атмосфер временно отключена на первом экране. Код, данные и
-// таймеры сохранены целиком — достаточно вернуть true, чтобы вернуть витрину.
+// Витрина атмосфер временно отключена на первом экране. Код, данные и таймеры
+// сохранены целиком — достаточно вернуть true, чтобы вернуть витрину.
 const HOME_SHOWCASE_ENABLED = false;
 
 function startVibeShowcase() {
@@ -555,9 +555,6 @@ function showScreen(name) {
   if (name !== 'vibe') closeVibeMenu();
   // Вне экрана вайба тетрис и карусель цитат должны быть полностью остановлены.
   if (name !== 'vibe') stopVibeGame();
-  // Амбиентный космический фон (ФАЗА 3) работает только на первом экране:
-  // класс .is-home-active включает/выключает его работу и анимации.
-  screens.home.classList.toggle('is-home-active', name === 'home');
   // «Живое небо» — общий фоновый слой приложения. Держим его активным на первом
   // экране И в опросе, чтобы космос был непрерывным при входе в анкету и не
   // перезапускался при смене вопроса (модуль рисует один непрерывный цикл).
@@ -1600,14 +1597,7 @@ function openVibeFromCatalog(vibeKey) {
   }, 280);
 }
 
-// ---------------------------------------------------------------------------
-// ФАЗА 3. Общий хелпер проверки активности первого экрана.
-// ---------------------------------------------------------------------------
-function isHomeActive() {
-  return screens.home.classList.contains('is-home-active');
-}
-
-// Локальный хелпер: единая проверка reduced-motion для эффектов ФАЗЫ 3.
+// Единая проверка reduced-motion (учитывает override ?motion=on|off).
 function reducedMotionPref() {
   // Единая точка проверки с учётом явного override (?motion=on|off).
   const forced = document.documentElement.dataset.motion;
@@ -1618,15 +1608,20 @@ function reducedMotionPref() {
 }
 
 // ---------------------------------------------------------------------------
-// Цветовой отклик космического фона на вайб. Курсор над именем вайба плавно
+// Цветовой отклик космического фона на вайб. Имя вайба в каталоге плавно
 // подкрашивает фон в его цвет (низкая luminансность, CSS-переход). Слой
 // .home-tint лежит ПОД частицами (z-index:0 против z-index:1 у .sky-canvas),
 // поэтому звёзды и частицы не перекрашиваются и их система не меняется.
 //
-// Делегирование: один pointerover/pointerleave на список вместо 14 обработчиков.
-// Переход между именами НЕ отпускает список, поэтому фон перетекает из цвета в
-// цвет без вспышки чёрного. Уход курсора за пределы списка снимает оттенок.
-// На touch hover не требуется: обычная навигация тапом сохранена.
+// Делегирование: по одному слушателю на список вместо 14 обработчиков.
+//   • Мышь/перо — как и прежде: наведение (pointerover) красит, уход (pointerleave)
+//     и потеря фокуса окном снимают оттенок. Переход между именами НЕ отпускает
+//     список, поэтому фон перетекает из цвета в цвет без вспышки чёрного.
+//   • Тач (палец) — нажатие и УДЕРЖАНИЕ включает тот же оттенок: на телефонах
+//     hover нет, поэтому единственный надёжный вход — долгое касание. Короткий
+//     тап остаётся обычной навигацией по вайбу (цвет не меняется).
+// Один набор Pointer Events обслуживает и мышь, и перо, и палец — без дублирующих
+// touch-обработчиков. Слушатели пассивны: обычные тапы и прокрутка не блокируются.
 // В reduced-motion отклик отключён (уважение системной настройки).
 // ---------------------------------------------------------------------------
 const homeTint = document.querySelector('.home-tint');
@@ -1643,8 +1638,17 @@ function clearVibeTint() {
   if (homeTint) homeTint.style.removeProperty('--vibe-tint');
 }
 
+// Сколько держать палец, прежде чем включится оттенок. Порог намеренно чуть
+// выше мгновенного тапа: обычное касание не должно менять цвет фона.
+const VIBE_HOLD_MS = 420;
+// Допустимый сдвиг пальца: большее смещение — это уже прокрутка/жест, а не
+// удержание, поэтому удержание отменяем (страница при этом скроллится штатно).
+const VIBE_HOLD_SLOP = 12;
+
 function initVibeHover() {
   if (!vibeList) return;
+
+  // --- Мышь и перо: прежнее наведение, поведение не изменено. ---
   vibeList.addEventListener('pointerover', (event) => {
     if (event.pointerType && event.pointerType !== 'mouse' && event.pointerType !== 'pen') return;
     const item = event.target.closest('.vibe-link');
@@ -1652,7 +1656,71 @@ function initVibeHover() {
   }, { passive: true });
   // Уход за пределы списка (или потеря фокуса окном) возвращает чёрный фон.
   vibeList.addEventListener('pointerleave', clearVibeTint, { passive: true });
+
+  // --- Палец: нажатие и удержание. ---
+  let holdTimer = null;
+  let holdStart = null; // { id, x, y } — точка касания для контроля сдвига
+  let holdActive = false;
+
+  const cancelHold = () => {
+    if (holdTimer !== null) {
+      window.clearTimeout(holdTimer);
+      holdTimer = null;
+    }
+    holdStart = null;
+    holdActive = false;
+  };
+
+  // Отпускание/отмена/уход: гарантированно снимаем таймер и гасим оттенок,
+  // чтобы состояние не «залипло» ни при обычном тапе, ни при жесте, ни при уходе.
+  const releaseHold = () => {
+    cancelHold();
+    clearVibeTint();
+  };
+
+  vibeList.addEventListener('pointerdown', (event) => {
+    // Мышь и перо обрабатывает ветка наведения выше.
+    if (event.pointerType === 'mouse' || event.pointerType === 'pen') return;
+    const item = event.target.closest('.vibe-link');
+    if (!item) return;
+    holdStart = { id: event.pointerId, x: event.clientX, y: event.clientY };
+    holdTimer = window.setTimeout(() => {
+      holdTimer = null;
+      // holdStart мог быть сброшен (сдвиг/отпускание) — тогда просто выходим.
+      if (!holdStart) return;
+      holdActive = true;
+      applyVibeTint(item.dataset.vibe);
+    }, VIBE_HOLD_MS);
+  }, { passive: true });
+
+  vibeList.addEventListener('pointermove', (event) => {
+    if (!holdStart || event.pointerId !== holdStart.id) return;
+    const dx = event.clientX - holdStart.x;
+    const dy = event.clientY - holdStart.y;
+    if (Math.hypot(dx, dy) > VIBE_HOLD_SLOP) releaseHold();
+  }, { passive: true });
+
+  vibeList.addEventListener('pointerup', (event) => {
+    if (!holdStart || event.pointerId !== holdStart.id) return;
+    releaseHold();
+  }, { passive: true });
+
+  vibeList.addEventListener('pointercancel', (event) => {
+    if (!holdStart || event.pointerId !== holdStart.id) return;
+    releaseHold();
+  }, { passive: true });
+
+  // Пока палец удерживается, подавляем системный контекстный тап (Android/Safari),
+  // иначе длинный тап открывал бы меню вместо смены цвета. Вне удержания обычное
+  // поведение (в т.ч. контекстное меню) сохраняется.
+  vibeList.addEventListener('contextmenu', (event) => {
+    if (holdActive) event.preventDefault();
+  });
+
   window.addEventListener('blur', clearVibeTint, { passive: true });
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) releaseHold();
+  });
 }
 
 if (exploreVibesBtn) {
@@ -1670,8 +1738,8 @@ renderQuestion();
 showScreen('home');
 handleHashRoute();
 
-// ФАЗА 3: включаем JS-зависимые эффекты только теперь (после сборки UI и
-// определения стартового экрана) — без мигания и лишней работы на загрузке.
+// Включаем JS-зависимые эффекты только теперь (после сборки UI и определения
+// стартового экрана) — без мигания и лишней работы на загрузке.
 document.documentElement.classList.add('vf-js');
 initSky();
 initVibeHover();

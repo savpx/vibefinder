@@ -2141,16 +2141,11 @@ html[data-intro="short"] #home-screen.active .vibe-showcase {
    быстрый переход), чтобы не задевать остальные экраны.
    =========================================================================== */
 
-/* --- Фон: почти чёрный + мягкое фиолетовое амбиентное свечение ------------- */
-/* Переопределяем только background у #home-screen (остальные токены из общего
-   правила #home-screen,#survey-screen,#creation-screen сохраняются). */
+/* --- Фон и отступ первого экрана ------------------------------------------- */
+/* background задаётся НИЖЕ (прозрачный): первый экран показывает общий канвас
+   «живого неба» — ровно тот же, что и опрос. Здесь остаётся только верхний
+   отступ (переключатель языка теперь в шапке, большой запас не нужен). */
 #home-screen {
-  background:
-    radial-gradient(120% 72% at 50% -12%, rgba(255, 255, 255, 0.055), transparent 62%),
-    radial-gradient(90% 58% at 84% 6%, rgba(255, 255, 255, 0.028), transparent 56%),
-    #000000;
-  /* Верхний отступ уменьшен: переключатель языка больше не «висит» в левом
-     верхнем углу (он в шапке), поэтому большой запас под него не нужен. */
   padding-top: clamp(20px, 2.5vh, 30px);
 }
 
@@ -2370,6 +2365,14 @@ html[data-intro="short"] #home-screen.active .vibe-showcase {
   text-align: start;
   overflow-wrap: anywhere;
   cursor: pointer;
+  /* Долгое касание на телефоне подкрашивает фон в цвет вайба (см. initVibeHover
+     в js/app.js). Отключаем выделение текста и «залипающий» :active: удержание
+     не должно подсвечивать название как выделенный текст. Обычный тап и
+     прокрутка списка при этом не затрагиваются. */
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
   /* Единственный отклик — короткая смена цвета текста. Без движения и свечения. */
   transition: color 180ms ease;
 }
@@ -2605,73 +2608,12 @@ html[data-intro="short"] #home-screen.active .vibe-catalog {
 }
 
 /* ===========================================================================
-   ФАЗА 3 — АМБИЕНТНЫЙ ФОН
-   Кинематографичный космический фон, уточнённые микровзаимодействия.
-   Анимируются только transform/opacity; слои декоративны (pointer-events:none)
-   и работают ТОЛЬКО пока первый экран активен (#home-screen.is-home-active).
+   УТОЧНЁННЫЕ МИКРОВЗАИМОДЕЙСТВИЯ ПЕРВОГО ЭКРАНА
+   Амбиентный фон удалён: его размытые «дыхащие» пятна и виньетка
+   давали искусственное свечение поверх общего космоса и делали первый экран
+   светлее опроса. Теперь первый экран показывает тот же звёздный канвас, что и
+   опрос (см. js/sky.js), поэтому фон остаётся глубоко чёрным и непрерывным.
    =========================================================================== */
-
-/* --- Слой 1: амбиентное поле (медленно дышащие огни) ----------------------- */
-.home-ambient {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  overflow: hidden;
-  pointer-events: none;
-  opacity: 0; /* проявляется на входе */
-}
-
-#home-screen.is-home-active .home-ambient {
-  opacity: 1;
-  transition: opacity 700ms var(--ease-spring);
-}
-
-.home-ambient__field {
-  position: absolute;
-  inset: -25%;
-  background:
-    radial-gradient(42% 36% at 30% 28%, rgba(124, 92, 255, 0.3), transparent 62%),
-    radial-gradient(38% 32% at 72% 20%, rgba(150, 118, 255, 0.22), transparent 60%),
-    radial-gradient(46% 40% at 58% 84%, rgba(92, 120, 255, 0.18), transparent 64%);
-  filter: blur(10px);
-  will-change: transform;
-  animation: ambientFieldDrift 46s ease-in-out infinite alternate;
-}
-
-/* --- Слой 2: дрейфующая мгла (текстурная глубина, очень низкая контрастность) */
-.home-ambient__haze {
-  position: absolute;
-  inset: -30%;
-  opacity: 0.4;
-  background:
-    radial-gradient(30% 26% at 22% 62%, rgba(180, 150, 255, 0.16), transparent 66%),
-    radial-gradient(34% 30% at 84% 72%, rgba(120, 170, 255, 0.13), transparent 68%);
-  filter: blur(14px);
-  will-change: transform;
-  animation: ambientHazeDrift 62s ease-in-out infinite alternate;
-}
-
-/* --- Слой 3: фиксированная виньетка — держит края в темноте, фокус в центре -- */
-/* Единый слой: удаляет любой автоперебор палитр и делает фон «одним кадром». */
-.home-ambient__vignette {
-  position: absolute;
-  inset: 0;
-  /* Дымка ослаблена намеренно: прежние 0.55/0.9 в сумме с фиолетовыми
-     радиалами гасили звёздное поле канваса почти до нуля. */
-  background:
-    radial-gradient(112% 88% at 50% -8%, rgba(124, 92, 255, 0.08), transparent 55%),
-    radial-gradient(120% 100% at 50% 42%, transparent 50%, rgba(0, 0, 0, 0.3) 84%, rgba(0, 0, 0, 0.6) 100%);
-}
-
-@keyframes ambientFieldDrift {
-  0% { transform: translate3d(-2%, -1.5%, 0) scale(1); }
-  100% { transform: translate3d(2.5%, 2%, 0) scale(1.08); }
-}
-
-@keyframes ambientHazeDrift {
-  0% { transform: translate3d(1.5%, 1%, 0) scale(1.04); }
-  100% { transform: translate3d(-2.5%, -2%, 0) scale(1.12); }
-}
 
 /* --- Кнопки: уточнённые pressed-состояния --------------------------------- */
 #home-screen .explore-btn:active {
@@ -2686,19 +2628,6 @@ html[data-intro="short"] #home-screen.active .vibe-catalog {
     0 8px 20px -16px rgba(0, 0, 0, 0.95),
     0 0 0 1px rgba(255, 255, 255, 0.05),
     0 0 26px -18px rgba(124, 92, 255, 0.34);
-}
-
-/* --- Пауза эффектов вне первого экрана ------------------------------------ */
-/* Экран уходит: анимации слоёв и подсветка указателя останавливаются, ноль
-   фоновой работы. Витрина при этом уже погашена stopVibeShowcase(). */
-#home-screen:not(.is-home-active) .home-ambient__field,
-#home-screen:not(.is-home-active) .home-ambient__haze {
-  animation-play-state: paused;
-}
-
-#home-screen:not(.is-home-active) .home-ambient {
-  opacity: 0;
-  transition: none;
 }
 
 /* Кнопки: 2px — почти прямоугольник, читается как «интерфейс», не «пилюля». */
@@ -2800,56 +2729,10 @@ html[data-intro="short"] #home-screen.active .vibe-catalog {
   opacity: 0.7;
 }
 
-/* --- 5. ДВИЖЕНИЕ: реальная, но медленная амплитуда фона -------------------- */
-/* Прежние ±2% за 46–62 c физически не воспринимались. Дрейф усилен до ~6–11%
-   и ускорен до 27–38 c: движение читается, оставаясь фоновым. */
-@keyframes ambientFieldDrift {
-  0% { transform: translate3d(-5%, -3%, 0) scale(1.02); }
-  100% { transform: translate3d(6.5%, 4.5%, 0) scale(1.16); }
-}
-
-@keyframes ambientHazeDrift {
-  0% { transform: translate3d(4%, 2.5%, 0) scale(1.06); }
-  100% { transform: translate3d(-6%, -4%, 0) scale(1.18); }
-}
-
-.home-ambient__field {
-  animation: ambientFieldDrift 27s ease-in-out infinite alternate;
-}
-
-.home-ambient__haze {
-  animation: ambientHazeDrift 38s ease-in-out infinite alternate;
-}
-
-/* Медленное «дыхание» света: свет не переливается цветом, а тихо живёт. */
-@keyframes ambientBreathe {
-  0% { opacity: 0.78; }
-  100% { opacity: 1; }
-}
-
-.home-ambient__vignette {
-  animation: ambientBreathe 19s ease-in-out infinite alternate;
-}
-
-/* --- 6. ВХОД: темнота → атмосфера → бренд → заголовок → CTA/каталог -------- */
-/* Проявление самого фона отдельной анимацией (а не «мгновенно»): именно это
-   связывает затемнение #cinematic-intro с атмосферой, а не оставляет чёрный. */
-@keyframes ambientIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-.home-ambient {
-  transition: none;
-}
-
-html[data-intro="full"] #home-screen.active .home-ambient {
-  animation: ambientIn 1300ms var(--ease-spring) 40ms both;
-}
-
-html[data-intro="short"] #home-screen.active .home-ambient {
-  animation: ambientIn 420ms var(--ease-spring) both;
-}
+/* --- 6. ВХОД: бренд → заголовок → CTA/каталог ------------------------------ */
+/* Затемнение #cinematic-intro само гаснет силами CSS, а космический фон теперь
+   общий и живёт непрерывно — отдельная анимация его появления (ambientIn)
+   больше не нужна. */
 
 /* Заголовок и подзаголовок получают более выраженный подъём, чем прежние 14px:
    на плотной типографике это читается как «кадр проявляется». */
@@ -2883,41 +2766,11 @@ html[data-intro="short"] #home-screen.active .subtitle { animation-delay: 130ms;
    карточки выглядели невидимыми/статичными, и вход пропадал. Именно это и
    давало эффект «анимации не работают». Ниже — надёжный вход без scroll-timeline. */
 
-/* --- 8. REDUCED MOTION: без движения, но с сохранённой атмосферой ---------- */
-@media (prefers-reduced-motion: reduce) {
-
-  .home-ambient {
-    opacity: 1;
-  }
-}
-
-/* --- 9. МОБИЛЬНЫЕ: тяжёлые слои упрощаем, амплитуду сохраняем -------------- */
+/* --- 9. МОБИЛЬНЫЕ: крупная типографика заголовка --------------------------- */
 @media (max-width: 640px) {
-  .home-ambient__haze {
-    opacity: 0.28;
-  }
-
-  .home-ambient__field {
-    filter: blur(8px);
-  }
-
   .home-main .hero-wrap > h1 {
     font-size: clamp(2.4rem, 11vw, 3.4rem);
     max-width: none;
-  }
-}
-
-/* --- Reduced motion: без непрерывного движения, без подсветки, без наклона -- */
-@media (prefers-reduced-motion: reduce) {
-  .home-ambient__field,
-  .home-ambient__haze {
-    animation: none;
-    will-change: auto;
-  }
-
-  .home-ambient {
-    opacity: 1;
-    transition: none;
   }
 }
 
@@ -2967,45 +2820,18 @@ html[data-intro="short"] #home-screen.active .subtitle { animation-delay: 130ms;
    Палитра задаётся токенами и переиспользуется по всему экрану.
    =========================================================================== */
 #home-screen {
-  --mono-0: #000000;                     /* глубокая чернота */
-  --mono-1: #08090b;                     /* почти чёрный фон */
-  --mono-2: #101114;                     /* графит: поверхности */
-  --mono-3: #17181c;                     /* уголь: приподнятые поверхности */
-  --mono-line: rgba(255, 255, 255, 0.08);
-  --mono-line-strong: rgba(255, 255, 255, 0.16);
   --mono-text: #f2f3f5;                  /* основной текст */
   --mono-muted: rgba(255, 255, 255, 0.52);
-  --mono-silver: #c8ccd4;                /* серебро: детали, свет */
-  --mono-silver-dim: rgba(200, 204, 212, 0.42);
 }
 
-/* --- 1. Фон: нейтральные серые радиалы вместо фиолетовых ------------------- */
+/* --- 1. Фон: прозрачный — общий звёздный канвас, как в опросе --------------- */
+/* Раньше здесь лежали серые радиалы поверх почти чёрного фона: они делали
+   первый экран светлее опроса. Теперь фон прозрачен, его держит .sky-canvas. */
 #home-screen {
-  background:
-    radial-gradient(120% 72% at 50% -12%, rgba(255, 255, 255, 0.055), transparent 62%),
-    radial-gradient(90% 58% at 84% 6%, rgba(255, 255, 255, 0.028), transparent 56%),
-    var(--mono-1);
+  background: transparent;
 }
 
-/* --- 2. Амбиентный фон: серебро и графит без оттенков ---------------------- */
-#home-screen .home-ambient__field {
-  background:
-    radial-gradient(42% 36% at 30% 28%, rgba(255, 255, 255, 0.07), transparent 62%),
-    radial-gradient(38% 32% at 72% 20%, rgba(200, 204, 212, 0.05), transparent 60%),
-    radial-gradient(46% 40% at 58% 84%, rgba(255, 255, 255, 0.035), transparent 64%);
-}
-
-#home-screen .home-ambient__haze {
-  background:
-    radial-gradient(30% 26% at 22% 62%, rgba(255, 255, 255, 0.045), transparent 66%),
-    radial-gradient(34% 30% at 84% 72%, rgba(200, 204, 212, 0.035), transparent 68%);
-}
-
-#home-screen .home-ambient__vignette {
-  background:
-    radial-gradient(112% 88% at 50% -8%, rgba(255, 255, 255, 0.045), transparent 55%),
-    radial-gradient(120% 100% at 50% 42%, transparent 50%, rgba(0, 0, 0, 0.34) 84%, rgba(0, 0, 0, 0.68) 100%);
-}
+/* --- 2. Амбиентные слои удалены (источник искусственного свечения) --------- */
 
 /* --- 3. Шапка и бренд-метка: белое серебро --------------------------------- */
 #home-screen .home-header::before {
@@ -3406,15 +3232,6 @@ html[data-motion="force"] {
     opacity: 1;
   }
 
-  #home-screen.active .home-ambient {
-    animation: ambientIn 1300ms var(--ease-spring) 40ms both !important;
-    opacity: 1;
-  }
-  /* Фон первого экрана и подсветка указателя. */
-  #home-screen .home-ambient__field { animation: ambientFieldDrift 27s ease-in-out infinite alternate !important; }
-  #home-screen .home-ambient__haze { animation: ambientHazeDrift 38s ease-in-out infinite alternate !important; }
-  #home-screen .home-ambient__vignette { animation: ambientBreathe 19s ease-in-out infinite alternate !important; }
-
   .vibe-menu {
     animation: vibe-menu-enter 0.5s var(--ease-spring) both !important;
   }
@@ -3436,8 +3253,8 @@ html[data-motion="force"] {
   pointer-events: none;
   /* Плоский низкоальфовый цвет: background-color АНИМИРУЕТСЯ (в отличие от
      градиента), поэтому переход между именами перетекает плавно, без вспышки.
-     Виньетка .home-ambient (тот же z-index, но позже в DOM) добавляет глубину
-     поверх оттенка — фон не выглядит плоской заливкой. */
+     Оттенок лежит ПОД звёздным канвасом, поэтому космос остаётся тёмным и
+     непрерывным — как в опросе. */
   background-color: var(--vibe-tint, transparent);
   transition: background-color 320ms ease;
 }
