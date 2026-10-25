@@ -56,9 +56,9 @@
          с max-age=31536000, immutable, поэтому без смены URL браузер НЕ
          запрашивает обновлённые style.css/app.js и правки просто не видны.
          Меняйте номер версии при каждом деплое изменений. -->
-    <link rel="stylesheet" href="css/style.css?v=28" />
+    <link rel="stylesheet" href="css/style.css?v=30" />
     <!-- Native ES-module preload: fetches js/app.js and its import graph in parallel (no bundler). -->
-    <link rel="modulepreload" href="js/app.js?v=28" />
+    <link rel="modulepreload" href="js/app.js?v=30" />
   </head>
   <body>
     <div class="page-shell">
@@ -204,9 +204,9 @@
 
       <section id="survey-screen" class="screen">
         <div class="survey-panel">
-          <!-- Компактная шапка: «назад» и реальный счётчик вопросов.
-               Итог берётся из данных (см. updateProgress в js/app.js),
-               поэтому на «10» ничего не захардкожено. -->
+          <!-- Компактная шапка: только «назад». Видимый счётчик «Вопрос X из Y»
+               удалён по дизайн-требованию; логика прогресса и индексации в
+               js/app.js сохранена (полоса прогресса остаётся ниже). -->
           <div class="survey-header">
             <button
               id="survey-back-btn"
@@ -215,7 +215,6 @@
               aria-label="Вернуться к предыдущему вопросу"
               hidden
             >‹</button>
-            <span id="progress-label" class="progress-label">Вопрос 1 из 10</span>
           </div>
           <!-- Тонкая линия прогресса — почти hairline, чтобы не спорить с вопросом. -->
           <div
@@ -229,8 +228,8 @@
             <span id="progress-fill"></span>
           </div>
 
-          <!-- Текстовый холст вопроса. Ни стеклянной карточки, ни теней:
-               вертикальный штрих слева связывает вопрос с ответами. -->
+          <!-- Текстовый холст вопроса. Вопрос выровнен по центру, вертикальная
+               линия слева убрана; поверхность панели даёт стеклянный фон. -->
           <div class="survey-stage">
             <h2 id="question-text" class="survey-question">Какое у тебя настроение прямо сейчас?</h2>
             <div id="answers" class="answers" aria-live="polite"></div>
@@ -328,6 +327,6 @@
       <span class="cinematic-intro__grain"></span>
     </div>
 
-    <script type="module" src="js/app.js?v=28"></script>
+    <script type="module" src="js/app.js?v=30"></script>
   </body>
 </html>

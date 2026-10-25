@@ -819,17 +819,17 @@ input {
 
 /* ---------------------------------------------------------------------------
    ОПРОС — «один вопрос на экран» в духе космического минимализма.
-   Ни стеклянной карточки, ни backdrop-filter, ни 3D-наклона: вопрос и ответы
-   живут прямо на звёздном фоне. Иерархию держат типографика, воздух и одна
-   тонкая вертикаль слева — она кодирует шаг, а не украшает.
+   Вопрос и ответы лежат на сдержанной тёмной стеклянной панели с тонкой
+   белёсой окантовкой; космос остаётся видимым сквозь неё. Иерархию держат
+   типографика, воздух и выравнивание вопроса по центру.
    --------------------------------------------------------------------------- */
 #survey-screen {
   /* Отступы с учётом мобильных safe-area (вырез/жесты) по краям. */
   padding:
-    calc(clamp(1.5rem, 6vh, 3rem) + env(safe-area-inset-top))
-    calc(clamp(1.25rem, 5vw, 2rem) + env(safe-area-inset-right))
-    calc(clamp(1.5rem, 6vh, 3rem) + env(safe-area-inset-bottom))
-    calc(clamp(1.25rem, 5vw, 2rem) + env(safe-area-inset-left));
+    calc(clamp(1rem, 4vh, 1.75rem) + env(safe-area-inset-top))
+    calc(clamp(1rem, 4vw, 1.5rem) + env(safe-area-inset-right))
+    calc(clamp(1rem, 4vh, 1.75rem) + env(safe-area-inset-bottom))
+    calc(clamp(1rem, 4vw, 1.5rem) + env(safe-area-inset-left));
   align-items: flex-start;
   overflow-y: auto;
   /* overflow-x: hidden — чтобы въезжающая панель (translateX от -100%) не создавала
@@ -845,21 +845,43 @@ input {
 
 .survey-panel {
   /* Узкая мера строки: вопрос и варианты читаются как единая колонка. */
-  width: min(640px, 100%);
+  width: min(620px, 100%);
   margin: auto;
   display: flex;
   flex-direction: column;
-  /* Выше слоя «живого неба» (z-index:1): звёзды видны сквозь прозрачный фон,
-     но текст вопроса и ответов всегда остаётся поверх них. */
+  /* Выше слоя «живого неба» (z-index:1): звёзды видны сквозь стекло, но текст
+     вопроса и ответов всегда остаётся поверх них. */
   position: relative;
   z-index: 2;
+  /* Высокопрозрачная НЕЙТРАЛЬНАЯ тёмная подложка (без синевы) + тонкая белёсая
+     окантовка и очень мягкое свечение у самых краёв — эффект стекла, края
+     которого ловят свет. Ни ярких рамок, ни неоновых ореолов. */
+  padding: clamp(1.15rem, 3.5vw, 1.75rem);
+  border-radius: var(--radius-container);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(18, 18, 19, 0.3);
+  box-shadow:
+    0 0 16px -4px rgba(255, 255, 255, 0.07),
+    0 20px 50px -36px rgba(0, 0, 0, 0.85);
+  /* Размытие по площади ограничено осознанно: панель — не «линза» во весь экран. */
+  -webkit-backdrop-filter: blur(14px) saturate(115%);
+  backdrop-filter: blur(14px) saturate(115%);
 }
 
+/* Фолбэк для браузеров без backdrop-filter: поверхность остаётся читаемой за
+   счёт более плотной, но всё ещё тёмной нейтральной подложки. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .survey-panel {
+    background: rgba(12, 12, 13, 0.8);
+  }
+}
+
+/* Шапка держит только «назад». Без видимой кнопки она схлопывается в ноль,
+   чтобы не создавать пустого места над вопросом. */
 .survey-header {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  min-height: 32px;
 }
 
 /* Сдержанный «назад»: тихий, но с комфортной тач-целью 40px. */
@@ -889,21 +911,13 @@ input {
   display: none;
 }
 
-/* Счётчик шагов — обычный текст, без ALL-CAPS и разрядки (тихий и точный). */
-.progress-label {
-  color: var(--label-secondary);
-  font-size: 0.82rem;
-  letter-spacing: 0.01em;
-  font-variant-numeric: tabular-nums;
-}
-
 /* Тонкая hairline-полоса прогресса. Заполнение растёт через scaleX —
    это составной transform, поэтому переключение не вызывает layout. */
 .progress-bar {
   position: relative;
   width: 100%;
   height: 2px;
-  margin-top: 0.85rem;
+  margin-top: 0.55rem;
   background: rgba(255, 255, 255, 0.1);
   border-radius: 999px;
   overflow: hidden;
@@ -920,21 +934,24 @@ input {
   transition: transform 0.45s var(--ease-spring);
 }
 
-/* Текстовый холст вопроса с одной вертикалью слева (последовательность шагов). */
+/* Текстовый холст вопроса. Вертикальная линия слева убрана: рамку панели даёт
+   стеклянная поверхность, а вопрос выровнен по центру. Отступы уменьшены,
+   чтобы композиция была компактной и собранной. */
 .survey-stage {
   position: relative;
-  margin-top: clamp(2.25rem, 8vh, 4rem);
-  padding-left: clamp(1.1rem, 4vw, 1.6rem);
-  border-left: 1px solid rgba(255, 255, 255, 0.14);
+  margin-top: clamp(0.9rem, 3vh, 1.5rem);
+  /* Направленные переходы двигают вопрос и варианты; подсказку композитору
+     держим только на время анимации через классы is-leave / is-enter. */
 }
 
-/* Вопрос — главный фокус экрана, но без «плакатного» размера. */
+/* Вопрос — главный фокус экрана: по центру, сбалансированный по строке. */
 .survey-question {
-  margin: 0 0 clamp(1.5rem, 5vh, 2.25rem);
+  margin: 0 0 clamp(1rem, 3.5vh, 1.5rem);
   font-size: clamp(1.45rem, 4.4vw, 1.9rem);
   font-weight: var(--weight-semibold);
   line-height: 1.24;
   letter-spacing: -0.02em;
+  text-align: center;
   color: var(--label-primary);
   /* Безопасность переноса длинных локалей и узких экранов. */
   overflow-wrap: anywhere;
@@ -953,7 +970,7 @@ input {
   position: relative;
   width: 100%;
   margin: 0;
-  padding: 0.95rem 0.5rem 0.95rem 2.15rem;
+  padding: 0.85rem 0.5rem 0.85rem 2.15rem;
   text-align: start;
   font-size: var(--type-body-size);
   font-weight: var(--weight-body);
@@ -966,8 +983,18 @@ input {
   border-radius: 0;
   cursor: pointer;
   overflow-wrap: anywhere;
-  /* Переход только по цвету: раскладка строки при выборе не меняется. */
-  transition: color 0.22s ease;
+  /* Переход только по цвету и лёгкой подложке: раскладка строки не меняется. */
+  transition: color 0.22s ease, background-color 0.18s ease;
+}
+
+/* Мгновенный отклик нажатия: тихая подложка и поджатый штрих-указатель.
+   Никакого масштаба строки — раскладка не дрожит, тач-цель не «уезжает». */
+.option-btn:active {
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.option-btn:active::before {
+  transform: translateY(-50%) scaleX(0.55);
 }
 
 .option-btn:last-child {
@@ -1025,32 +1052,69 @@ input {
   transform: translateY(-50%) scaleX(1);
 }
 
-/* Блокировка на время перехода не должна «гасить» строки. */
+/* Блокировка на время перехода не должна «гасить» строки как класс disabled. */
 .option-btn:disabled {
   opacity: 1;
   cursor: default;
 }
 
-/* Переход между вопросами: мягкий ввод нового вопроса — только opacity и
-   малый сдвиг (никаких масштабов, вспышек и большой площади). */
-.survey-stage.is-enter .survey-question,
-.survey-stage.is-enter .option-btn {
-  animation: survey-enter 380ms var(--ease-spring) both;
+/* Пока идёт переход, остальные варианты тихо отступают, а выбранный остаётся
+   полноценно читаемым — ясный, но спокойный индикатор выбора. */
+.answers.is-locked .option-btn {
+  opacity: 0.7;
 }
 
+.answers.is-locked .option-btn.selected {
+  opacity: 1;
+}
+
+/* ---------------------------------------------------------------------------
+   ПЕРЕХОД МЕЖДУ ВОПРОСАМИ (Phase 3).
+   Один общий механизм: уходящий вопрос гаснет и уезжает в сторону, затем
+   новый въезжает с противоположной стороны. Направление и сдвиг задаёт JS
+   (--leave-x / --enter-x), здесь — только анимация. Анимируются исключительно
+   opacity и transform (составные свойства, без пересчёта layout).
+
+   Ключевой приём против вспышек: уход и вход идут на ОДНИХ элементах
+   (вопрос + варианты), а смена разметки происходит, когда вопрос уже погашен
+   (класс is-leave). Новый контент сразу получает входную анимацию, первый кадр
+   которой (opacity: 0) совпадает с текущей невидимостью, поэтому кадр с новым
+   текстом не успевает проявиться.
+   --------------------------------------------------------------------------- */
+.survey-stage.is-leave .survey-question,
+.survey-stage.is-leave .option-btn {
+  will-change: opacity, transform;
+  animation: survey-leave 150ms ease-in both;
+}
+
+.survey-stage.is-enter .survey-question,
+.survey-stage.is-enter .option-btn {
+  will-change: opacity, transform;
+  animation: survey-enter 240ms var(--ease-spring) both;
+}
+
+/* Каскад вариантов: задержку получает только opacity и малый сдвиг. */
 .survey-stage.is-enter .option-btn {
   animation-delay: var(--option-enter-delay, 0ms);
 }
 
+@keyframes survey-leave {
+  from { opacity: 1; transform: translateX(0); }
+  to { opacity: 0; transform: translateX(var(--leave-x, -16px)); }
+}
+
 @keyframes survey-enter {
-  from { opacity: 0; transform: translateX(-10px); }
+  from { opacity: 0; transform: translateX(var(--enter-x, 16px)); }
   to { opacity: 1; transform: translateX(0); }
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .survey-stage.is-leave .survey-question,
+  .survey-stage.is-leave .option-btn,
   .survey-stage.is-enter .survey-question,
   .survey-stage.is-enter .option-btn {
     animation: none;
+    will-change: auto;
   }
 
   .progress-bar span {
@@ -1058,7 +1122,11 @@ input {
   }
 
   .option-btn {
-    transition: color 0.15s ease;
+    transition: color 0.15s ease, background-color 0.15s ease;
+  }
+
+  .option-btn:active {
+    background: none;
   }
 }
 
@@ -1635,6 +1703,8 @@ button:disabled {
   }
 
   .cursive-brand-text span,
+  .survey-stage.is-leave .survey-question,
+  .survey-stage.is-leave .option-btn,
   .survey-stage.is-enter .survey-question,
   .survey-stage.is-enter .option-btn {
     animation: none;
@@ -1647,11 +1717,23 @@ button:disabled {
 
 @media (max-width: 768px) {
   /* Строки опроса на тач-экранах: комфортная высота тап-цели, левый рельс
-     под индикатор выбора сохраняем (задаётся в базовом правиле). */
+     под индикатор выбора сохраняем (задаётся в базовом правиле). Высота
+     чуть ниже базовой — меньше вертикальной прокрутки, тап-цель удобная. */
   .option-btn {
-    min-height: 56px;
-    padding-top: 1.05rem;
-    padding-bottom: 1.05rem;
+    min-height: 52px;
+    padding-top: 0.9rem;
+    padding-bottom: 0.9rem;
+  }
+
+  /* Стекло на мобильных: размытие по большой площади дорого для слабых
+     устройств, поэтому уменьшаем его и слегка поднимаем плотность подложки —
+     вид остаётся тёмным и аккуратным, а композитор не перегружается. Тон
+     нейтральный (без синевы). */
+  .survey-panel {
+    padding: clamp(1rem, 4.5vw, 1.35rem);
+    -webkit-backdrop-filter: blur(8px) saturate(110%);
+    backdrop-filter: blur(8px) saturate(110%);
+    background: rgba(16, 16, 17, 0.36);
   }
 
   /* Кнопка поддержки Discord: на узких экранах прижимаем к краю,
@@ -3100,8 +3182,7 @@ button, input, select, textarea {
 .vibe-description-wrap,
 .share-invitation,
 .option-btn,
-.share-feedback,
-.progress-label {
+.share-feedback {
   font-family: var(--font-sans);
   font-weight: var(--weight-body);
 }

@@ -3,6 +3,7 @@
 
 import { questions } from './data/questions.js';
 import { vibeThemes, vibeShareSlugs, vibeKeysByShareSlug } from './data/themes.js';
+import { rankVibes, selectNextQuestion, questionIndexById } from './data/scoring.js';
 import { initI18n, translateText } from './i18n/index.js';
 import { initCinematicIntro } from './intro.js';
 // Версия в URL нужна из-за immutable-кэша статики: иначе браузер может
@@ -29,7 +30,6 @@ const vibeShareAction = document.getElementById('vibe-share-action');
 const shareVibeName = document.getElementById('share-vibe-name');
 const shareButton = document.getElementById('share-button');
 const shareFeedback = document.getElementById('share-feedback');
-const progressLabel = document.getElementById('progress-label');
 const progressFill = document.getElementById('progress-fill');
 const progressBar = document.querySelector('.progress-bar');
 const backButton = document.getElementById('survey-back-btn');
@@ -39,7 +39,16 @@ const answersContainer = document.getElementById('answers');
 // делаем повторных DOM-запросов и не пересоздаём обработчики.
 const surveyStage = document.querySelector('.survey-stage');
 const optionButtons = [];
-let optionPendingTimer = null;
+// Тайминги смены вопроса: уход 150 мс, вход 240 мс, каскад вариантов 35 мс.
+const SURVEY_LEAVE_MS = 150;
+const SURVEY_ENTER_MS = 240;
+const SURVEY_STAGGER_MS = 35;
+// Контроллер перехода: surveyLocked гасит повторные тапы, surveyToken отсекает
+// устаревшие колбэки, таймеры — страховка от «зависшего» перехода.
+let surveyLocked = false;
+let surveyToken = 0;
+let surveyLeaveTimer = null;
+let surveyEnterTimer = null;
 // Свайп-переход: двигаются ЭКРАНЫ целиком (весь лендинг с его свечением и
 // оттенком), а общий канвас «живого неба» лежит ВНЕ экранов (.page-shell) и
 // остаётся неподвижным. Ссылки кэшируем один раз.
@@ -64,12 +73,15 @@ const tetrisCanvas = document.getElementById('tetris-canvas');
 const vibeQuoteText = document.getElementById('vibe-quote-text');
 const tetrisGameOver = document.getElementById('tetris-game-over');
 const tetrisRestartBtn = document.getElementById('tetris-restart-btn');
-const discordButton = document.getElementById('discord-support');
 
 const state = {
-  currentQuestion: 0,
-  scores: { cosmos: 0, solar: 0, neon: 0, forest: 0 },
-  answers: [],
+  // Порядок показа вопросов (стабильные id) и позиция в нём. Адаптивность
+  // меняет ПОРЯДОК, а не количество вопросов, поэтому счётчик всегда точен.
+  order: [],
+  stepIndex: 0,
+  // Ответы ключуются стабильным id вопроса: пересчёт весов не зависит от
+  // позиции и устойчив к навигации назад/вперёд и смене ответа.
+  answers: {},
   history: [],
   activeVibe: null,
   shareFeedbackTimer: null,
@@ -77,7 +89,6 @@ const state = {
   quoteList: null,
 };
 
-let answerPending = false;
 const vibeTransition = document.getElementById('vibe-transition');
 
 const UI_CLICK_VOLUME = 0.22;
@@ -801,12 +812,20 @@ function startVibeCreation(vibeKey) {
   }, writingTime);
 }
 
+// Единая проверка «можно ли анимировать» с учётом override (?motion=on|off).
+function prefersMotion() {
+  return !reducedMotionPref();
+}
+
+// --- Прогресс и навигация --------------------------------------------------
+// Видимый текстовый счётчик «Вопрос X из Y» удалён из интерфейса, но сама
+// модель прогресса сохранена: индексация и порядок вопросов не меняются.
+// Итог всегда равен числу вопросов (адаптивность меняет ПОРЯДОК, не количество),
+// поэтому полоса прогресса остаётся корректной.
 function updateProgress() {
-  const step = state.currentQuestion + 1;
+  const step = state.stepIndex + 1;
   const total = questions.length;
-  const ratio = step / total;
-  // Текст — ключ локализации (RU-шаблон переводится словарём/динамическим правилом).
-  progressLabel.textContent = `Вопрос ${step} из ${total}`;
+  const ratio = total > 0 ? step / total : 0;
   // Заполняем полосу через scaleX (составной transform, без layout-триггера).
   progressFill.style.transform = `scaleX(${ratio})`;
   progressBar.setAttribute('aria-valuemax', String(total));
@@ -814,120 +833,179 @@ function updateProgress() {
   updateBackButton();
 }
 
-// Кнопка «Назад» показывается только начиная со второго вопроса,
+// Кнопка «Назад» показывается только начиная со второго шага,
 // чтобы нельзя было выйти за пределы первого вопроса.
 function updateBackButton() {
   if (!backButton) return;
-  const canGoBack = state.currentQuestion > 0;
+  const canGoBack = state.stepIndex > 0;
   backButton.hidden = !canGoBack;
   backButton.setAttribute('aria-hidden', String(!canGoBack));
 }
 
-function renderQuestion() {
-  answerPending = false;
-  if (optionPendingTimer !== null) {
-    window.clearTimeout(optionPendingTimer);
-    optionPendingTimer = null;
+// Текущий объект вопроса по позиции в порядке показа.
+function currentQuestion() {
+  return questions[questionIndexById.get(state.order[state.stepIndex])];
+}
+
+// Направленный переход между вопросами. renderContent вызывается в момент,
+// когда уходящий вопрос уже погашен: новый контент появляется невидимым и
+// входит направленной анимацией — без пустых кадров, мерцаний и скачков.
+function transitionStage(direction, renderContent, done) {
+  if (surveyLeaveTimer !== null) { window.clearTimeout(surveyLeaveTimer); surveyLeaveTimer = null; }
+  if (surveyEnterTimer !== null) { window.clearTimeout(surveyEnterTimer); surveyEnterTimer = null; }
+
+  if (!surveyStage || !prefersMotion()) {
+    if (surveyStage) surveyStage.classList.remove('is-leave', 'is-enter');
+    renderContent();
+    done();
+    return;
   }
-  const current = questions[state.currentQuestion];
-  questionText.textContent = current.text;
+
+  const token = ++surveyToken;
+  surveyStage.style.setProperty('--leave-x', direction > 0 ? '-16px' : '16px');
+  surveyStage.classList.remove('is-enter');
+  surveyStage.classList.add('is-leave');
+
+  surveyLeaveTimer = window.setTimeout(() => {
+    surveyLeaveTimer = null;
+    if (token !== surveyToken) return;
+    // Меняем контент, пока вопрос погашен, и сразу ставим входную анимацию:
+    // первый её кадр (opacity: 0) совпадает с текущей невидимостью, поэтому
+    // кадр с новым текстом не успевает проявиться — вспышки нет.
+    surveyStage.classList.remove('is-leave');
+    renderContent();
+    surveyStage.style.setProperty('--enter-x', direction > 0 ? '16px' : '-16px');
+    void surveyStage.offsetWidth; // фиксируем новую разметку и var до старта анимации
+    surveyStage.classList.add('is-enter');
+    surveyEnterTimer = window.setTimeout(() => {
+      surveyEnterTimer = null;
+      if (token !== surveyToken) return;
+      surveyStage.classList.remove('is-enter');
+      done();
+    }, SURVEY_ENTER_MS + SURVEY_STAGGER_MS * 4 + 30);
+  }, SURVEY_LEAVE_MS);
+}
+
+// Заполняет вопрос и варианты текущим шагом (без анимации). Вызывается при
+// первом показе, «назад» и сбросе, а также из transitionStage при смене шага.
+function renderQuestionContent() {
+  const current = currentQuestion();
+  questionText.textContent = current ? current.text : '';
   answersContainer.innerHTML = '';
   optionButtons.length = 0;
 
-  // Переход к вопросу: мягкий вход только при смене вопроса. Первый показ
-  // (и вход в опрос) идёт без анимации, чтобы не было ложной «загрузки».
-  if (surveyStage) {
-    surveyStage.classList.remove('is-enter');
-    void surveyStage.offsetWidth; // перезапуск входной анимации
+  if (current) {
+    // Восстановление выбора при возврате назад: выбранный вариант снова тёплый.
+    const chosen = state.answers[current.id];
+    current.options.forEach((option, optionIndex) => {
+      const button = document.createElement('button');
+      button.className = 'option-btn';
+      button.type = 'button';
+      button.textContent = option.label;
+      button.dataset.optionIndex = String(optionIndex);
+      button.style.setProperty('--option-enter-delay', `${optionIndex * SURVEY_STAGGER_MS}ms`);
+      if (chosen === optionIndex) button.classList.add('selected');
+      answersContainer.appendChild(button);
+      optionButtons.push(button);
+    });
   }
-
-  current.options.forEach((option, optionIndex) => {
-    const button = document.createElement('button');
-    button.className = 'option-btn';
-    button.type = 'button';
-    button.textContent = option.label;
-    // Мягкий ступенчатый вход: задержку получает только opacity/малый сдвиг.
-    button.style.setProperty('--option-enter-delay', `${optionIndex * 45}ms`);
-    button.dataset.optionIndex = String(optionIndex);
-    answersContainer.appendChild(button);
-    optionButtons.push(button);
-  });
-
   updateProgress();
-  if (hasRenderedQuestion && surveyStage) surveyStage.classList.add('is-enter');
-  hasRenderedQuestion = true;
+}
+
+// Немедленная отрисовка шага без входа (первый показ и сброс опроса).
+function renderQuestion() {
+  surveyLocked = false;
+  if (!state.order.length) state.order.push(questions[0].id);
+  if (surveyStage) surveyStage.classList.remove('is-leave', 'is-enter');
+  renderQuestionContent();
 }
 
 // Один делегированный обработчик вместо N замыканий на каждый вопрос:
 // строки опроса перерисовываются, а слушатель остаётся один на контейнер.
 function handleAnswersClick(event) {
-  if (answerPending) return;
+  if (surveyLocked) return;
   const button = event.target.closest('.option-btn');
   if (!button || !answersContainer.contains(button)) return;
+  const current = currentQuestion();
+  if (!current) return;
   const optionIndex = Number(button.dataset.optionIndex);
-  const current = questions[state.currentQuestion];
-  const option = current && current.options[optionIndex];
-  if (!option) return;
-  applyAnswer(option.value, optionIndex, button);
+  if (!current.options[optionIndex]) return;
+  // Повторный тап по тому же варианту ничего не делает: один ответ — ровно
+  // один показ следующего вопроса (защита от дублей и повторной обработки).
+  if (state.answers[current.id] === optionIndex) return;
+  applyAnswer(optionIndex, button);
 }
 
-function applyAnswer(scoreMap, answerIndex, button) {
-  // Снимок состояния ДО изменений — для кнопки «Назад».
+function applyAnswer(optionIndex, button) {
+  if (surveyLocked) return;
+  const current = currentQuestion();
+  if (!current) return;
+  surveyLocked = true;
+
+  // Снимок для «назад» ДО изменения (порядок, шаг и карта ответов).
   state.history.push({
-    currentQuestion: state.currentQuestion,
-    scores: { ...state.scores },
-    answers: [...state.answers],
+    order: [...state.order],
+    stepIndex: state.stepIndex,
+    answers: { ...state.answers },
   });
 
-  Object.entries(scoreMap).forEach(([key, value]) => {
-    state.scores[key] += value;
-  });
-  state.answers.push(answerIndex);
+  // Карта ответов перезаписывается по ключу: прежний вклад варианта полностью
+  // заменяется новым — двойного счёта нет, смена ответа считается корректно.
+  state.answers[current.id] = optionIndex;
 
-  const isLast = state.currentQuestion >= questions.length - 1;
-  // Последний вопрос уходит сразу (есть финальный экран создания) — лишняя
-  // задержка там не нужна. На промежуточных показываем выбор пользователя.
+  // Мгновенный отклик выбора: выбранная строка фиксируется, остальные тихо
+  // отступают (CSS .answers.is-locked), синхронно с уходом вопроса.
+  optionButtons.forEach((item) => {
+    item.classList.toggle('selected', item === button);
+  });
+  answersContainer.classList.add('is-locked');
+  optionButtons.forEach((item) => { item.disabled = true; });
+
+  const isLast = state.stepIndex >= questions.length - 1;
+
+  // Финальный шаг: показываем выбор, гасим вопрос уходной анимацией и уходим
+  // в подбор вайба (без повторного «входа» того же контента).
   if (isLast) {
-    answerPending = true;
-    determineVibe();
+    const finish = () => {
+      surveyLocked = false;
+      determineVibe();
+    };
+    if (!surveyStage || !prefersMotion()) { finish(); return; }
+    const token = ++surveyToken;
+    surveyStage.style.setProperty('--leave-x', '-16px');
+    surveyStage.classList.remove('is-enter');
+    surveyStage.classList.add('is-leave');
+    surveyLeaveTimer = window.setTimeout(() => {
+      surveyLeaveTimer = null;
+      if (token !== surveyToken) return;
+      finish();
+    }, SURVEY_LEAVE_MS);
     return;
   }
 
-  answerPending = true;
-  if (button) {
-    const selected = answersContainer.querySelector('.option-btn.selected');
-    if (selected) selected.classList.remove('selected');
-    button.classList.add('selected');
-  }
-  optionButtons.forEach((item) => { item.disabled = true; });
-
-  optionPendingTimer = window.setTimeout(() => {
-    optionPendingTimer = null;
-    state.currentQuestion += 1;
-    renderQuestion();
-  }, 170);
+  // Промежуточный шаг: уход → выбор следующего вопроса → вход нового кадра.
+  transitionStage(1, () => {
+    if (state.stepIndex + 1 < state.order.length) {
+      // Порядок уже проложен (возврат вперёд) — переиспользуем его как есть.
+      state.stepIndex += 1;
+    } else {
+      const nextIndex = selectNextQuestion(state.answers, new Set(state.order));
+      if (nextIndex < 0) { determineVibe(); return; }
+      state.order.push(questions[nextIndex].id);
+      state.stepIndex += 1;
+    }
+    renderQuestionContent();
+  }, () => {
+    answersContainer.classList.remove('is-locked');
+    surveyLocked = false;
+  });
 }
 
+// Подбор вайба по взвешенной модели (см. js/data/scoring.js). Детерминирован
+// для одинакового набора ответов; все 14 вайбов участвуют.
 function determineVibe() {
-  const ranked = Object.entries(vibeThemes).map(([id, vibe]) => {
-    let exactMatches = 0;
-    let lastMatch = -1;
-    vibe.signature.forEach((answer, index) => {
-      if (state.answers[index] === answer) {
-        exactMatches += 1;
-        lastMatch = index;
-      }
-    });
-    const legacyBonus = (state.scores[id] || 0) * 0.02;
-    return { id, exactMatches, lastMatch, score: exactMatches * 2 + legacyBonus };
-  });
-  ranked.sort((a, b) =>
-    b.score - a.score ||
-    b.exactMatches - a.exactMatches ||
-    b.lastMatch - a.lastMatch ||
-    a.id.localeCompare(b.id)
-  );
-  const chosen = ranked[0].id;
+  const ranked = rankVibes(state.answers);
+  const chosen = ranked.length ? ranked[0].id : Object.keys(vibeThemes)[0];
   state.activeVibe = chosen;
   startVibeCreation(chosen);
 }
@@ -1396,33 +1474,32 @@ function endVibeGame() {
 
 function resetSurvey() {
   cancelVibeCreation();
-  state.currentQuestion = 0;
-  state.scores = { cosmos: 0, solar: 0, neon: 0, forest: 0 };
-  state.answers = [];
+  state.order = [questions[0].id];
+  state.stepIndex = 0;
+  state.answers = {};
   state.history = [];
   state.activeVibe = null;
-  hasRenderedQuestion = false; // первый вопрос опроса снова без входной анимации
   renderQuestion();
   // Горизонтальный свайп лендинг → опрос; при reduced-motion или отсутствии
   // поддержки WAAPI — обычное мгновенное переключение экрана.
   if (!swipeToScreen('survey', true)) showScreen('survey');
 }
 
-// Возврат к предыдущему вопросу: восстанавливаем точный снимок весов и ответов,
-// чтобы алгоритм подбора вайба считался корректно.
+// Возврат к предыдущему вопросу: восстанавливаем точный снимок (порядок, шаг,
+// ответы) и въезжаем в кадр с противоположной стороны. Прежние ответы и выбор
+// сохраняются — состояние не сбрасывается.
 function handleBackRequest() {
-  if (answerPending) return;
+  if (surveyLocked) return;
   if (state.history.length === 0) return;
   const snapshot = state.history.pop();
-  state.currentQuestion = snapshot.currentQuestion;
-  state.scores = { ...snapshot.scores };
-  state.answers = [...snapshot.answers];
-  renderQuestion();
+  state.order = snapshot.order;
+  state.stepIndex = snapshot.stepIndex;
+  state.answers = snapshot.answers;
+  surveyLocked = true;
+  transitionStage(-1, renderQuestionContent, () => {
+    surveyLocked = false;
+  });
 }
-
-// Первый вопрос отрисовывается на старте приложения: он получает кэш-флаг
-// «без анимации», а все последующие переходы — мягкий вход.
-let hasRenderedQuestion = false;
 
 if (backButton) {
   backButton.addEventListener('click', handleBackRequest);
@@ -1440,9 +1517,9 @@ function performReturn() {
   closeVibeMenu();
   cancelVibeCreation();
   stopVibeGame();
-  state.currentQuestion = 0;
-  state.scores = { cosmos: 0, solar: 0, neon: 0, forest: 0 };
-  state.answers = [];
+  state.order = [];
+  state.stepIndex = 0;
+  state.answers = {};
   state.history = [];
   state.activeVibe = null;
   state.shareVibeKey = null;
