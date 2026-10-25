@@ -8,8 +8,10 @@
 // Все ключи вайбов — стабильные id из themes.js (cosmos, solar, ...), НЕ
 // переведённый текст, поэтому локализация на подсчёт не влияет.
 
-import { questions } from './questions.js';
-import { vibeThemes } from './themes.js';
+// Версия в URL обязательна: /js/* отдаётся с immutable-кэшем (см. vercel.json),
+// поэтому без ?v= модуль может закэшироваться в старой версии у пользователя.
+import { questions } from './questions.js?v=31';
+import { vibeThemes } from './themes.js?v=31';
 
 // Полный список вайбов. Порядок стабилен (Object.keys сохраняет порядок
 // объявления) и используется только как детерминированный финальный tie-break.

@@ -1,14 +1,18 @@
 // Vibe Finder: точка входа приложения. Связывает данные, локализацию,
 // опрос, результат, публикацию и звук.
 
-import { questions } from './data/questions.js';
-import { vibeThemes, vibeShareSlugs, vibeKeysByShareSlug } from './data/themes.js';
-import { rankVibes, selectNextQuestion, questionIndexById } from './data/scoring.js';
-import { initI18n, translateText } from './i18n/index.js';
-import { initCinematicIntro } from './intro.js';
-// Версия в URL нужна из-за immutable-кэша статики: иначе браузер может
-// оставить старую копию sky.js и «небо» не появится.
-import { initSky, setSkyActive } from './sky.js?v=4';
+// ВАЖНО: у КАЖДОГО внутреннего импорта стоит ?v=. vercel.json отдаёт /js/*
+// с Cache-Control: immutable (год), поэтому без версии в URL браузер (особенно
+// мобильный) может взять старую закэшированную копию модуля. Так уже был баг:
+// новый app.js подтягивался, а questions.js оставался старым (без id/весов) —
+// из-за чего опрос мгновенно завершался на первом ответе. Меняйте единый
+// номер версии во всех импортах И в index.html при каждом деплое правок JS.
+import { questions } from './data/questions.js?v=31';
+import { vibeThemes, vibeShareSlugs, vibeKeysByShareSlug } from './data/themes.js?v=31';
+import { rankVibes, selectNextQuestion, questionIndexById } from './data/scoring.js?v=31';
+import { initI18n, translateText } from './i18n/index.js?v=31';
+import { initCinematicIntro } from './intro.js?v=31';
+import { initSky, setSkyActive } from './sky.js?v=31';
 
 // Кинематографический вход запускаем первым: он должен выставить состояние
 // затемнения (data-intro на <html>) до того, как отрисуется первый экран.
@@ -989,7 +993,19 @@ function applyAnswer(optionIndex, button) {
       // Порядок уже проложен (возврат вперёд) — переиспользуем его как есть.
       state.stepIndex += 1;
     } else {
-      const nextIndex = selectNextQuestion(state.answers, new Set(state.order));
+      let nextIndex = selectNextQuestion(state.answers, new Set(state.order));
+      // Страховка: если адаптивный выбор по какой-то причине не нашёл вопрос
+      // (например, рассогласование данных), берём первый не заданный в исходном
+      // порядке — это сохраняет корректную длину опроса и не завершает его раньше
+      // времени. Только когда действительно не заданных вопросов не осталось,
+      // переходим к подбору вайба.
+      if (nextIndex < 0) {
+        nextIndex = questions.findIndex(
+          (question) => question.id !== undefined
+            && state.answers[question.id] === undefined
+            && !state.order.includes(question.id),
+        );
+      }
       if (nextIndex < 0) { determineVibe(); return; }
       state.order.push(questions[nextIndex].id);
       state.stepIndex += 1;
