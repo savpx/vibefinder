@@ -1,32 +1,12 @@
-// Взвешенная модель подбора вайба и адаптивный выбор вопроса.
-//
-// Модуль намеренно НЕ знает ничего о DOM, рендере, локализации или звуке: это
-// чистая логика над данными. Единственные зависимости — данные вопросов и
-// список вайбов. Поэтому правила легко читать, менять и покрывать тестами, а
-// рендер-компоненты просто вызывают rankVibes / selectNextQuestion.
-//
-// Все ключи вайбов — стабильные id из themes.js (cosmos, solar, ...), НЕ
-// переведённый текст, поэтому локализация на подсчёт не влияет.
 
-// Версия в URL обязательна: /js/* отдаётся с immutable-кэшем (см. vercel.json),
-// поэтому без ?v= модуль может закэшироваться в старой версии у пользователя.
-import { questions } from './questions.js?v=31';
-import { vibeThemes } from './themes.js?v=31';
+import { questions } from './questions.js?v=36';
+import { vibeThemes } from './themes.js?v=36';
 
-// Полный список вайбов. Порядок стабилен (Object.keys сохраняет порядок
-// объявления) и используется только как детерминированный финальный tie-break.
 export const VIBE_IDS = Object.keys(vibeThemes);
 
-// Индекс вопроса по его стабильному id — нужен адаптивному выбору и состоянию.
 export const questionIndexById = new Map(questions.map((question, index) => [question.id, index]));
 
-// answers — объект вида { [questionId]: optionIndex }. Неотвеченные вопросы
-// отсутствуют в объекте, поэтому не вносят ни положительный, ни отрицательный
-// вклад. Повторный вызов с тем же объектом даёт тот же результат, а изменение
-// ответа автоматически заменяет прежний вклад (мы просто читаем текущее
-// значение, а не накапливаем сумму) — это снимает проблему двойного подсчёта.
 
-// Сырые суммы весов по каждому вайбу.
 function computeRawScores(answers) {
   const scores = new Map(VIBE_IDS.map((id) => [id, 0]));
   questions.forEach((question) => {
@@ -42,9 +22,6 @@ function computeRawScores(answers) {
   return scores;
 }
 
-// Максимально возможный вес вайба: для каждого вопроса берём лучший вариант
-// именно для этого вайба и суммируем. Нужен для честной нормализации —
-// иначе вайбы с большим числом «сильных» вариантов были бы несправедливо выше.
 function computeMaxPossible() {
   const max = new Map(VIBE_IDS.map((id) => [id, 0]));
   questions.forEach((question) => {
@@ -64,26 +41,13 @@ function computeMaxPossible() {
   return max;
 }
 
-// Считаем один раз при загрузке модуля — данные статичны.
 const VIBE_MAX_POSSIBLE = computeMaxPossible();
 
-// Нормированная доля (0..1) — процент «уверенности» вайба, пригодный для
-// сравнения между вайбами с разным потенциалом.
 export function normalizedScore(vibeId, raw) {
   const max = VIBE_MAX_POSSIBLE.get(vibeId) || 0;
   return max > 0 ? raw / max : 0;
 }
 
-// Ранжирование вайбов по ответам пользователя.
-//
-// Порядок сортировки (все ключи детерминированы):
-//   1. norm      — нормированная доля (основной критерий);
-//   2. specificity — сумма квадратов вкладов: награждает «концентрированное»
-//      свидетельство, а не размазанное по многим вайбам;
-//   3. lastHit   — индекс последнего вопроса, подкрепившего вайб (свежесть);
-//   4. id        — стабильный алфавитный tie-break.
-// Такой набор НЕ всегда отдаёт победу вайбу, стоящему первым в массиве, но
-// гарантирует одинаковый результат для одинакового набора ответов.
 export function rankVibes(answers) {
   const scores = computeRawScores(answers);
   const specificity = new Map(VIBE_IDS.map((id) => [id, 0]));
@@ -118,22 +82,11 @@ export function rankVibes(answers) {
   );
 }
 
-// Насколько близкие к лидеру вайбы считаем «конкурирующими» при выборе вопроса.
 const CANDIDATE_MARGIN = 0.18;
 
-// Адаптивный выбор следующего вопроса.
-//
-// Идея: среди ещё не заданных вопросов предпочитаем тот, чьи варианты сильнее
-// всего РАЗВОДЯТ текущих кандидатов-лидеров (высокий разброс весов между ними).
-// Это уточняет результат вместо простого усиления уже лидирующего вайба.
-// Чтобы сохранить связный поток, вопрос, идущий следующим по исходному порядку,
-// получает поощрение (отсутствие штрафа), а прыжок далеко вперёд — штраф.
-//
-// Возвращает индекс вопроса в массиве questions или -1, если все уже заданы.
 export function selectNextQuestion(answers, usedIds) {
   const used = usedIds instanceof Set ? usedIds : new Set(usedIds);
 
-  // Ещё нет ответов — уважаем исходную последовательность (первый вопрос).
   const answeredCount = questions.reduce(
     (count, question) => count + (answers[question.id] !== undefined ? 1 : 0),
     0,
@@ -142,11 +95,9 @@ export function selectNextQuestion(answers, usedIds) {
 
   const ranked = rankVibes(answers);
   const leaderNorm = ranked[0] ? ranked[0].norm : 0;
-  // Конкурирующие кандидаты: близкие к лидеру. Если все по нулям — все вайбы.
   const candidateIds = leaderNorm > 0
     ? ranked.filter((vibe) => leaderNorm - vibe.norm <= CANDIDATE_MARGIN).map((vibe) => vibe.id)
     : VIBE_IDS;
-  // Страховка: если «круг лидеров» схлопнулся в один вайб, берём тройку лучших.
   const candidates = candidateIds.length >= 2 ? candidateIds : ranked.slice(0, 3).map((vibe) => vibe.id);
 
   const available = [];
@@ -155,13 +106,12 @@ export function selectNextQuestion(answers, usedIds) {
   });
   if (!available.length) return -1;
 
-  // «Консервативный» ориентир — первый не заданный вопрос в исходном порядке.
   const sequentialIndex = available[0].index;
 
   let best = null;
   available.forEach(({ question, index }) => {
-    let spread = 0;      // насколько сильно вопрос расходится по кандидатам
-    let totalWeight = 0; // общая информативность вопроса
+    let spread = 0;      
+    let totalWeight = 0; 
     question.options.forEach((option) => {
       const weights = option.vibeWeights || {};
       let max = 0;
@@ -180,8 +130,6 @@ export function selectNextQuestion(answers, usedIds) {
     const orderGap = Math.abs(index - sequentialIndex);
     const score = spread * 3 + totalWeight * 0.25 - orderGap * 1.5;
 
-    // Строгое «>»: при равенстве побеждает вопрос, рассмотренный раньше, то
-    // есть стоящий выше в исходном порядке — детерминированно и предсказуемо.
     if (!best || score > best.score + 1e-9) best = { index, score };
   });
 

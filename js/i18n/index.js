@@ -1,11 +1,9 @@
-// Поддерживаемые языки интерфейса: русский (по умолчанию) и английский.
 const localeCodes = ['ru', 'en'];
 const localeMetadata = {
   ru: { code: 'RU', htmlLang: 'ru', title: 'Русский' },
   en: { code: 'EN', htmlLang: 'en', title: 'English' },
 };
 
-// Каталог переводов: ключ — русский текст (источник), значение — английский.
 const translationCatalog = {
 "Vibe Finder": "Vibe Finder",
 "Найди свою атмосферу.": "Find your own atmosphere.",
@@ -318,6 +316,8 @@ const translationCatalog = {
 "Choose language": "Choose language",
 "English": "English",
 "Russian": "Russian",
+"Профиль": "Profile",
+"Язык": "Language",
 };
 
 const dynamicTranslations = [
@@ -491,7 +491,6 @@ const attributeSources = new WeakMap();
 let languageToggle = null;
 let languageOptions = null;
 
-// Ключ хранения выбранного языка (тот же паттерн, что у прочих настроек сайта).
 const LANGUAGE_STORAGE_KEY = 'vibefinder:lang';
 
 function readStoredLanguage() {
@@ -506,12 +505,11 @@ function readStoredLanguage() {
 function storeLanguage(language) {
   try {
     window.localStorage.setItem(LANGUAGE_STORAGE_KEY, language);
-  } catch (error) { /* приватный режим — тихо игнорируем */ }
+  } catch (error) {   }
 }
 
 export function translateText(source) {
   const text = String(source);
-  // Русский — язык-источник и язык по умолчанию: возвращаем текст без изменений.
   if (currentLanguage === 'ru') return text;
   const key = text.trim();
   const exact = translationCatalog[key];
@@ -529,9 +527,6 @@ function preserveWhitespace(source, translated) {
   return `${leading}${translated}${trailing}`;
 }
 
-// Узлы под [data-no-i18n] не переводятся: их содержимое — машинный код/числа,
-// а не локализуемый текст (например, ярлык переключателя «RU/EN»). Это защищает
-// программно выставленные значения от отката наблюдателем перевода.
 function isExcluded(node) {
   const element = node.nodeType === Node.TEXT_NODE ? node.parentElement : node;
   return !!(element && typeof element.closest === 'function' && element.closest('[data-no-i18n]'));
@@ -583,14 +578,11 @@ export function setLanguage(language) {
   if (!localeCodes.includes(language)) return;
   currentLanguage = language;
   document.documentElement.lang = localeMetadata[language].htmlLang;
-  if (languageToggle) {
-    // Ярлык «RU/EN» — машинный код, а не локализуемый текст. Обновляем его
-    // напрямую (слой блика внутри кнопки сохраняем). Узел помечен
-    // data-no-i18n, поэтому наблюдатель перевода его не перезаписывает.
-    const label = languageToggle.querySelector('.control-label');
+  document.querySelectorAll('.language-toggle').forEach((toggle) => {
+    const label = toggle.querySelector('.control-label');
     if (label) label.textContent = localeMetadata[language].code;
-    else languageToggle.textContent = localeMetadata[language].code;
-  }
+    else toggle.textContent = localeMetadata[language].code;
+  });
   document.querySelectorAll('[data-language]').forEach((option) => {
     option.setAttribute('aria-pressed', String(option.dataset.language === language));
   });
@@ -600,8 +592,6 @@ export function setLanguage(language) {
   window.dispatchEvent(new CustomEvent('vibe-language-change', { detail: { language } }));
 }
 
-// Инициализация локализации: навешивает поведение переключателя языков,
-// запускает первичный перевод DOM и наблюдает за динамически созданными узлами.
 export function initI18n(defaultLanguage = 'ru') {
   languageToggle = document.getElementById('language-toggle');
   languageOptions = document.getElementById('language-options');
@@ -636,7 +626,6 @@ export function initI18n(defaultLanguage = 'ru') {
     languageToggle.focus();
   });
 
-  // Стартуем с ранее сохранённого языка, иначе — с языка по умолчанию.
   translateTree(document.body);
   setLanguage(readStoredLanguage() || defaultLanguage);
 

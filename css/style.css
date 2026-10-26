@@ -1,19 +1,5 @@
-/* ВНИМАНИЕ: @import для шрифтов отсюда удалён намеренно.
-   Подключение шрифтов перенесено в <link> в index.html — это быстрее
-   (@import блокирует разбор CSS и создаёт цепочку запросов), и теперь
-   все семейства идут ОДНИМ запросом к Google Fonts.
-   Alex Brush и Marck Script по-прежнему подключены (см. index.html). */
 
 :root {
-  /* --- Типографическая система (единый стек для всего сайта) --------------
-     Space Grotesk идёт ПЕРВЫМ: он перекрывает только те символы, которые в
-     нём реально есть (Latin / Latin-ext / Vietnamese). Всё остальное браузер
-     берёт из следующих семейств по порядку:
-       • кириллица  → Manrope (есть Cyrillic + Cyrillic-ext);
-       • CJK        → системные шрифты Windows/macOS/Android/Linux;
-       • Arabic     → системные арабо-совместимые шрифты.
-     Так одна переменная обслуживает все четыре языка без дублирования CSS.
-     Monospace-стек оставлен отдельно: он нужен ретрo-вайбу и игровому UI. */
   --font-sans:
     "Space Grotesk", "Manrope",
     -apple-system, BlinkMacSystemFont, "Segoe UI Variable Text", "Segoe UI",
@@ -21,57 +7,44 @@
     "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC",
     "Noto Sans", "Noto Sans Arabic", "Segoe UI Historic", Tahoma,
     sans-serif;
-  --font-display: var(--font-sans);          /* заголовки */
-  --font-script-latin: 'Alex Brush', 'Marck Script', cursive;  /* латин. почерк */
-  --font-script-cyr: 'Marck Script', 'Alex Brush', cursive;    /* кир. почерк */
+  --font-display: var(--font-sans);           
+  --font-script-latin: 'Alex Brush', 'Marck Script', cursive;   
+  --font-script-cyr: 'Marck Script', 'Alex Brush', cursive;     
   --font-mono: "Courier New", ui-monospace, "SFMono-Regular", Menlo, monospace;
 
-  /* Веса: реально подключены 400/500/600/700/800 (Manrope) и 700 (Space Grotesk). */
   --weight-body: 400;
   --weight-medium: 500;
   --weight-semibold: 600;
   --weight-bold: 700;
   --weight-heavy: 800;
 
-  /* Тотальный чёрный: раньше здесь был синеватый #070b13, из-за которого
-     «чёрный» экран на самом деле читался как тёмно-синий. */
   --bg: #000000;
   --text: #f3f5f9;
   --muted: #c7d2ea;
   --primary: #d2d9ff;
 
-  /* --- Apple semantic label colors (HIG) --- */
   --label-primary: #FFFFFF;
   --label-secondary: rgba(255, 255, 255, 0.6);
   --label-tertiary: rgba(255, 255, 255, 0.3);
 
-  /* --- Apple system material (glass) — exact physical params --- */
   --material-bg: rgba(25, 25, 25, 0.45);
   --material-border: rgba(255, 255, 255, 0.12);
   --material-blur: blur(20px) saturate(190%);
   --inset-highlight: inset 0 0.5px 0 rgba(255, 255, 255, 0.15);
 
-  /* --- System grays --- */
   --system-gray-4: #3A3A3C;
 
-  /* --- Geometry --- */
   --radius-container: 22px;
   --radius-control: 12px;
 
-  /* --- Type scale --- */
   --type-title2-size: 22px;
   --type-title2-tracking: -0.4px;
   --type-body-size: 17px;
   --type-body-tracking: -0.4px;
 
-  /* --- Fluid motion (spring-mimicking) --- */
   --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* Регистрируем переменные интерактива как анимируемые. Тогда наклон, подъём и
-   нажатие живут в одном составном transform и анимируются каждый по своему
-   каналу, а не перезаписывают друг друга. В браузерах без @property значения
-   подставляются как обычно — теряется только сглаживание, вёрстка цела. */
 @property --rotate-x {
   syntax: "<angle>";
   inherits: false;
@@ -102,10 +75,6 @@
   initial-value: 0px;
 }
 
-/* Акцент текущего вайба используется только для ореола имени. Интерполировать
-   его НЕ нужно (и даже вредно): переход цвета через промежуточные оттенки даёт
-   грязную гамму. Настоящий переток цветов делает свечение из двух слоёв
-   (.home-glow__layer), а ореол имени проявляется вместе с самим текстом. */
 
 * {
   box-sizing: border-box;
@@ -128,9 +97,6 @@ html {
 body {
   min-height: 100vh;
   overflow-x: hidden;
-  /* Ровный фон. Прежде здесь лежали два цветных пятна и светлая полоса
-     градиента: на широком экране полоса читалась как случайный блик
-     поперёк страницы, а пятна не несли смысла. */
   background: var(--bg);
   transition: background 0.7s var(--ease-spring), color 0.4s var(--ease-spring);
 }
@@ -206,9 +172,6 @@ input {
   direction: ltr;
 }
 
-/* Переключатель языка намеренно оформлен в том же стеклянном стиле, что и
-   кнопка поддержки Discord: material-токены, скругление-сквиркл, spring-переход
-   и физический отклик на нажатие. */
 .language-toggle,
 .language-options button {
   min-width: 36px;
@@ -247,14 +210,11 @@ input {
   box-shadow: var(--inset-highlight), 0 8px 24px rgba(0, 0, 0, 0.35);
 }
 
-/* Подъём стеклянного переключателя — каналом --lift, чтобы складываться
-   с наклоном от курсора. Кнопки внутри раскрытого списка — простые. */
 .language-toggle:hover,
 .language-toggle:focus-visible {
   --lift: -2px;
 }
 
-/* Физический отклик на нажатие — как у кнопки поддержки */
 .language-toggle:active {
   --press: 0.965;
   transition: --press 0.08s ease-out;
@@ -265,8 +225,6 @@ input {
   transition: transform 0.1s;
 }
 
-/* Визуально кнопка компактная (36px), но тач-цель расширена до 44pt
-   невидимой областью — соблюдение HIG на мобильных экранах. */
 .language-toggle {
   position: relative;
 }
@@ -328,7 +286,6 @@ input {
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
-  /* Микро-сдвиг вместо грубого масштабирования всей страницы */
   transform: translateY(10px);
   transition:
     opacity 0.4s var(--ease-spring),
@@ -343,32 +300,18 @@ input {
   transform: translateY(0);
 }
 
-/* ---------------------------------------------------------------------------
-   СВАЙП-ПЕРЕХОД (лендинг ↔ опрос)
-   Двигаются ЭКРАНЫ ЦЕЛИКОМ (весь лендинг с его свечением/оттенком уезжает
-   вместе с контентом — поэтому остаточных слоёв и мерцания нет). Общий канвас
-   «живого неба» лежит ВНЕ экранов (.page-shell), поэтому остаётся неподвижным.
-   Во время перехода экраны не участвуют в своём обычном кроссфейде: видимостью
-   входящего экрана и положением экранов управляет JS (Web Animations API).
-   Классы/инлайн-стили снимаются по завершении.
-   --------------------------------------------------------------------------- */
 .page-shell.is-swiping .screen {
-  transition: none; /* убираем штатный кроссфейд, чтобы он не спорил со свайпом */
-  pointer-events: none; /* во время движения экранов клики блокируем (защита от дублей) */
-  /* Оба экрана приподнимаем над канвасом (z-index:1): смещённый экран создаёт
-     stacking context, и без явного z-index его фон ушёл бы ПОД звёзды. */
+  transition: none;  
+  pointer-events: none;  
   z-index: 3;
-  /* Подсказка композитору включается ТОЛЬКО на ~400 мс перехода и снимается
-     вместе с классом — постоянного will-change на больших слоях нет. */
   will-change: transform;
 }
 
 .page-shell.is-swiping .screen.is-swipe-incoming {
   opacity: 1;
   visibility: visible;
-  pointer-events: none; /* во время анимации клики не нужны (защита от дублей) */
-  transform: none; /* нейтрализуем translateY(10px) у неактивного экрана */
-  /* Входящий экран всегда поверх уходящего (независимо от порядка в DOM). */
+  pointer-events: none;  
+  transform: none;  
   z-index: 4;
 }
 
@@ -388,20 +331,12 @@ input {
 }
 
 #home-screen {
-  /* Прозрачный фон: под первым экраном лежит общий слой «живого неба»
-     (.sky-canvas в .page-shell), поэтому звёзды видны без изменений. */
   background: transparent;
-  /* Витрина карточек длиннее экрана на мобильных: экран прокручивается,
-     а hero остаётся по центру, пока помещается (margin: auto у .hero-wrap). */
   align-items: flex-start;
   overflow-x: hidden;
   overflow-y: auto;
 }
 
-/* Единые текстовые токены для первого экрана, опроса и перехода.
-   Фон держит общий слой «живого неба» (.sky-canvas), лежащий ПОД экранами
-   в .page-shell. Раньше здесь стоял непрозрачный #000000, который перекрывал
-   канвас, как только он перестал быть частью первого экрана. */
 #home-screen,
 #survey-screen,
 #creation-screen {
@@ -411,23 +346,12 @@ input {
   color: var(--text);
 }
 
-/* Первый экран и опрос прозрачны — сквозь них читается непрерывный космос. */
 #home-screen,
-#survey-screen {
+#survey-screen,
+#creation-screen {
   background: transparent;
 }
 
-/* Экран перехода сохраняет ровный чёрный: это отдельный кинематографичный кадр. */
-#creation-screen {
-  background: #000000;
-}
-
-/* Курсивный шрифт Alex Brush уже подключён через @import в самом начале файла
-   (правило @import обязано идти первым, поэтому здесь оно не дублируется). */
-
-/* Экран перехода использует ровно ту же космическую канву, что и домашний
-   экран, — никакой фиолетово-синей мглы и отдельных градиентных сдвигов.
-   z-index: 2 держит канву над базовыми экранами, но ниже слоя частиц. */
 #creation-screen {
   position: absolute;
   top: 0;
@@ -441,54 +365,215 @@ input {
   overflow: hidden;
 }
 
-.transition-container {
+.constellation {
+  position: relative;
   display: flex;
-  justify-content: center;
+  flex-direction: column;
   align-items: center;
+  gap: clamp(1.6rem, 5vh, 3rem);
+  --constellation-size: min(78vmin, 520px);
+}
+
+.constellation__scene {
+  position: relative;
+  width: var(--constellation-size);
+  height: var(--constellation-size);
+  opacity: 0;
+  transition: opacity 700ms var(--ease-spring);
+}
+
+.constellation.is-forming .constellation__scene,
+.constellation.is-holding .constellation__scene,
+.constellation.is-dissolving .constellation__scene {
+  opacity: 1;
+}
+
+.constellation__stars {
+  position: absolute;
+  inset: 0;
+}
+
+.constellation__star {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 4px;
+  height: 4px;
+  margin: -2px 0 0 -2px;
+  border-radius: 50%;
+  background: rgba(240, 244, 255, 0.95);
+  opacity: 0.28;
+  transform: translate3d(var(--star-move-x, 0px), var(--star-move-y, 0px), 0);
+}
+
+.constellation.is-forming .constellation__star {
+  animation: starForm 2600ms cubic-bezier(0.33, 1, 0.68, 1) both;
+}
+
+.constellation.is-holding .constellation__star {
+  animation: starHold 2600ms ease-in-out infinite;
+}
+
+.constellation.is-dissolving .constellation__star {
+  animation: starDissolve 1400ms ease-out both;
+}
+
+.constellation__lines {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
+  overflow: visible;
+  pointer-events: none;
 }
 
-.cursive-brand-text {
-  font-family: var(--font-script-latin);
-  font-size: 5rem;
-  color: var(--text, #f3f5f9);
-  letter-spacing: 2px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
-  user-select: none;
-}
-
-.cursive-brand-text span {
-  display: inline-block;
+.constellation__line {
+  stroke: rgba(220, 230, 255, 0.95);
+  stroke-width: 0.9;
+  vector-effect: non-scaling-stroke;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
   opacity: 0;
-  transform: translateY(4px);
-  filter: blur(4px);
-  animation-name: writeLetter;
-  animation-fill-mode: forwards;
-  animation-timing-function: var(--ease-spring, cubic-bezier(0.16, 1, 0.3, 1));
-  /* animation-duration / animation-delay задаются из JavaScript
-     для точного 4-секундного ступенчатого раскрытия */
 }
 
-/* 4-секундное нелинейное ступенчатое раскрытие букв */
-@keyframes writeLetter {
+.constellation.is-forming .constellation__line {
+  animation: lineDraw 900ms cubic-bezier(0.33, 1, 0.68, 1) both;
+  animation-delay: var(--line-delay, 0ms);
+}
+
+.constellation.is-holding .constellation__line {
+  stroke-dashoffset: 0;
+  opacity: 0.6;
+  animation: lineBreathe 2600ms ease-in-out infinite;
+}
+
+.constellation.is-dissolving .constellation__line {
+  animation: lineDissolve 1400ms ease-out both;
+  animation-delay: 0ms;
+}
+
+.constellation__caption {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 0.82rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: rgba(233, 238, 255, 0.6);
+  text-align: center;
+  opacity: 0;
+  transition: opacity 1400ms var(--ease-spring);
+}
+
+.constellation.is-forming .constellation__caption {
+  opacity: 1;
+  transition-delay: 900ms;
+}
+
+.constellation.is-holding .constellation__caption {
+  opacity: 1;
+  transition-delay: 0ms;
+}
+
+.constellation.is-dissolving .constellation__caption {
+  opacity: 0;
+  transition-delay: 0ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .constellation__star,
+  .constellation.is-forming .constellation__star,
+  .constellation.is-holding .constellation__star,
+  .constellation.is-dissolving .constellation__star,
+  .constellation.is-forming .constellation__line,
+  .constellation.is-holding .constellation__line,
+  .constellation.is-dissolving .constellation__line {
+    animation: none;
+  }
+
+  .constellation__star {
+    opacity: 0.7;
+  }
+
+  .constellation__line {
+    stroke-dashoffset: 0;
+    opacity: 0.45;
+  }
+
+  .constellation__caption,
+  .constellation__scene {
+    transition-duration: 0.01ms;
+  }
+}
+
+@keyframes starForm {
   0% {
+    transform: translate3d(0, 0, 0) scale(0.4);
     opacity: 0;
-    transform: translateY(4px);
-    filter: blur(4px);
   }
   30% {
-    opacity: 1;
-    transform: translateY(0);
-    filter: blur(0);
+    opacity: 0.92;
   }
   100% {
+    transform: translate3d(var(--star-move-x, 0px), var(--star-move-y, 0px), 0) scale(1);
     opacity: 1;
-    transform: translateY(0);
-    filter: blur(0);
+  }
+}
+
+@keyframes starHold {
+  0%, 100% {
+    opacity: 1;
+    transform: translate3d(var(--star-move-x, 0px), var(--star-move-y, 0px), 0) scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: translate3d(var(--star-move-x, 0px), var(--star-move-y, 0px), 0) scale(1.25);
+  }
+}
+
+@keyframes starDissolve {
+  0% {
+    opacity: 1;
+    transform: translate3d(var(--star-move-x, 0px), var(--star-move-y, 0px), 0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(
+        calc(var(--star-move-x, 0px) * 1.06),
+        calc(var(--star-move-y, 0px) * 1.06),
+        0
+      )
+      scale(0.9);
+  }
+}
+
+@keyframes lineDraw {
+  0% {
+    stroke-dashoffset: 1;
+    opacity: 0;
+  }
+  100% {
+    stroke-dashoffset: 0;
+    opacity: 0.5;
+  }
+}
+
+@keyframes lineBreathe {
+  0%, 100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 0.42;
+  }
+}
+
+@keyframes lineDissolve {
+  0% {
+    stroke-dashoffset: 0;
+    opacity: 0.6;
+  }
+  100% {
+    stroke-dashoffset: 0;
+    opacity: 0;
   }
 }
 
@@ -513,8 +598,6 @@ input {
   font-size: 0.7rem;
 }
 
-/* Заголовок держит первый экран размером и весом, а не свечением.
-   Разрыв с подзаголовком намеренно большой — это и даёт иерархию. */
 .hero-wrap h1 {
   margin: 0;
   font-size: clamp(3.2rem, 9vw, 88px);
@@ -524,7 +607,6 @@ input {
   color: var(--label-primary);
 }
 
-/* Подзаголовок явно тише заголовка: 17px против 88px. */
 .subtitle {
   margin: 0;
   max-width: 46ch;
@@ -544,8 +626,6 @@ input {
   transition: box-shadow 0.22s ease, border-color 0.22s ease, background-color 0.22s ease;
 }
 
-/* Главная кнопка: рамка и лёгкая заливка. Ореол 30px вокруг кнопки был ещё
-   одним эффектом, который ничего не сообщал. */
 .primary-btn {
   padding: 14px 20px;
   font-weight: 600;
@@ -555,15 +635,8 @@ input {
   box-shadow: var(--inset-highlight);
 }
 
-/* ------------------------------------------------------------------
-   3D-тилт + спекуляр для управляющих кнопок: «Поиск», переключатель
-   языка, Discord и кнопка меню. Наклон приходит из JS переменными, а
-   подъём (--lift) и нажатие (--press) — отдельными каналами того же
-   составного transform, поэтому эффекты складываются, а не спорят.
-   ------------------------------------------------------------------ */
 .primary-btn,
 .language-toggle,
-.discord-support,
 .vibe-menu-toggle {
   position: relative;
   perspective: 1000px;
@@ -583,11 +656,9 @@ input {
     --scale 0.4s var(--ease-spring),
     --lift 0.4s var(--ease-spring),
     box-shadow 0.4s ease;
-  /* Свайп по 3D-слою не скроллит окно (touch-трекинг пальцем). */
   touch-action: none;
 }
 
-/* Текстовый ярлык поверх слоя блика, независимый от line-height кнопки. */
 .control-label {
   display: inline-block;
   position: relative;
@@ -595,11 +666,8 @@ input {
   line-height: 1.2;
 }
 
-/* Пока курсор внутри, каналы наклона ведём 1:1 (без сглаживания), чтобы не
-   было обратной связи и дрожания границ. Подъём и нажатие остаются плавными. */
 .primary-btn.is-tilting,
 .language-toggle.is-tilting,
-.discord-support.is-tilting,
 .vibe-menu-toggle.is-tilting {
   transition:
     --press 0.2s var(--ease-spring),
@@ -607,56 +675,35 @@ input {
     box-shadow 0.4s ease;
 }
 
-/* Дети кнопок не перехватывают курсор — события идут только на кнопку,
-   поэтому не возникает дублирующих mousemove и дрожания границ. */
 .primary-btn > *,
 .language-toggle > *,
-.discord-support > *,
 .vibe-menu-toggle > * {
   pointer-events: none;
 }
 
-/* Native micro-tactile press feedback для простой кнопки «Поделиться».
-   Опции опроса — текстовые строки: им достаточно смены цвета, без масштаба. */
 .share-button:active {
   transform: scale(0.96);
   transition: transform 0.1s;
 }
 
-/* У стеклянных кнопок нажатие идёт каналом --press: наклон и подъём при этом
-   сохраняются, а не сбрасываются инлайн-трансформой. */
 .primary-btn:active,
 .language-toggle:active,
-.discord-support:active,
 .vibe-menu-toggle:active {
   --press: 0.965;
   transition: --press 0.08s ease-out;
 }
 
-/* Подъём — отдельный канал --lift внутри единого transform, поэтому он
-   складывается с наклоном от курсора, а не конфликтует с ним. */
 .primary-btn:hover,
 .primary-btn:focus-visible,
 .language-toggle:hover,
-.language-toggle:focus-visible,
-.discord-support:hover,
-.discord-support:focus-visible {
+.language-toggle:focus-visible {
   --lift: -2px;
   border-color: rgba(255, 255, 255, 0.2);
   box-shadow: 0 14px 26px -16px rgba(0, 0, 0, 0.5);
 }
 
-/* Убраны: .hero-glow, .ambient-1/2/3, #particles, .particle, @keyframes drift.
-   Два свечения поверх друг друга и три цветных круга с blur(60px) не
-   сообщали ничего о продукте. Движение осталось там, где оно отвечает
-   на действие: лупа, рукописный переход, каскад результата. */
 
-/* --- Витрина атмосфер на первом экране --- */
 
-/* Свечение позади hero: два наложенных слоя с фиксированными цветами. При
-   смене вайба они перекрещиваются по прозрачности, поэтому один цвет
-   постепенно заменяет другой — без грязных промежуточных оттенков, которые
-   неизбежны при интерполяции одной цветовой переменной. */
 .home-glow {
   position: absolute;
   inset: -15% -10% auto;
@@ -667,7 +714,6 @@ input {
   transition: opacity 1.1s var(--ease-spring);
 }
 
-/* Свечение проявляется, когда витрина показывает первый вайб. */
 #home-screen[data-vibe-glow] .home-glow {
   opacity: 1;
 }
@@ -681,7 +727,6 @@ input {
     var(--glow-color, transparent),
     transparent 72%
   );
-  /* Ровный долгий кроссфейд, синхронный с текстом имени (1400 мс). */
   transition: opacity 1400ms cubic-bezier(0.37, 0, 0.63, 1);
 }
 
@@ -689,12 +734,6 @@ input {
   opacity: 1;
 }
 
-/* Витрина атмосфер: имя текущего вайба лежит на его свечении (палитре) в
-   верхней зоне первого экрана и «прописывается» по буквам, как от руки.
-   Два слоя наложены друг на друга (один grid-area), а JS перекрещивает их
-   медленным кроссфейдом. Кроссфейд ведёт ТОЛЬКО прозрачность слоя, а
-   рукописное проявление — отдельная анимация букв (transform + фильтр),
-   поэтому оба эффекта не конфликтуют. */
 .vibe-showcase {
   position: absolute;
   inset-inline: 0;
@@ -707,12 +746,8 @@ input {
 }
 
 .vibe-showcase__name {
-  /* Оба слоя лежат в одной ячейке — кроссфейд идёт строго поверх. */
   grid-area: 1 / 1;
   max-width: min(900px, 88vw);
-  /* Рукописный вордмарк: Alex Brush для латиницы (как бренд-надпись перехода)
-     и Marck Script для кириллицы — в Alex Brush её нет. Генерик cursive не
-     ставим: на Windows он тянет Comic Sans при промахе фолбэка. */
   font-family: var(--font-script-latin);
   font-size: clamp(1.6rem, 3vw, 2.15rem);
   font-weight: 400;
@@ -721,31 +756,22 @@ input {
   text-align: center;
   text-wrap: balance;
   overflow-wrap: anywhere;
-  /* Полупрозрачное имя, окрашенное ореолом палитры активного вайба. */
   color: rgba(255, 255, 255, 0.7);
   text-shadow: 0 0 34px var(--preview-glow, transparent);
   opacity: 0;
   will-change: opacity;
-  /* Долгий и ровный, без пружины: длинная ease даёт ощущение дыхания. */
   transition: opacity 1400ms cubic-bezier(0.37, 0, 0.63, 1);
 }
 
-/* Слово держим неразрывным: буква внутри — отдельный inline-block, поэтому без
-   обёртки слова переносились бы посередине. Перенос идёт по словам. */
 .vibe-word {
   display: inline-block;
   white-space: nowrap;
 }
 
-/* Одна буква вордмарка. Базовое состояние — «написано»: сдвиг и блюр снимает
-   анимация, поэтому при размонтировании слоя нет рывка. */
 .vibe-letter {
   display: inline-block;
 }
 
-/* Рукописное проявление: буквы идут каскадом и «садятся» на место лёгким
-   поворотом и размытием. Правило привязано к активному слою, поэтому анимация
-   стартует ровно в момент смены вайба и каждый раз с чистого листа. */
 .vibe-showcase__name.is-active .vibe-letter {
   animation: showcaseInk var(--ink-duration, 620ms) cubic-bezier(0.16, 1, 0.3, 1) both;
   animation-delay: var(--ink-delay, 0ms);
@@ -762,15 +788,10 @@ input {
   }
 }
 
-/* Активный слой: проявляется прозрачностью, буквы — рукописным каскадом. */
 .vibe-showcase__name.is-active {
   opacity: 1;
 }
 
-/* Один оркестрированный вход: вордмарк, подзаголовок, кнопка и витрина
-   раскрываются ступенчатой волной. Кнопка и витрина анимируются только по
-   прозрачности: transform кнопки принадлежит 3D-наклону из JS, а витрину
-   ведёт собственный кроссфейд слоёв. */
 #home-screen.active .hero-wrap > h1,
 #home-screen.active .subtitle {
   animation: hero-rise 700ms var(--ease-spring) both;
@@ -817,14 +838,7 @@ input {
   }
 }
 
-/* ---------------------------------------------------------------------------
-   ОПРОС — «один вопрос на экран» в духе космического минимализма.
-   Вопрос и ответы лежат на сдержанной тёмной стеклянной панели с тонкой
-   белёсой окантовкой; космос остаётся видимым сквозь неё. Иерархию держат
-   типографика, воздух и выравнивание вопроса по центру.
-   --------------------------------------------------------------------------- */
 #survey-screen {
-  /* Отступы с учётом мобильных safe-area (вырез/жесты) по краям. */
   padding:
     calc(clamp(1rem, 4vh, 1.75rem) + env(safe-area-inset-top))
     calc(clamp(1rem, 4vw, 1.5rem) + env(safe-area-inset-right))
@@ -832,30 +846,20 @@ input {
     calc(clamp(1rem, 4vw, 1.5rem) + env(safe-area-inset-left));
   align-items: flex-start;
   overflow-y: auto;
-  /* overflow-x: hidden — чтобы въезжающая панель (translateX от -100%) не создавала
-     горизонтальной прокрутки во время свайп-перехода. */
   overflow-x: hidden;
 }
 
-/* Как и первый экран, опрос нейтрализует transform в состоянии покоя: тогда
-   его fixed-канвас «живого неба» снова привязан к вьюпорту, а не к экрану. */
 #survey-screen.active {
   transform: none;
 }
 
 .survey-panel {
-  /* Узкая мера строки: вопрос и варианты читаются как единая колонка. */
   width: min(620px, 100%);
   margin: auto;
   display: flex;
   flex-direction: column;
-  /* Выше слоя «живого неба» (z-index:1): звёзды видны сквозь стекло, но текст
-     вопроса и ответов всегда остаётся поверх них. */
   position: relative;
   z-index: 2;
-  /* Высокопрозрачная НЕЙТРАЛЬНАЯ тёмная подложка (без синевы) + тонкая белёсая
-     окантовка и очень мягкое свечение у самых краёв — эффект стекла, края
-     которого ловят свет. Ни ярких рамок, ни неоновых ореолов. */
   padding: clamp(1.15rem, 3.5vw, 1.75rem);
   border-radius: var(--radius-container);
   border: 1px solid rgba(255, 255, 255, 0.14);
@@ -863,34 +867,28 @@ input {
   box-shadow:
     0 0 16px -4px rgba(255, 255, 255, 0.07),
     0 20px 50px -36px rgba(0, 0, 0, 0.85);
-  /* Размытие по площади ограничено осознанно: панель — не «линза» во весь экран. */
   -webkit-backdrop-filter: blur(14px) saturate(115%);
   backdrop-filter: blur(14px) saturate(115%);
 }
 
-/* Фолбэк для браузеров без backdrop-filter: поверхность остаётся читаемой за
-   счёт более плотной, но всё ещё тёмной нейтральной подложки. */
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   .survey-panel {
     background: rgba(12, 12, 13, 0.8);
   }
 }
 
-/* Шапка держит только «назад». Без видимой кнопки она схлопывается в ноль,
-   чтобы не создавать пустого места над вопросом. */
 .survey-header {
   display: flex;
   align-items: center;
   gap: 0.75rem;
 }
 
-/* Сдержанный «назад»: тихий, но с комфортной тач-целью 40px. */
 .survey-back-btn {
   display: inline-grid;
   place-items: center;
   width: 40px;
   height: 40px;
-  margin-left: -10px; /* глиф визуально выравнивается по левому краю панели */
+  margin-left: -10px;  
   padding: 0;
   border: 0;
   border-radius: 999px;
@@ -911,8 +909,6 @@ input {
   display: none;
 }
 
-/* Тонкая hairline-полоса прогресса. Заполнение растёт через scaleX —
-   это составной transform, поэтому переключение не вызывает layout. */
 .progress-bar {
   position: relative;
   width: 100%;
@@ -934,17 +930,11 @@ input {
   transition: transform 0.45s var(--ease-spring);
 }
 
-/* Текстовый холст вопроса. Вертикальная линия слева убрана: рамку панели даёт
-   стеклянная поверхность, а вопрос выровнен по центру. Отступы уменьшены,
-   чтобы композиция была компактной и собранной. */
 .survey-stage {
   position: relative;
   margin-top: clamp(0.9rem, 3vh, 1.5rem);
-  /* Направленные переходы двигают вопрос и варианты; подсказку композитору
-     держим только на время анимации через классы is-leave / is-enter. */
 }
 
-/* Вопрос — главный фокус экрана: по центру, сбалансированный по строке. */
 .survey-question {
   margin: 0 0 clamp(1rem, 3.5vh, 1.5rem);
   font-size: clamp(1.45rem, 4.4vw, 1.9rem);
@@ -953,14 +943,11 @@ input {
   letter-spacing: -0.02em;
   text-align: center;
   color: var(--label-primary);
-  /* Безопасность переноса длинных локалей и узких экранов. */
   overflow-wrap: anywhere;
   text-wrap: balance;
   hyphens: auto;
 }
 
-/* Ответы — компактные текстовые строки с hairline-разделителями,
-   а не одинаковые стеклянные карточки. */
 .answers {
   display: flex;
   flex-direction: column;
@@ -983,12 +970,9 @@ input {
   border-radius: 0;
   cursor: pointer;
   overflow-wrap: anywhere;
-  /* Переход только по цвету и лёгкой подложке: раскладка строки не меняется. */
   transition: color 0.22s ease, background-color 0.18s ease;
 }
 
-/* Мгновенный отклик нажатия: тихая подложка и поджатый штрих-указатель.
-   Никакого масштаба строки — раскладка не дрожит, тач-цель не «уезжает». */
 .option-btn:active {
   background: rgba(255, 255, 255, 0.045);
 }
@@ -1001,8 +985,6 @@ input {
   border-bottom: 1px solid rgba(255, 255, 255, 0.09);
 }
 
-/* Ведущий штрих: ненавязчивый указатель строки, который превращается
-   в точку при выборе — ясный, но спокойный индикатор состояния. */
 .option-btn::before {
   content: "";
   position: absolute;
@@ -1033,7 +1015,6 @@ input {
   transform: translateY(-50%) scaleX(1);
 }
 
-/* Видимый клавиатурный фокус — тонкая рамка, не ломающая раскладку. */
 .option-btn:focus-visible {
   outline: 1px solid var(--label-tertiary);
   outline-offset: 2px;
@@ -1052,14 +1033,11 @@ input {
   transform: translateY(-50%) scaleX(1);
 }
 
-/* Блокировка на время перехода не должна «гасить» строки как класс disabled. */
 .option-btn:disabled {
   opacity: 1;
   cursor: default;
 }
 
-/* Пока идёт переход, остальные варианты тихо отступают, а выбранный остаётся
-   полноценно читаемым — ясный, но спокойный индикатор выбора. */
 .answers.is-locked .option-btn {
   opacity: 0.7;
 }
@@ -1068,19 +1046,6 @@ input {
   opacity: 1;
 }
 
-/* ---------------------------------------------------------------------------
-   ПЕРЕХОД МЕЖДУ ВОПРОСАМИ (Phase 3).
-   Один общий механизм: уходящий вопрос гаснет и уезжает в сторону, затем
-   новый въезжает с противоположной стороны. Направление и сдвиг задаёт JS
-   (--leave-x / --enter-x), здесь — только анимация. Анимируются исключительно
-   opacity и transform (составные свойства, без пересчёта layout).
-
-   Ключевой приём против вспышек: уход и вход идут на ОДНИХ элементах
-   (вопрос + варианты), а смена разметки происходит, когда вопрос уже погашен
-   (класс is-leave). Новый контент сразу получает входную анимацию, первый кадр
-   которой (opacity: 0) совпадает с текущей невидимостью, поэтому кадр с новым
-   текстом не успевает проявиться.
-   --------------------------------------------------------------------------- */
 .survey-stage.is-leave .survey-question,
 .survey-stage.is-leave .option-btn {
   will-change: opacity, transform;
@@ -1093,7 +1058,6 @@ input {
   animation: survey-enter 240ms var(--ease-spring) both;
 }
 
-/* Каскад вариантов: задержку получает только opacity и малый сдвиг. */
 .survey-stage.is-enter .option-btn {
   animation-delay: var(--option-enter-delay, 0ms);
 }
@@ -1130,9 +1094,6 @@ input {
   }
 }
 
-/* Главная кнопка: светлая пилюля с высоким контрастом на чёрном. Наведение
-   добавляет ореол в акценте выбранной карточки вайба, связывая кнопку,
-   витрину атмосфер и свечение фона в одну систему. */
 #home-screen .primary-btn {
   padding: 15px 34px;
   border-color: transparent;
@@ -1151,86 +1112,6 @@ input {
   box-shadow:
     0 22px 50px -20px var(--preview-glow, rgba(255, 255, 255, 0.5)),
     0 0 0 1px rgba(255, 255, 255, 0.08);
-}
-
-/* Discord support — стеклянная иконка-кнопка строго в правом нижнем углу
-   домашнего экрана. Позиционируется абсолютно относительно #home-screen
-   (он сам absolute), поэтому живёт только на первом экране. Видимый размер
-   компактный (36×36), тач-цель расширена до 44pt через ::before. */
-.discord-support {
-  position: absolute;
-  bottom: 24px;
-  right: 24px;
-  z-index: 10;
-  display: grid;
-  place-items: center;
-  width: 36px;
-  height: 36px;
-  padding: 0;
-  text-decoration: none;
-  cursor: pointer;
-  color: var(--label-secondary);
-  background: var(--material-bg);
-  border: 0.5px solid var(--material-border);
-  border-radius: var(--radius-control);
-  box-shadow: var(--inset-highlight);
-  backdrop-filter: var(--material-blur);
-  -webkit-backdrop-filter: var(--material-blur);
-  transition:
-    --press 0.2s var(--ease-spring),
-    --rotate-x 0.4s var(--ease-spring),
-    --rotate-y 0.4s var(--ease-spring),
-    --scale 0.4s var(--ease-spring),
-    --lift 0.4s var(--ease-spring),
-    color 0.4s var(--ease-spring),
-    background-color 0.4s var(--ease-spring),
-    border-color 0.4s var(--ease-spring),
-    box-shadow 0.4s var(--ease-spring);
-}
-
-/* Тач-цель расширена до 44pt при видимом размере 36px — HIG на мобильных. */
-.discord-support::before {
-  position: absolute;
-  inset: -4px;
-  content: "";
-}
-
-.discord-support__icon {
-  width: 18px;
-  height: 18px;
-  fill: currentColor;
-  opacity: 0.9;
-  transition: opacity 0.4s var(--ease-spring);
-}
-
-.discord-support:hover,
-.discord-support:focus-visible {
-  color: var(--label-primary);
-  border-color: rgba(255, 255, 255, 0.24);
-  background: rgba(35, 35, 35, 0.55);
-  --lift: -2px;
-  box-shadow: var(--inset-highlight), 0 8px 24px rgba(0, 0, 0, 0.35);
-}
-
-.discord-support:hover .discord-support__icon,
-.discord-support:focus-visible .discord-support__icon {
-  opacity: 1;
-}
-
-/* Физический отклик на нажатие — мгновенный и упругий */
-.discord-support:active {
-  --press: 0.94;
-  transition: --press 0.08s ease-out;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .discord-support {
-    transition: none;
-  }
-
-  .discord-support:active {
-    transition: none;
-  }
 }
 
 #vibe-screen {
@@ -1374,8 +1255,6 @@ body.theme-forest #vibe-screen {
   display: flex;
 }
 
-/* Кнопка меню справа сверху: зеркалит сквиркл-glass стиль переключателя
-   языка слева (те же material-токены, скругление и spring-переход). */
 .vibe-menu-toggle {
   display: grid;
   width: auto;
@@ -1473,6 +1352,179 @@ body.theme-forest #vibe-screen {
 @keyframes vibe-menu-enter {
   from { opacity: 0; transform: translateY(-5px) scale(0.98); }
   to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.profile-nav {
+  position: fixed;
+  z-index: 30;  
+  top: max(18px, env(safe-area-inset-top));
+  left: 0;
+  right: 0;
+  width: min(1180px, 100%);
+  margin: 0 auto;
+  padding: 0 clamp(1rem, 4vw, 2rem);
+  display: none;
+  align-items: flex-start;
+  justify-content: flex-end;
+  pointer-events: none;
+}
+
+.profile-nav > * {
+  pointer-events: auto;
+}
+
+.page-shell[data-active-screen="home"] ~ .profile-nav {
+  display: flex;
+}
+
+.profile-toggle {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  color: var(--label-primary);
+  background: rgba(8, 8, 9, 0.92);
+  border: 0.5px solid rgba(255, 255, 255, 0.16);
+  border-radius: 12px;
+  box-shadow: var(--inset-highlight);
+  cursor: pointer;
+  transition:
+    background-color 0.25s var(--ease-spring),
+    border-color 0.25s var(--ease-spring),
+    transform 0.12s ease;
+}
+
+.profile-toggle__icon {
+  width: 20px;
+  height: 20px;
+  fill: currentColor;
+  opacity: 0.92;
+  transition: opacity 0.25s var(--ease-spring);
+}
+
+.profile-toggle:hover,
+.profile-toggle[aria-expanded="true"] {
+  background: #17171b;
+  border-color: rgba(255, 255, 255, 0.28);
+}
+
+.profile-toggle:hover .profile-toggle__icon,
+.profile-toggle[aria-expanded="true"] .profile-toggle__icon {
+  opacity: 1;
+}
+
+.profile-toggle:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.7);
+  outline-offset: 2px;
+  background: #17171b;
+  border-color: rgba(255, 255, 255, 0.28);
+}
+
+.profile-toggle:active {
+  transform: scale(0.96);
+}
+
+.profile-menu {
+  position: absolute;
+  z-index: 31;
+  top: calc(100% + 0.5rem);
+  inset-inline-end: clamp(1rem, 4vw, 2rem);
+  display: grid;
+  width: min(232px, calc(100vw - 2rem));
+  gap: 0.15rem;
+  padding: 0.35rem;
+  border: 0.5px solid var(--material-border);
+  border-radius: var(--radius-control);
+  background: rgba(14, 14, 16, 0.88);
+  box-shadow: 0 16px 42px rgba(0, 0, 0, 0.36), var(--inset-highlight);
+  backdrop-filter: var(--material-blur);
+  -webkit-backdrop-filter: var(--material-blur);
+  transform-origin: top right;
+  animation: profile-menu-enter 0.22s var(--ease-spring) both;
+}
+
+.profile-menu[hidden] {
+  display: none;
+}
+
+.profile-menu__item {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  min-height: 44px;  
+  padding: 0.55rem 0.7rem;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--label-primary);
+  font-family: var(--font-sans);
+  font-weight: var(--weight-medium);
+  font-size: 0.95rem;
+  text-align: start;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.profile-menu__item:not(.profile-menu__item--language):hover,
+.profile-menu__item:not(.profile-menu__item--language):focus-visible {
+  background: rgba(255, 255, 255, 0.08);
+  outline: none;
+}
+
+.profile-menu__item:not(.profile-menu__item--language):focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.7);
+  outline-offset: -2px;
+}
+
+.profile-menu__icon {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  fill: currentColor;
+  opacity: 0.85;
+}
+
+.profile-menu__label {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.profile-menu__item--language {
+  cursor: default;
+}
+
+.profile-menu .language-switcher {
+  position: relative;  
+  inset: auto;
+  z-index: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-left: auto;
+}
+
+.profile-menu .language-options {
+  position: absolute;
+  top: calc(100% + 0.4rem);
+  inset-inline-end: 0;
+  z-index: 4;
+}
+
+.profile-menu .language-toggle {
+  min-width: 36px;
+  min-height: 32px;
+}
+
+@keyframes profile-menu-enter {
+  from { opacity: 0; transform: translateY(-4px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .profile-toggle { transition: none; }
+  .profile-menu { animation: none; }
 }
 
 .share-screen {
@@ -1626,18 +1678,8 @@ body.theme-retro #share-screen {
   }
 }
 
-/* @keyframes floaty и pulse удалены: они не используются ни в одном
-   animation-правиле (остались от прежней декоративной системы). */
 
 @media (max-width: 760px) {
-  /* Переключатель языка больше не живёт в левом верхнем углу: он внутри
-     шапки. Сохраняем только компактную геометрию на узких экранах. */
-  .home-header .language-toggle,
-  .home-header .discord-support {
-    min-width: 34px;
-    min-height: 34px;
-  }
-
   .vibe-header {
     flex-direction: column;
     align-items: flex-start;
@@ -1702,7 +1744,6 @@ button:disabled {
     }
   }
 
-  .cursive-brand-text span,
   .survey-stage.is-leave .survey-question,
   .survey-stage.is-leave .option-btn,
   .survey-stage.is-enter .survey-question,
@@ -1710,37 +1751,20 @@ button:disabled {
     animation: none;
   }
 
-  /* Удалены правила для .hero-glow / .ambient / .particle и их @keyframes
-     (pulse-reduced, floaty-reduced): сами элементы давно убраны из разметки,
-     а @keyframes drift вообще не был объявлен — это был мёртвый код. */
 }
 
 @media (max-width: 768px) {
-  /* Строки опроса на тач-экранах: комфортная высота тап-цели, левый рельс
-     под индикатор выбора сохраняем (задаётся в базовом правиле). Высота
-     чуть ниже базовой — меньше вертикальной прокрутки, тап-цель удобная. */
   .option-btn {
     min-height: 52px;
     padding-top: 0.9rem;
     padding-bottom: 0.9rem;
   }
 
-  /* Стекло на мобильных: размытие по большой площади дорого для слабых
-     устройств, поэтому уменьшаем его и слегка поднимаем плотность подложки —
-     вид остаётся тёмным и аккуратным, а композитор не перегружается. Тон
-     нейтральный (без синевы). */
   .survey-panel {
     padding: clamp(1rem, 4.5vw, 1.35rem);
     -webkit-backdrop-filter: blur(8px) saturate(110%);
     backdrop-filter: blur(8px) saturate(110%);
     background: rgba(16, 16, 17, 0.36);
-  }
-
-  /* Кнопка поддержки Discord: на узких экранах прижимаем к краю,
-     учитывая safe-area, чтобы не перекрывать системные жесты. */
-  .discord-support {
-    bottom: max(16px, env(safe-area-inset-bottom));
-    right: max(16px, env(safe-area-inset-right));
   }
 
   .share-card h1 {
@@ -1750,15 +1774,8 @@ button:disabled {
   .share-invitation {
     overflow-wrap: anywhere;
   }
-
-  .cursive-brand-text {
-    font-size: clamp(2.6rem, 15vw, 3.4rem);
-  }
 }
 
-/* ------------------------------------------------------------------
-   Вайб-игра «Ночной»: тетрис в liquid-glass боксе + ротирующаяся цитата
-   ------------------------------------------------------------------ */
 .vibe-game {
   display: flex;
   flex-direction: column;
@@ -1885,7 +1902,6 @@ button:disabled {
 
 }
 
-/* Витрина атмосфер на узких экранах: подпись поднимаем чуть выше. */
 @media (max-width: 760px) {
   .vibe-showcase {
     top: clamp(56px, 15vh, 110px);
@@ -1905,18 +1921,15 @@ button:disabled {
     transform: none;
   }
 
-  /* Вход кнопки — только прозрачность: transform принадлежит интерактиву. */
   #home-screen.active .primary-btn {
     animation: none;
     opacity: 1;
   }
 
-  /* Кроссфейд заменяем коротким ровным появлением: без движения, только цвет. */
   .vibe-showcase__name {
     transition: opacity 240ms linear;
   }
 
-  /* Рукописный каскад выключаем: остаётся только ровное проявление слоя. */
   .vibe-letter {
     animation: none;
   }
@@ -1929,11 +1942,8 @@ button:disabled {
     transition: opacity 240ms linear;
   }
 
-  /* Наклон не подключается из JS вовсе, подъём и нажатие выключены:
-     остаётся только отклик рамкой и тенью. */
   .primary-btn,
   .language-toggle,
-  .discord-support,
   .vibe-menu-toggle {
     transition: box-shadow 0.2s ease, border-color 0.2s ease;
   }
@@ -1942,8 +1952,6 @@ button:disabled {
   .primary-btn:focus-visible,
   .language-toggle:hover,
   .language-toggle:focus-visible,
-  .discord-support:hover,
-  .discord-support:focus-visible,
   .vibe-menu-toggle:hover,
   .vibe-menu-toggle:focus-visible,
   .vibe-menu-toggle[aria-expanded="true"] {
@@ -1952,35 +1960,25 @@ button:disabled {
 
   .primary-btn:active,
   .language-toggle:active,
-  .discord-support:active,
   .vibe-menu-toggle:active {
     --press: 1;
   }
 }
 
-/* ==========================================================================
-   Кинематографический вход (cinematic entrance)
-   Изолированный декоративный слой: полный вход на первом визите, укороченный
-   — на повторных. Вид управляется атрибутом data-intro на <html> (его ставит
-   js/intro.js), анимации — только transform/opacity. Слой никогда не
-   перехватывает ввод (pointer-events: none, aria-hidden) и не влияет на
-   экраны, роутинг, i18n и звук приложения.
-   ========================================================================== */
 
 :root {
-  /* Тайминги обязаны совпадать с FULL_HOLD_MS / FULL_FADE_MS / SHORT_* в js/intro.js. */
-  --intro-full-hold: 850ms;    /* сколько держим чистое затемнение */
-  --intro-full-fade: 1150ms;   /* снятие затемнения (итого ≈ 2 c) */
+  --intro-full-hold: 850ms;     
+  --intro-full-fade: 1150ms;    
   --intro-short-hold: 40ms;
-  --intro-short-fade: 320ms;   /* укороченный вход (итого ≈ 0.36 c) */
+  --intro-short-fade: 320ms;    
 }
 
 .cinematic-intro {
   position: fixed;
   inset: 0;
-  z-index: 2147483646; /* выше контента, ниже .vibe-transition */
+  z-index: 2147483646;  
   background: #000;
-  pointer-events: none; /* никогда не блокирует клики и тач */
+  pointer-events: none;  
   opacity: 0;
   isolation: isolate;
   contain: layout style paint;
@@ -1989,9 +1987,6 @@ button:disabled {
 .cinematic-intro__bloom {
   position: absolute;
   inset: -10%;
-  /* Мягкое амбиентное свечение: рассеянный свет из верхней трети кадра.
-     Статичный radial-gradient: анимируем только opacity и transform(scale) —
-     без дорогих blur-фильтров на весь экран. */
   background: radial-gradient(
     62% 55% at 50% 32%,
     rgba(190, 205, 255, 0.5),
@@ -2006,7 +2001,6 @@ button:disabled {
 .cinematic-intro__vignette {
   position: absolute;
   inset: 0;
-  /* Насыщенная виньетка: держит края кадра в темноте, фокусируя свет в центре. */
   background: radial-gradient(
     120% 100% at 50% 42%,
     transparent 40%,
@@ -2019,9 +2013,6 @@ button:disabled {
 .cinematic-intro__grain {
   position: absolute;
   inset: 0;
-  /* Лёгкая плёночная шероховатость без растра: повторяющийся радиальный
-     микроузор, а не PNG-шум (никаких лишних сетевых запросов и больших
-     ассетов). Очень низкая прозрачность. */
   background-image:
     radial-gradient(rgba(255, 255, 255, 0.045) 0.5px, transparent 0.6px),
     radial-gradient(rgba(255, 255, 255, 0.03) 0.5px, transparent 0.6px);
@@ -2030,9 +2021,6 @@ button:disabled {
   opacity: 0;
 }
 
-/* --- Запас при сбое JS: страница не может остаться невидимой ---------------
-   Если модуль не выполнился, data-intro так и не появится — затемнение само
-   гаснет за ~1 c одним CSS, без опоры на JavaScript. */
 html:not([data-intro]) .cinematic-intro {
   animation: intro-auto-release 620ms ease-out 1000ms both;
 }
@@ -2042,7 +2030,6 @@ html:not([data-intro]) .cinematic-intro {
   to { opacity: 0; }
 }
 
-/* Нет JS и включён reduced-motion: затемнение не показываем вовсе. */
 @media (prefers-reduced-motion: reduce) {
   html:not([data-intro]) .cinematic-intro {
     animation: none;
@@ -2050,30 +2037,22 @@ html:not([data-intro]) .cinematic-intro {
   }
 }
 
-/* --- Выключенный вход ------------------------------------------------------ */
 html[data-intro="none"] .cinematic-intro {
   display: none;
 }
 
-/* --- Финальное состояние: слой выведен из отрисовки полностью ------------- */
 html[data-intro="done"] .cinematic-intro {
   animation: none;
   opacity: 0;
   display: none;
 }
 
-/* --- Сам вход: раскрытие из темноты ---------------------------------------
-   Механика: на время входа слой мгновенно уходит в чёрный (без transition —
-   никакой белой вспышки), затем js/intro.js по таймеру навешивает
-   .is-revealed, и слой гаснет уже переходом. Ускоренное завершение по
-   взаимодействию JS задаёт инлайновым transition-duration. */
 html[data-intro="full"] .cinematic-intro,
 html[data-intro="short"] .cinematic-intro {
   opacity: 1;
   will-change: opacity;
 }
 
-/* Полное затемнение входа: длительность гашения задаётся переходом ниже. */
 html[data-intro="full"] .cinematic-intro.is-revealed {
   opacity: 0;
   transition: opacity var(--intro-full-fade) var(--ease-spring);
@@ -2084,7 +2063,6 @@ html[data-intro="short"] .cinematic-intro.is-revealed {
   transition: opacity var(--intro-short-fade) var(--ease-spring);
 }
 
-/* Амбиентное свечение: расходится из точки и набирает силу. */
 html[data-intro="full"] .cinematic-intro__bloom {
   animation: intro-bloom 1900ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
@@ -2136,11 +2114,6 @@ html[data-intro="short"] .cinematic-intro__grain {
   100% { opacity: 0.22; }
 }
 
-/* --- Согласованный выход интерфейса из темноты -----------------------------
-   Существующие экраны и так появляются анимацией (hero-rise / hero-fade).
-   Пока идёт вход, растягиваем её задержки, чтобы элементы «проявлялись» уже
-   из рассеивающейся темноты, а не вспыхивали мгновенно. Правила ограничены
-   атрибутом data-intro — вне входа поведение не меняется. */
 html[data-intro="full"] #home-screen.active .hero-wrap > h1,
 html[data-intro="full"] #home-screen.active .subtitle {
   animation-duration: 900ms;
@@ -2184,20 +2157,16 @@ html[data-intro="short"] #home-screen.active .vibe-showcase {
   animation-delay: 340ms;
 }
 
-/* Мобильные: убираем лишнюю работу с большими слоями, эффект сохраняем. */
 @media (max-width: 768px) {
   .cinematic-intro__grain {
-    /* Плёночный узор на мелких экранах читается как шум — снимаем. */
     display: none;
   }
 
   .cinematic-intro__bloom {
-    /* Свет держим ближе к центру, чтобы не тянуть пиксели по краям. */
     inset: 0;
   }
 }
 
-/* --- Reduced motion: вход пропускается целиком ----------------------------- */
 @media (prefers-reduced-motion: reduce) {
   html[data-intro] .cinematic-intro {
     display: none;
@@ -2205,7 +2174,6 @@ html[data-intro="short"] #home-screen.active .vibe-showcase {
     transition: none;
   }
 
-  /* Интерфейс видим сразу, без кинематографических задержек появления. */
   html[data-intro] #home-screen.active .hero-wrap > h1,
   html[data-intro] #home-screen.active .subtitle,
   html[data-intro] #home-screen.active .primary-btn,
@@ -2216,24 +2184,11 @@ html[data-intro="short"] #home-screen.active .vibe-showcase {
   }
 }
 
-/* ===========================================================================
-   ФАЗА 2B — ДОМАШНИЙ ЭКРАН: DARK CINEMATIC + MINIMAL PREMIUM
-   Всё ниже — только дополнение. Существующие правила не удалены; точечные
-   переопределения помечены и сужены по селектору (шaпка, вторая CTA,
-   быстрый переход), чтобы не задевать остальные экраны.
-   =========================================================================== */
 
-/* --- Фон и отступ первого экрана ------------------------------------------- */
-/* background задаётся НИЖЕ (прозрачный): первый экран показывает общий канвас
-   «живого неба» — ровно тот же, что и опрос. Здесь остаётся только верхний
-   отступ (переключатель языка теперь в шапке, большой запас не нужен). */
 #home-screen {
   padding-top: clamp(20px, 2.5vh, 30px);
 }
 
-/* --- Колонка домашнего экрана --------------------------------------------- */
-/* #home-screen — flex-строка; единственный потоковый ребёнок .home-main её
-   заполняет и выстраивает контент в столбец (шапка → hero → каталог → подвал). */
 .home-main {
   position: relative;
   z-index: 2;
@@ -2244,10 +2199,9 @@ html[data-intro="short"] #home-screen.active .vibe-showcase {
   flex-direction: column;
 }
 
-/* --- Шапка: вордмарк слева, Discord справа -------------------------------- */
 .home-header {
   position: relative;
-  z-index: 4; /* выше витрины атмосфер и hero, чтобы не перекрываться ими */
+  z-index: 4;  
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -2272,19 +2226,6 @@ html[data-intro="short"] #home-screen.active .vibe-showcase {
   color: #ffffff;
 }
 
-/* Discord переехал из нижнего угла в шапку: снимаем абсолютное позиционирование
-   только внутри шапки (базовое правило .discord-support не трогаем). */
-.home-header .discord-support {
-  position: relative;
-  bottom: auto;
-  right: auto;
-  inset: auto;
-  flex: none;
-}
-
-/* --- Hero: заголовок, подзаголовок, две CTA ------------------------------- */
-/* В потоковой колонке hero больше не «плавает» по вертикали на margin:auto —
-   вместо этого получает собственные отступы, читаемые как кинематографичный кадр. */
 .home-main .hero-wrap {
   margin: 0 auto;
   padding: clamp(3.5rem, 9vh, 6rem) 1.5rem clamp(2.5rem, 7vh, 4.5rem);
@@ -2300,8 +2241,6 @@ html[data-intro="short"] #home-screen.active .vibe-showcase {
   margin-top: 0.35rem;
 }
 
-/* Вторичная CTA: «Каталог» — прозрачное стекло с тонкой рамкой.
-   Намеренно тише главной кнопки. Автономна от #start-btn (только прокрутка). */
 #home-screen .explore-btn {
   display: inline-block;
   min-height: 44px;
@@ -2337,9 +2276,6 @@ html[data-intro="short"] #home-screen.active .vibe-showcase {
   transform: translateY(-1px) scale(0.99);
 }
 
-/* ГЛАВНАЯ CTA (#start-btn): высококонтрастная брендовая кнопка с
-   сдержанным фиолетовым свечением. Поведение (слушатель + опрос)
-   не меняется — только стиль. */
 #home-screen .primary-btn {
   padding: 15px 34px;
   border: 1px solid transparent;
@@ -2364,13 +2300,7 @@ html[data-intro="short"] #home-screen.active .vibe-showcase {
     0 0 44px -14px rgba(124, 92, 255, 0.5);
 }
 
-/* Витрина атмосфер: теперь над hero есть шапка, поэтому чуть приглушаем и
-   поднимаем декоративную надпись — жизненный цикл (start/stopVibeShowcase)
-   не трогаем, меняется только подача. */
 #home-screen .vibe-showcase {
-  /* Держим декоративную надпись в зазоре между шапкой и заголовком: слой
-     лежит под контентом (z-index:1 против .home-main:2), поэтому даже при
-     близком соседстве читается как мягкий водяной знак, а не мешает hero. */
   top: clamp(116px, 14vh, 168px);
 }
 
@@ -2378,9 +2308,6 @@ html[data-intro="short"] #home-screen.active .vibe-showcase {
   color: rgba(255, 255, 255, 0.3);
 }
 
-/* --- Каталог атмосфер: ультра-минимальный список -------------------------- */
-/* Никаких карточек, панелей, плиток и рамок: только названия вайбов, набранные
-   прямо на фоне. Иерархию задают типографика, выравнивание и зазоры. */
 .vibe-catalog {
   position: relative;
   z-index: 2;
@@ -2406,8 +2333,6 @@ html[data-intro="short"] #home-screen.active .vibe-showcase {
   color: var(--label-primary);
 }
 
-/* Сетка 2 колонки на мобильных, шире на десктопе. Одна разметка для всех
-   экранов: адаптацию даёт только CSS. */
 .vibe-list {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2426,9 +2351,6 @@ html[data-intro="short"] #home-screen.active .vibe-showcase {
   }
 }
 
-/* Пункт списка — практически чистый текст. 34–46px высоты на мобильных,
-   тач-цель не меньше 44px там, где это возможно. Длинные русские/английские
-   названия переносятся естественно, без обрезки и горизонтального оверфлоу. */
 .vibe-link {
   display: flex;
   align-items: center;
@@ -2439,27 +2361,22 @@ html[data-intro="short"] #home-screen.active .vibe-showcase {
   background: none;
   box-shadow: none;
   font: inherit;
-  font-weight: 500;
+  font-weight: 400;
   font-size: clamp(0.9rem, 1.1vw + 0.7rem, 1.05rem);
   line-height: 1.25;
   letter-spacing: -0.01em;
   color: var(--label-secondary);
+  opacity: 0.6;
   text-align: start;
   overflow-wrap: anywhere;
   cursor: pointer;
-  /* Долгое касание на телефоне подкрашивает фон в цвет вайба (см. initVibeHover
-     в js/app.js). Отключаем выделение текста и «залипающий» :active: удержание
-     не должно подсвечивать название как выделенный текст. Обычный тап и
-     прокрутка списка при этом не затрагиваются. */
   -webkit-user-select: none;
   user-select: none;
   -webkit-touch-callout: none;
   -webkit-tap-highlight-color: transparent;
-  /* Единственный отклик — короткая смена цвета текста. Без движения и свечения. */
   transition: color 180ms ease;
 }
 
-/* Слегка тише заголовка в покое, но читаемо; аккуратный отклик на hover/press. */
 .vibe-link:hover,
 .vibe-link:active {
   color: var(--label-primary);
@@ -2471,16 +2388,10 @@ html[data-intro="short"] #home-screen.active .vibe-showcase {
   color: var(--label-primary);
 }
 
-/* --- Быстрый кинематографический переход при открытии вайба --------------- */
-/* Переиспользуем существующий #vibe-transition, но с короткой длительностью
-   для прямого открытия из каталога (без 4-секундной «сцены создания»). */
 .vibe-transition.is-quick {
   transition-duration: 280ms;
 }
 
-/* --- Вход: шапка, CTA-блок, каталог и подвал в общем ступенчатом раскрытии -
-   Переиспользуем существующие hero-rise / hero-fade. Анимируем КОНТЕЙНЕРЫ
-   (opacity/небольшой сдвиг), поэтому hover-трансформы карточек не блокируются. */
 #home-screen.active .home-header {
   animation: hero-fade 700ms var(--ease-spring) both;
 }
@@ -2498,10 +2409,6 @@ html[data-intro="short"] #home-screen.active .vibe-showcase {
   animation-delay: 320ms;
 }
 
-/* Внутри .hero-actions анимацию ведёт контейнер — собственную анимацию кнопки
-   отключаем, чтобы не было двойного проявления. Селектор намеренно длиннее
-   существующих html[data-intro="full"|"short"] #home-screen.active .primary-btn
-   (задержки 1050ms / 300ms), иначе #start-btn проявился бы дважды. */
 #home-screen.active .hero-actions .primary-btn,
 html[data-intro] #home-screen.active .hero-actions .primary-btn {
   animation: none;
@@ -2513,7 +2420,6 @@ html[data-intro] #home-screen.active .hero-actions .primary-btn {
 }
 
 
-/* Полный вход (~2 c): темнота → свечение → вордмарк → заголовок → CTA и карточки */
 html[data-intro="full"] #home-screen.active .home-header {
   animation-duration: 900ms;
   animation-delay: 560ms;
@@ -2539,7 +2445,6 @@ html[data-intro="full"] #home-screen.active .vibe-catalog {
   animation-delay: 1120ms;
 }
 
-/* Повторный вход (~0.4 c) */
 html[data-intro="short"] #home-screen.active .home-header {
   animation-duration: 280ms;
   animation-delay: 0ms;
@@ -2578,7 +2483,6 @@ html[data-intro="short"] #home-screen.active .vibe-catalog {
   }
 }
 
-/* --- Reduced motion: новое содержимое появляется без движения -------------- */
 @media (prefers-reduced-motion: reduce) {
   html[data-intro] #home-screen.active .home-header,
   html[data-intro] #home-screen.active .hero-actions,
@@ -2601,15 +2505,7 @@ html[data-intro="short"] #home-screen.active .vibe-catalog {
   }
 }
 
-/* ===========================================================================
-   ФАЗА 2B-REFINE — ИДЕНТИЧНОСТЬ БРЕНДА И ХАРАКТЕР КАРТОЧЕК
-   Дополнение к ФАЗЕ 2B. Правки точечные и сужены по селектору; данные тем
-   берутся из уже существующих --card-accent* (VIBE_CARD_ACCENTS), новых
-   ассетов и зависимостей нет. Ничего в поведении не меняется.
-   =========================================================================== */
 
-/* --- Шапка: между вордмарком и Discord появляется тонкая линия --------------
-   Служебная линия, никогда не попадает под палец/курсор. */
 .home-header::before {
   content: "";
   position: absolute;
@@ -2620,7 +2516,6 @@ html[data-intro="short"] #home-screen.active .vibe-catalog {
   pointer-events: none;
 }
 
-/* --- Логотип-локап: метка + вордмарк -------------------------------------- */
 .home-wordmark {
   display: inline-flex;
   align-items: center;
@@ -2631,24 +2526,17 @@ html[data-intro="short"] #home-screen.active .vibe-catalog {
   line-height: 1;
 }
 
-/* Планета .home-wordmark__mark удалена из разметки: все её стили убраны.
-   Единственное оставшееся правило — страховка ниже. */
 
 .home-wordmark__text {
   color: #ffffff;
-  /* Вторая половина имени идёт в фиолетово-лавандовом оттенке — тихий
-     премиальный акцент, не мешающий читаемости. */
   text-shadow: 0 0 26px rgba(124, 92, 255, 0.28);
 }
 
-/* --- Hero-композиция: направленный свет и градиентный заголовок ------------ */
 .home-main .hero-wrap {
   position: relative;
   padding-top: clamp(3.8rem, 10vh, 6.4rem);
 }
 
-/* Градиентный заголовок: от почти белого к лавандовому — «кинематографичный»
-   свет по буквам, без заливки всего текста цветом. */
 .home-main .hero-wrap > h1 {
   background: linear-gradient(180deg, #ffffff 0%, #e3ddfb 58%, #b9a9ec 116%);
   -webkit-background-clip: text;
@@ -2658,7 +2546,6 @@ html[data-intro="short"] #home-screen.active .vibe-catalog {
   text-shadow: 0 0 60px rgba(124, 92, 255, 0.22);
 }
 
-/* Фолбэк: браузеры без background-clip:text показывают сплошной белый. */
 @supports not ((-webkit-background-clip: text) or (background-clip: text)) {
   .home-main .hero-wrap > h1 {
     color: var(--label-primary);
@@ -2671,14 +2558,12 @@ html[data-intro="short"] #home-screen.active .vibe-catalog {
   letter-spacing: 0.015em;
 }
 
-/* --- Вторичная CTA («Каталог»): стекло остаётся тихим ---------------------- */
 #home-screen .explore-btn {
   background: rgba(255, 255, 255, 0.035);
   border-color: rgba(255, 255, 255, 0.2);
   box-shadow: var(--inset-highlight);
 }
 
-/* --- Главная CTA («Поиск»): брендовый белый + сдержанное свечение ---------- */
 #home-screen .primary-btn {
   border-color: transparent;
   background: linear-gradient(180deg, #ffffff, #dcdde2);
@@ -2689,15 +2574,7 @@ html[data-intro="short"] #home-screen.active .vibe-catalog {
     0 0 34px -16px rgba(124, 92, 255, 0.38);
 }
 
-/* ===========================================================================
-   УТОЧНЁННЫЕ МИКРОВЗАИМОДЕЙСТВИЯ ПЕРВОГО ЭКРАНА
-   Амбиентный фон удалён: его размытые «дыхащие» пятна и виньетка
-   давали искусственное свечение поверх общего космоса и делали первый экран
-   светлее опроса. Теперь первый экран показывает тот же звёздный канвас, что и
-   опрос (см. js/sky.js), поэтому фон остаётся глубоко чёрным и непрерывным.
-   =========================================================================== */
 
-/* --- Кнопки: уточнённые pressed-состояния --------------------------------- */
 #home-screen .explore-btn:active {
   transform: translateY(-1px) scale(0.985);
   background: rgba(255, 255, 255, 0.1);
@@ -2705,21 +2582,17 @@ html[data-intro="short"] #home-screen.active .vibe-catalog {
 }
 
 #home-screen .primary-btn:active {
-  /* --press уже даёт просадку через составной transform; усиливаем тень. */
   box-shadow:
     0 8px 20px -16px rgba(0, 0, 0, 0.95),
     0 0 0 1px rgba(255, 255, 255, 0.05),
     0 0 26px -18px rgba(124, 92, 255, 0.34);
 }
 
-/* Кнопки: 2px — почти прямоугольник, читается как «интерфейс», не «пилюля». */
 #home-screen .explore-btn,
 #home-screen .primary-btn {
   border-radius: 2px;
 }
 
-/* --- 3. ТИПОГРАФИКА И ИЕРАРХИЯ --------------------------------------------- */
-/* Вордмарк: плотнее и весомее, метка — ромб (чертёжная, не «планета»). */
 .home-wordmark {
   font-weight: 800;
   letter-spacing: -0.03em;
@@ -2729,8 +2602,6 @@ html[data-intro="short"] #home-screen.active .vibe-catalog {
   text-shadow: none;
 }
 
-/* Заголовок: плотнее по трекингу, направленнее; градиент снят — типографика
-   держит экран сама, без «подсветки текста». */
 .home-main .hero-wrap > h1 {
   background: none;
   -webkit-background-clip: border-box;
@@ -2749,8 +2620,6 @@ html[data-intro="short"] #home-screen.active .vibe-catalog {
   color: var(--label-secondary);
 }
 
-/* --- 4. CTA: главная — плотный брендовый прямоугольник; вторая — текст ------ */
-/* #start-btn: высокий контраст, без ореола; поведение и ID не тронуты. */
 #home-screen .primary-btn {
   padding: 16px 34px;
   border-radius: 2px;
@@ -2772,8 +2641,6 @@ html[data-intro="short"] #home-screen.active .vibe-catalog {
   box-shadow: none;
 }
 
-/* «Каталог»: не кнопка-коробка, а текстовое действие с подчёркиванием —
-   так иерархия очевидна и интерфейс перестаёт быть «набором пилюль». */
 #home-screen .explore-btn {
   border: 0;
   border-radius: 0;
@@ -2811,13 +2678,7 @@ html[data-intro="short"] #home-screen.active .vibe-catalog {
   opacity: 0.7;
 }
 
-/* --- 6. ВХОД: бренд → заголовок → CTA/каталог ------------------------------ */
-/* Затемнение #cinematic-intro само гаснет силами CSS, а космический фон теперь
-   общий и живёт непрерывно — отдельная анимация его появления (ambientIn)
-   больше не нужна. */
 
-/* Заголовок и подзаголовок получают более выраженный подъём, чем прежние 14px:
-   на плотной типографике это читается как «кадр проявляется». */
 @keyframes hero-rise-strong {
   from { opacity: 0; transform: translateY(26px); clip-path: inset(0 0 45% 0); }
   to { opacity: 1; transform: translateY(0); clip-path: inset(0 0 0 0); }
@@ -2840,15 +2701,7 @@ html[data-intro="full"] #home-screen.active .subtitle { animation-delay: 880ms; 
 html[data-intro="short"] #home-screen.active .hero-wrap > h1 { animation-delay: 60ms; }
 html[data-intro="short"] #home-screen.active .subtitle { animation-delay: 130ms; }
 
-/* УДАЛЕНО (T3-ФИКС): блок @supports (animation-timeline: view()) намеренно убран.
-   Он ЗАМЕНЯЛ входную анимацию карточек (#home-screen.active .vibe-card) на
-   scroll-driven таймлайн. У карточек верхней композиции (крупная + боковые),
-   которые уже находятся в начальном вьюпорте, диапазон entry/cover «прокручен»,
-   поэтому @keyframes cardScrollFade залипал в кадре from (opacity: 0) —
-   карточки выглядели невидимыми/статичными, и вход пропадал. Именно это и
-   давало эффект «анимации не работают». Ниже — надёжный вход без scroll-timeline. */
 
-/* --- 9. МОБИЛЬНЫЕ: крупная типографика заголовка --------------------------- */
 @media (max-width: 640px) {
   .home-main .hero-wrap > h1 {
     font-size: clamp(2.4rem, 11vw, 3.4rem);
@@ -2856,11 +2709,6 @@ html[data-intro="short"] #home-screen.active .subtitle { animation-delay: 130ms;
   }
 }
 
-#home-screen .home-header .discord-support {
-  border-radius: 10px;
-}
-
-/* --- 4. Главная CTA: плотный белый контрол с мягкой тенью ------------------ */
 #home-screen .primary-btn {
   border-radius: 10px;
   box-shadow: 0 14px 30px -20px rgba(0, 0, 0, 0.9);
@@ -2871,7 +2719,6 @@ html[data-intro="short"] #home-screen.active .subtitle { animation-delay: 130ms;
   box-shadow: 0 20px 40px -22px rgba(0, 0, 0, 0.95), 0 0 0 1px rgba(255, 255, 255, 0.35);
 }
 
-/* --- 5. Вторичное действие: текстовая ссылка со спокойным ритмом ----------- */
 #home-screen .explore-btn {
   border-radius: 8px;
   padding: 12px 14px;
@@ -2882,7 +2729,6 @@ html[data-intro="short"] #home-screen.active .subtitle { animation-delay: 130ms;
   outline-offset: 2px;
 }
 
-/* --- 8. Композиция каталога: больше воздуха, ясная иерархия ----------------- */
 #home-screen .vibe-catalog {
   gap: clamp(1.4rem, 3vw, 2rem);
 }
@@ -2891,31 +2737,17 @@ html[data-intro="short"] #home-screen.active .subtitle { animation-delay: 130ms;
   gap: 0.55rem;
 }
 
-/* --- 9. Reduced motion не меняем: правки статичны (радиусы/тени) ----------- */
 
-/* ===========================================================================
-   МОНОХРОМНАЯ АРТ-ДИРЕКЦИЯ ДОМАШНЕГО ЭКРАНА
-   Единая чёрно-белая палитра: уголь/графит для поверхностей, белый для
-   типографики, серебро для линий и света. Убираем фиолетовый, синий, циан,
-   розовый и цветные фоны 14 карточек — при этом каждая карточка сохраняет
-   СВОЮ текстуру (звёзды, дождь, круги, сетка), только в градациях серого.
-   Палитра задаётся токенами и переиспользуется по всему экрану.
-   =========================================================================== */
 #home-screen {
-  --mono-text: #f2f3f5;                  /* основной текст */
+  --mono-text: #f2f3f5;                   
   --mono-muted: rgba(255, 255, 255, 0.52);
 }
 
-/* --- 1. Фон: прозрачный — общий звёздный канвас, как в опросе --------------- */
-/* Раньше здесь лежали серые радиалы поверх почти чёрного фона: они делали
-   первый экран светлее опроса. Теперь фон прозрачен, его держит .sky-canvas. */
 #home-screen {
   background: transparent;
 }
 
-/* --- 2. Амбиентные слои удалены (источник искусственного свечения) --------- */
 
-/* --- 3. Шапка и бренд-метка: белое серебро --------------------------------- */
 #home-screen .home-header::before {
   background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.12) 22%, rgba(255, 255, 255, 0.12) 78%, transparent);
 }
@@ -2925,7 +2757,6 @@ html[data-intro="short"] #home-screen.active .subtitle { animation-delay: 130ms;
   text-shadow: 0 0 26px rgba(255, 255, 255, 0.12);
 }
 
-/* --- 4. Hero: белая типографика без цветного ореола ------------------------ */
 .home-main .hero-wrap > h1 {
   color: var(--mono-text);
   text-shadow: 0 0 64px rgba(255, 255, 255, 0.07);
@@ -2935,7 +2766,6 @@ html[data-intro="short"] #home-screen.active .subtitle { animation-delay: 130ms;
   color: var(--mono-muted);
 }
 
-/* --- 5. CTA: чистая иерархия белый/серебро --------------------------------- */
 #home-screen .primary-btn {
   background: #ffffff;
   color: #0a0a0c;
@@ -2961,64 +2791,23 @@ html[data-intro="short"] #home-screen.active .subtitle { animation-delay: 130ms;
   color: #ffffff;
 }
 
-/* --- 6. Каталог: заголовки в нейтрали -------------------------------------- */
 #home-screen .catalog-title {
   color: var(--mono-text);
 }
 
-/* ===========================================================================
-   ЖИВОЕ НОЧНОЕ НЕБО — канвас-слой первого экрана
-   Рисуется в js/sky.js. Лежит под контентом, не перехватывает события.
-   Порядок слоёв (исправлено): фон 0 → небо 1 → контент 2.
-   position: fixed — небо не едет при прокрутке; виден только на первом экране.
-   =========================================================================== */
 
-/* Контент обязан быть ВЫШЕ неба: иначе fixed-канвас (z-index:1) перекрыл бы
-   заголовок и карточки. Явный слой 2 убирает любую двусмысленность. */
 .home-header,
 .home-main .hero-wrap,
 #home-screen .vibe-catalog {
   position: relative;
   z-index: 2;
 }
-/* ВАЖНО: .screen.active задаёт transform: translateY(0), а transform у предка
-   делает position: fixed потомка «абсолютным» — небо не держалось бы вьюпорта.
-   Для первого экрана transform нейтрализуем (значение покоя то же —
-   translateY(0) ≡ none), поэтому канвас снова привязан к вьюпорту. */
 #home-screen.active {
   transform: none;
 }
 
-/* ===========================================================================
-   УТОЧНЕНИЕ UI: КОМПАКТНЫЕ КАРТОЧКИ, БЕЗ СТРЕЛОК, ЛОГОТИП, ШАПКА
-   Точечные правки поверх существующего дизайна. Палитра, типографика,
-   анимации фона и общая геометрия не меняются.
-   =========================================================================== */
 
-/* --- 1. Планета удалена --------------------------------------------------
-   .home-wordmark__mark (круг-«атмосфера» с орбитой) полностью убран из
-   разметки по требованию: слева от вордмарка больше нет иконки.
-   Правила оставлены как страховка для кэшированной разметки. */
-.home-wordmark__mark {
-  display: none !important;
-}
-
-/* --- 2. Шапка: правый блок с языком и Discord рядом ------------------------ */
-.home-header__controls {
-  position: relative; /* точка отсчёта для выпадающего списка языков */
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex: none;
-}
-
-/* --- Бренд: вордмарк + оригинальный логотип IT.Москва --------------------- */
-/* Бренд-лок: VibeFinder — ведущий элемент, IT.Москва — небольшое дополнение
-   справа. Оба центрируются по строке (flex + align-items: center), поэтому
-   центры букв совпадают, а размеры соотносятся пропорционально. */
 .home-brand {
-  /* Единый размер бренда: от него считается и вордмарк, и логотип, поэтому
-     соотношение сохраняется на всех экранах. */
   --brand-size: clamp(1.3rem, 3vw, 1.7rem);
   display: flex;
   align-items: center;
@@ -3026,9 +2815,6 @@ html[data-intro="short"] #home-screen.active .subtitle { animation-delay: 130ms;
   min-width: 0;
 }
 
-/* --- VibeFinder: ведущий бренд, крупнее и плотнее --------------------------
-   Вес 700 — реально доступный у Space Grotesk (прежние 750/800 браузер
-   синтезировал), поэтому буквы выглядят чётко, без «жирных» артефактов. */
 .home-brand .home-wordmark {
   font-size: var(--brand-size);
   font-weight: var(--weight-bold);
@@ -3038,12 +2824,6 @@ html[data-intro="short"] #home-screen.active .subtitle { animation-delay: 130ms;
   min-width: 0;
 }
 
-/* --- IT.Москва: маленький вторичный знак, ~38% от кегля вордмарка ----------
-   Высота привязана к --brand-size (а НЕ к унаследованному font-size img,
-   иначе em считался бы от 16px). Ассет обрезан по буквам и отрендерен в 4x
-   (464×58, пропорции ровно 8.000): даже уменьшенный до ~10px он остаётся
-   резким, потому что исходник вчетверо крупнее отображаемого размера.
-   Никаких фильтров, рамок, подложек и изменения прозрачности. */
 .home-brand__logo {
   display: block;
   height: calc(var(--brand-size) * 0.38);
@@ -3063,48 +2843,6 @@ html[data-intro="short"] #home-screen.active .subtitle { animation-delay: 130ms;
   }
 }
 
-/* Переключатель языка теперь внутри шапки: снимаем fixed-позиционирование.
-   Именно оно заставляло контрол «висеть» на экране и ехать при прокрутке. */
-.home-header .language-switcher {
-  position: static;
-  top: auto;
-  left: auto;
-  inset: auto;
-  z-index: auto;
-  align-items: center;
-  gap: 0.45rem;
-}
-
-/* Список языков раскрывается под кнопкой, выровнен по правому краю блока.
-   .home-header__controls уже имеет position: relative (см. выше) — он и
-   служит точкой отсчёта, поэтому список не «улетает» при прокрутке. */
-.home-header .language-options {
-  position: absolute;
-  top: calc(100% + 0.45rem);
-  inset-inline-end: 0;
-  z-index: 12;
-}
-
-/* Переключатель и Discord в шапке — одного размера и стиля. */
-.home-header .language-toggle {
-  min-width: 36px;
-  min-height: 36px;
-}
-
-/* --- 3. Переключатель языка — только на главной ---------------------------- */
-/* Видимость управляется существующим механизмом экранов:
-   .page-shell[data-active-screen] уже проставляется в showScreen(). */
-.language-switcher[data-home-only] {
-  display: none;
-}
-
-.page-shell[data-active-screen="home"] .language-switcher[data-home-only] {
-  display: flex;
-}
-
-/* --- 6. Заголовок «Атмосферы» без описания: компактный ритм ---------------- */
-/* Описание удалено из разметки; уменьшаем отступ снизу, чтобы заголовок и
-   карточки читались как одна композиция. */
 #home-screen .catalog-head {
   gap: 0;
 }
@@ -3118,23 +2856,11 @@ html[data-intro="short"] #home-screen.active .subtitle { animation-delay: 130ms;
   letter-spacing: -0.02em;
 }
 
-/* ===========================================================================
-   ТИПОГРАФИЧЕСКАЯ СИСТЕМА VIBEFINDER
-   Единый стек (--font-sans): Space Grotesk → Manrope → системные CJK/Arabic.
-   Space Grotesk применяется первым и перекрывает только латиницу; кириллица
-   автоматически уходит в Manrope, CJK и арабский — в системные шрифты.
-   Правила ниже задают ТОЛЬКО шрифт, вес и (для RTL) трекинг. Размеры,
-   межстрочные интервалы, отступы и геометрия не меняются.
-   =========================================================================== */
 
-/* Наследование шрифта для всех интерактивных элементов и форм. */
 button, input, select, textarea {
   font-family: inherit;
 }
 
-/* --- Заголовки: Space Grotesk 700 (латиница), Manrope 700 (кириллица) ------ */
-/* .survey-question намеренно вне этой группы: у него собственный вес 600
-   (вопрос — фокус экрана, но не «плакат»), а семейство и так наследуется. */
 .home-main .hero-wrap > h1,
 #catalog-title,
 .catalog-title,
@@ -3146,18 +2872,15 @@ button, input, select, textarea {
   font-weight: var(--weight-bold);
 }
 
-/* Крупный заголовок первого экрана — самый тяжелый акцент на странице. */
 .home-main .hero-wrap > h1 {
-  font-weight: 700; /* было 800: Space Grotesk не имеет 800, не даём синтетику */
+  font-weight: 700;  
 }
 
-/* Служебные надписи (ТВОЙ ВАЙБ, МОЙ ВАЙБ СЕГОДНЯ) — плотнее, но тише. */
 .theme-tag,
 .share-kicker {
   font-weight: var(--weight-semibold);
 }
 
-/* --- Кнопки: 600 (для белой CTA — 700, она главная) ------------------------ */
 #home-screen .primary-btn,
 #home-screen .explore-btn,
 .share-button,
@@ -3174,10 +2897,9 @@ button, input, select, textarea {
 .vibe-menu button,
 .language-toggle,
 .language-options button {
-  font-weight: var(--weight-semibold); /* компактные подписи читаются плотнее */
+  font-weight: var(--weight-semibold);  
 }
 
-/* --- Основной текст и описания: 400 --------------------------------------- */
 .subtitle,
 .vibe-description-wrap,
 .share-invitation,
@@ -3188,28 +2910,31 @@ button, input, select, textarea {
 }
 
 .option-btn {
-  font-weight: var(--weight-body); /* длинные варианты ответа — не жирним */
+  font-weight: var(--weight-body);  
 }
 
-/* --- Вордмарк: 700 (было 800/750 — синтетическая жирность) ----------------- */
+html[lang="ru"] .subtitle,
+html[lang="ru"] .vibe-description-wrap,
+html[lang="ru"] .share-invitation,
+html[lang="ru"] .option-btn,
+html[lang="ru"] .share-feedback {
+  font-weight: var(--weight-medium);
+}
+
+html[lang="ru"] .vibe-link {
+  font-weight: var(--weight-semibold);
+}
+
 .home-wordmark,
 .home-wordmark__text {
   font-family: var(--font-display);
   font-weight: var(--weight-bold);
 }
 
-/* --- Скрипт-шрифты (рукописные) ------------------------------------------- */
-.cursive-brand-text {
-  font-family: var(--font-script-latin); /* латинская бренд-надпись перехода */
-}
-
 .vibe-showcase__name {
-  /* Витрина показывает названия тем то на латинице, то на кириллице,
-     поэтому стек двойной: Alex Brush (лат.) → Marck Script (кир.). */
   font-family: var(--font-script-latin);
 }
 
-/* --- Monospace: сохраняем функциональное назначение ------------------------ */
 #vibe-screen[data-vibe="retro"],
 body.theme-retro #share-screen,
 #tetris-canvas {
@@ -3218,71 +2943,60 @@ body.theme-retro #share-screen,
 
 #vibe-screen[data-vibe="retro"],
 body.theme-retro #share-screen {
-  font-family: var(--font-mono); /* ретро-вайб и его экран шаринга */
+  font-family: var(--font-mono);  
 }
 
-/* ---------------------------------------------------------------------------
-   ЖИВОЕ НОЧНОЕ НЕБО — ОБЩИЙ неподвижный канвас-слой приложения
-   (правила ниже относятся к фону, не к типографике)
-   --------------------------------------------------------------------------- */
 .sky-canvas {
   position: fixed;
   inset: 0;
-  z-index: 1; /* НАД амбиентом первого экрана (z-index:0), ПОД его контентом
-                 (z-index:2). Канвас — прямой ребёнок .page-shell и НЕ является
-                 потомком экранов, поэтому свайп-переход его не двигает. */
+  z-index: 1;  
   display: block;
   width: 100%;
   height: 100%;
   pointer-events: none;
-  /* Полная непрозрачность канваса: звёзды должны читаться. Раньше 0.92
-     дополнительно гасило и без того слабые точки. */
   opacity: 1;
 }
 
-/* Слой нужен только там, где он виден: первый экран и опрос (атмосфера
-   непрерывна между ними). На прочих экранах канвас полностью убираем из
-   отрисовки — ноль фоновой работы, как и прежде. */
-.page-shell:not([data-active-screen="home"]):not([data-active-screen="survey"]) .sky-canvas {
+.page-shell:not([data-active-screen="home"]):not([data-active-screen="survey"]):not([data-active-screen="creation"]):not(.is-revealing) .sky-canvas {
   display: none;
 }
 
-/* Для устройств без точного указателя небо чуть спокойнее (по плотности,
-   но НЕ по яркости — иначе звёзды снова пропадают). */
 @media (hover: none) {
   .sky-canvas {
     opacity: 1;
   }
 }
 
-/* Reduced motion: статичный кадр, без анимационного цикла (рисует сам модуль). */
+.page-shell.is-revealing .sky-canvas {
+  transition: opacity 560ms linear;
+}
+
+.page-shell.is-revealing.is-reveal-end .sky-canvas {
+  opacity: 0;
+}
+
+.page-shell.is-revealing #vibe-screen {
+  z-index: 2;  
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-shell.is-revealing .sky-canvas {
+    transition-duration: 0.01ms;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .sky-canvas {
     opacity: 1;
   }
 }
 
-/* ===========================================================================
-   ЯВНЫЙ OVERRIDE АНИМАЦИЙ — html[data-motion="force"]
-   Ставится скриптом в <head> по параметру ?motion=on (см. index.html).
-
-   ЗАЧЕМ: в Windows с выключенными «Эффектами анимации» (MinAnimate = 0)
-   браузер сообщает prefers-reduced-motion: reduce, и VibeFinder НАМЕРЕННО
-   показывает статичную подачу — это корректное поведение доступности, но для
-   разработки и проверки нужно уметь включить движение.
-
-   ВАЖНО: блок стоит В САМОМ КОНЦЕ файла и использует !important, поэтому
-   перебивает все @media (prefers-reduced-motion: reduce) выше. Без атрибута
-   data-motion="force" НИ ОДНО правило здесь не применяется.
-   =========================================================================== */
 
 html[data-motion="force"] {
-  /* Возвращаем кинематографический вход целиком. */
   .cinematic-intro {
     display: block !important;
   }
 
-  /* Вход первого экрана: заголовок, подзаголовок, CTA, каталог, шапка, подвал. */
   #home-screen.active .hero-wrap > h1 {
     animation: hero-rise-strong 900ms var(--ease-spring) 60ms both !important;
     opacity: 1;
@@ -3318,24 +3032,12 @@ html[data-motion="force"] {
   }
 }
 
-/* ===========================================================================
-   ЦВЕТОВОЙ ОТКЛИК КОСМИЧЕСКОГО ФОНА + РЕЖИМ ПРОИЗВОДИТЕЛЬНОСТИ + РЕКОМЕНДАЦИЯ
-   =========================================================================== */
 
-/* --- Слой цветового отклика фона -------------------------------------------
-   Лежит ПОД частицами (z-index:0 против z-index:1 у .sky-canvas), поэтому
-   звёзды/частицы НЕ перекрашиваются и их система не меняется. Цвет задаёт
-   --vibe-tint (пишет js/app.js над именем вайба); смена — коротким CSS-переходом,
-   поэтому переход между именами перетекает из цвета в цвет без вспышки чёрного. */
 .home-tint {
   position: absolute;
   inset: 0;
   z-index: 0;
   pointer-events: none;
-  /* Плоский низкоальфовый цвет: background-color АНИМИРУЕТСЯ (в отличие от
-     градиента), поэтому переход между именами перетекает плавно, без вспышки.
-     Оттенок лежит ПОД звёздным канвасом, поэтому космос остаётся тёмным и
-     непрерывным — как в опросе. */
   background-color: var(--vibe-tint, transparent);
   transition: background-color 320ms ease;
 }

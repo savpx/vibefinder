@@ -1,10 +1,3 @@
-// VibeFinder — «Живое ночное небо»: автономный фоновый слой первого экрана.
-//
-// Полностью изолированный модуль на Canvas 2D. Он не знает про роутинг, данные,
-// i18n, звук и опрос. Его задача — рисовать непрерывно живущий фон: звёздное
-// поле, редкие атмосферные частицы и далёкий холодный свет. Ничего не перехватывает
-// (canvas имеет pointer-events: none), работает только пока первый экран активен и
-// страница видима, и корректно останавливается при уходе/скрытии.
 
 let canvas = null;
 let ctx = null;
@@ -19,6 +12,8 @@ let height = 0;
 let stars = [];
 let particles = [];
 let lights = [];
+let lightSprites = null;
+const LIGHT_SPRITE_SIZE = 256;
 
 let lastTime = 0;
 let reduceQuery = null;
@@ -34,7 +29,6 @@ function rand(min, max) {
 }
 
 function prefersReduce() {
-  // Учитываем явный override (?motion=on|off → data-motion на <html>).
   const forced = document.documentElement.dataset.motion;
   if (forced === 'force') return false;
   if (forced === 'off') return true;
@@ -42,16 +36,13 @@ function prefersReduce() {
     && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
-// Монохром: только градации белого/серебра — без цветных оттенков.
 function starTint() {
   const roll = Math.random();
-  if (roll < 0.9) return 'rgba(255, 255, 255, 1)'; // белые
-  if (roll < 0.97) return 'rgba(200, 204, 212, 1)'; // серебристые
-  return 'rgba(150, 155, 164, 1)'; // графитовые (самые тусклые)
+  if (roll < 0.9) return 'rgba(255, 255, 255, 1)'; 
+  if (roll < 0.97) return 'rgba(200, 204, 212, 1)'; 
+  return 'rgba(150, 155, 164, 1)'; 
 }
 
-// Состав звёзд и частиц пересоздаётся при каждом изменении размеров, чтобы
-// плотность всегда соответствовала площади экрана.
 function seed() {
   const area = Math.max(width * height, 1);
 
@@ -60,23 +51,18 @@ function seed() {
   );
   stars = new Array(starCount);
   for (let i = 0; i < starCount; i += 1) {
-    const depth = rand(0.32, 1); // глубина: влияет на размер, яркость, скорость
-    const bright = Math.random() < 0.06; // считанные крупные звёзды
+    const depth = rand(0.32, 1); 
+    const bright = Math.random() < 0.06; 
     stars[i] = {
       x: Math.random() * width,
       y: Math.random() * height,
-      // Радиус поднят: при 1× DPR прежние 0.3–0.9px давали субпиксельные искры,
-      // которые глаз читал как «ничего не движется». Теперь 0.6–1.9px (+крупные).
       radius: (bright ? rand(1.8, 2.6) : rand(0.8, 1.7)) * (0.8 + depth * 0.5),
       baseAlpha: rand(0.6, 1) * (0.75 + depth * 0.35),
-      // Дрейф чуть быстрее: движение должно читаться за считанные секунды.
       vx: rand(-2.4, 2.4) * depth,
       vy: rand(-9, -2.4) * depth,
-      // Разный боковой «качок» — у каждого звезда своя фаза и амплитуда.
       swayX: rand(0.15, 0.75) * depth,
       phase: Math.random() * Math.PI * 2,
       swaySpeed: rand(0.08, 0.22),
-      // Мерцает лишь часть звёзд, каждая — со своим интервалом.
       twinkle: Math.random() < 0.45,
       twinkleSpeed: rand(0.35, 1.15),
       tint: starTint(),
@@ -100,12 +86,33 @@ function seed() {
     };
   }
 
-  // Далёкий свет: одна-две очень мягкие зоны холодного сине-фиолетового свечения.
   const base = Math.max(width, height);
   lights = [
     { x: width * 0.24, y: height * 0.26, radius: base * 0.52, color: '255, 255, 255', speed: 0.045, phase: 0 },
     { x: width * 0.79, y: height * 0.16, radius: base * 0.44, color: '200, 204, 212', speed: 0.031, phase: 2.1 },
   ];
+  buildLightSprites();
+}
+
+function buildLightSprites() {
+  if (typeof document === 'undefined' || typeof document.createElement !== 'function') {
+    lightSprites = null;
+    return;
+  }
+  lightSprites = lights.map((L) => {
+    const sprite = document.createElement('canvas');
+    sprite.width = LIGHT_SPRITE_SIZE;
+    sprite.height = LIGHT_SPRITE_SIZE;
+    const sctx = sprite.getContext('2d');
+    if (!sctx) return null;
+    const center = LIGHT_SPRITE_SIZE / 2;
+    const grad = sctx.createRadialGradient(center, center, 0, center, center, center);
+    grad.addColorStop(0, `rgba(${L.color}, 1)`);
+    grad.addColorStop(1, `rgba(${L.color}, 0)`);
+    sctx.fillStyle = grad;
+    sctx.fillRect(0, 0, LIGHT_SPRITE_SIZE, LIGHT_SPRITE_SIZE);
+    return sprite;
+  });
 }
 
 function wrap(p) {
@@ -120,22 +127,19 @@ function draw(dt, time) {
   if (!ctx) return;
   ctx.clearRect(0, 0, width, height);
 
-  // Слой 3 — далёкий атмосферный свет: положение и интенсивность медленно живут.
   for (let i = 0; i < lights.length; i += 1) {
+    const sprite = lightSprites ? lightSprites[i] : null;
+    if (!sprite) continue;
     const L = lights[i];
     const sway = Math.sin(time * L.speed + L.phase) * 0.5 + 0.5;
     const lx = L.x + Math.cos(time * L.speed * 0.7 + L.phase) * width * 0.05;
     const ly = L.y + Math.sin(time * L.speed * 0.9 + L.phase) * height * 0.04;
     const radius = L.radius * (0.92 + sway * 0.16);
     const alpha = 0.04 + sway * 0.045;
-    const grad = ctx.createRadialGradient(lx, ly, 0, lx, ly, radius);
-    grad.addColorStop(0, `rgba(${L.color}, ${alpha})`);
-    grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, width, height);
+    ctx.globalAlpha = alpha;
+    ctx.drawImage(sprite, lx - radius, ly - radius, radius * 2, radius * 2);
   }
 
-  // Слой 2 — атмосферные частицы: маленькие, малоконтрастные, разной глубины.
   for (let i = 0; i < particles.length; i += 1) {
     const p = particles[i];
     p.x += p.vx * dt;
@@ -148,7 +152,6 @@ function draw(dt, time) {
     ctx.fill();
   }
 
-  // Слой 1 — звёздное поле: непрерывный медленный дрейф + редкое мерцание.
   for (let i = 0; i < stars.length; i += 1) {
     const s = stars[i];
     s.x += (s.vx + Math.sin(time * s.swaySpeed + s.phase) * s.swayX) * dt;
@@ -173,21 +176,18 @@ function draw(dt, time) {
 function frame(now) {
   if (!running) return;
   if (!lastTime) lastTime = now;
-  const dt = Math.min((now - lastTime) / 1000, 0.05); // ограничиваем шаг после пауз
+  const dt = Math.min((now - lastTime) / 1000, 0.05); 
   lastTime = now;
   draw(dt, now / 1000);
   rafId = window.requestAnimationFrame(frame);
 }
 
 function drawStatic() {
-  // Reduced motion: один статичный, но эстетичный кадр — без движения и таймеров.
   draw(0, 0);
 }
 
 function start() {
   if (running) return;
-  // Пока контекст не готов (initSky ещё не вызван) — не запускаем цикл,
-  // чтобы не плодить пустые requestAnimationFrame.
   if (!ctx) return;
   if (reduce) {
     drawStatic();
@@ -251,7 +251,6 @@ function onResizeThrottled() {
   });
 }
 
-// Инициализация: находит canvas, готовит контекст, подписывается на события.
 export function initSky() {
   canvas = document.getElementById('sky-canvas');
   if (!canvas || typeof canvas.getContext !== 'function') return;
@@ -265,7 +264,7 @@ export function initSky() {
     if (typeof reduceQuery.addEventListener === 'function') {
       reduceQuery.addEventListener('change', onReduceChange);
     } else if (typeof reduceQuery.addListener === 'function') {
-      reduceQuery.addListener(onReduceChange); // фолбэк для старых движков
+      reduceQuery.addListener(onReduceChange); 
     }
   }
 
@@ -275,12 +274,9 @@ export function initSky() {
 
   resize();
 
-  // Если первый экран уже активен к моменту инициализации (setSkyActive вызван
-  // раньше из showScreen), запускаем отрисовку сразу после готовности контекста.
   if (active && !document.hidden && !reduce) start();
 }
 
-// Включение/выключение по активности первого экрана (вызывает app.js из showScreen).
 export function setSkyActive(isActive) {
   active = Boolean(isActive);
   if (active && !document.hidden) {

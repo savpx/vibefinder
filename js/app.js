@@ -1,21 +1,11 @@
-// Vibe Finder: точка входа приложения. Связывает данные, локализацию,
-// опрос, результат, публикацию и звук.
 
-// ВАЖНО: у КАЖДОГО внутреннего импорта стоит ?v=. vercel.json отдаёт /js/*
-// с Cache-Control: immutable (год), поэтому без версии в URL браузер (особенно
-// мобильный) может взять старую закэшированную копию модуля. Так уже был баг:
-// новый app.js подтягивался, а questions.js оставался старым (без id/весов) —
-// из-за чего опрос мгновенно завершался на первом ответе. Меняйте единый
-// номер версии во всех импортах И в index.html при каждом деплое правок JS.
-import { questions } from './data/questions.js?v=31';
-import { vibeThemes, vibeShareSlugs, vibeKeysByShareSlug } from './data/themes.js?v=31';
-import { rankVibes, selectNextQuestion, questionIndexById } from './data/scoring.js?v=31';
-import { initI18n, translateText } from './i18n/index.js?v=31';
-import { initCinematicIntro } from './intro.js?v=31';
-import { initSky, setSkyActive } from './sky.js?v=31';
+import { questions } from './data/questions.js?v=40';
+import { vibeThemes, vibeShareSlugs, vibeKeysByShareSlug } from './data/themes.js?v=40';
+import { rankVibes, selectNextQuestion, questionIndexById } from './data/scoring.js?v=40';
+import { initI18n, translateText } from './i18n/index.js?v=40';
+import { initCinematicIntro } from './intro.js?v=40';
+import { initSky, setSkyActive } from './sky.js?v=40';
 
-// Кинематографический вход запускаем первым: он должен выставить состояние
-// затемнения (data-intro на <html>) до того, как отрисуется первый экран.
 initCinematicIntro();
 
 const screens = {
@@ -27,6 +17,8 @@ const screens = {
 };
 
 const startButton = document.getElementById('start-btn');
+const profileToggle = document.getElementById('profile-toggle');
+const profileMenu = document.getElementById('profile-menu');
 const vibeMenuToggle = document.getElementById('vibe-menu-toggle');
 const vibeMenu = document.getElementById('vibe-menu');
 const vibeReturnAction = document.getElementById('vibe-return-action');
@@ -39,26 +31,17 @@ const progressBar = document.querySelector('.progress-bar');
 const backButton = document.getElementById('survey-back-btn');
 const questionText = document.getElementById('question-text');
 const answersContainer = document.getElementById('answers');
-// Ссылки на узлы опроса кэшируем один раз: в горячем пути (смена вопроса) не
-// делаем повторных DOM-запросов и не пересоздаём обработчики.
 const surveyStage = document.querySelector('.survey-stage');
 const optionButtons = [];
-// Тайминги смены вопроса: уход 150 мс, вход 240 мс, каскад вариантов 35 мс.
 const SURVEY_LEAVE_MS = 150;
 const SURVEY_ENTER_MS = 240;
 const SURVEY_STAGGER_MS = 35;
-// Контроллер перехода: surveyLocked гасит повторные тапы, surveyToken отсекает
-// устаревшие колбэки, таймеры — страховка от «зависшего» перехода.
 let surveyLocked = false;
 let surveyToken = 0;
 let surveyLeaveTimer = null;
 let surveyEnterTimer = null;
-// Свайп-переход: двигаются ЭКРАНЫ целиком (весь лендинг с его свечением и
-// оттенком), а общий канвас «живого неба» лежит ВНЕ экранов (.page-shell) и
-// остаётся неподвижным. Ссылки кэшируем один раз.
 const pageShell = document.querySelector('.page-shell');
 const SWIPE_SCREENS = ['home', 'survey'];
-// Длительность близка к 400 мс — «тактильное» ощущение свайпа между экранами.
 const SWIPE_DURATION = 400;
 const SWIPE_EASING = 'cubic-bezier(0.32, 0.72, 0, 1)';
 let swipeBusy = false;
@@ -79,12 +62,8 @@ const tetrisGameOver = document.getElementById('tetris-game-over');
 const tetrisRestartBtn = document.getElementById('tetris-restart-btn');
 
 const state = {
-  // Порядок показа вопросов (стабильные id) и позиция в нём. Адаптивность
-  // меняет ПОРЯДОК, а не количество вопросов, поэтому счётчик всегда точен.
   order: [],
   stepIndex: 0,
-  // Ответы ключуются стабильным id вопроса: пересчёт весов не зависит от
-  // позиции и устойчив к навигации назад/вперёд и смене ответа.
   answers: {},
   history: [],
   activeVibe: null,
@@ -95,24 +74,49 @@ const state = {
 
 const vibeTransition = document.getElementById('vibe-transition');
 
-const UI_CLICK_VOLUME = 0.22;
-const TRANSITION_VOLUME = 0.20;
+const UI_CLICK_VOLUME = 0.12;
+const TRANSITION_VOLUME = 0.15;
 
-// Рукописный переход «VibeFinder»: буквы проявляются по одной за ровно 4 секунды.
-const CREATION_TOTAL_DURATION = 4000; // Жёсткий лимит: ровно 4 секунды
-const CREATION_LETTER_DURATION = 1200; // Быстрый премиальный штрих одной буквы
-// Нелинейная кривая для премиального почерка (стандартная кривая проекта).
-const CREATION_TIMING_CURVE = [0.16, 1, 0.3, 1];
-const CREATION_SPRING_EASE = `cubic-bezier(${CREATION_TIMING_CURVE.join(',')})`;
-// Максимальный сдвиг, чтобы раскрытие уложилось точно в 4-секундный таймлайн.
-const CREATION_AVAILABLE_STAGGER = CREATION_TOTAL_DURATION - CREATION_LETTER_DURATION;
-const CREATION_STAGGER_STEP = CREATION_AVAILABLE_STAGGER / ('VibeFinder'.length - 1);
+const TRANSITION_FORM_MS = 3000;      
+const TRANSITION_HOLD_MS = 3500;      
+const TRANSITION_DISSOLVE_MS = 1500;  
+const TRANSITION_TOTAL_MS = TRANSITION_FORM_MS + TRANSITION_HOLD_MS; 
+const TRANSITION_REVEAL_MS = TRANSITION_DISSOLVE_MS - 80; 
+const TRANSITION_REDUCED_FORM_MS = 900;
+const TRANSITION_REDUCED_DISSOLVE_MS = 600;
+const TRANSITION_LINE_BASE_DELAY_MS = 700;
+const TRANSITION_LINE_STEP_MS = 110;
+
+const TRANSITION_STAR_PATTERN = [
+  [0.50, 0.12], 
+  [0.47, 0.34], 
+  [0.42, 0.56], 
+  [0.37, 0.82], 
+  [0.68, 0.66], 
+  [0.14, 0.30], 
+  [0.78, 0.24], 
+];
+const TRANSITION_LINKS = [
+  [0, 1], [1, 2], [2, 3], [1, 5], [2, 4], [5, 6], [6, 4], [0, 5],
+];
+
+const AUDIO_VERSION = 36;
+const UI_CLICK_SRC = 'audio/ui/ui%20click.mp3';
+const TRANSITION_SRC = 'audio/ui/transition.mp3';
 const audioVolumeFades = new WeakMap();
-const uiButtonAudio = new Audio('audio/ui/ui.mp3');
-const transitionAudio = new Audio('audio/ui/transition.mp3');
+const uiButtonAudio = new Audio(`${UI_CLICK_SRC}?v=${AUDIO_VERSION}`);
+const transitionAudio = new Audio(`${TRANSITION_SRC}?v=${AUDIO_VERSION}`);
+const constellationEl = document.getElementById('constellation');
+const constellationStarsEl = constellationEl
+  ? constellationEl.querySelector('.constellation__stars')
+  : null;
+const constellationLinesEl = constellationEl
+  ? constellationEl.querySelector('.constellation__lines')
+  : null;
 let creationTimer = null;
 let vibeRevealTimer = null;
 let creationSequence = 0;
+let revealCleanupTimer = null;
 
 function fadeAudioVolume(audio, targetVolume, duration) {
   const activeFade = audioVolumeFades.get(audio);
@@ -130,18 +134,31 @@ function fadeAudioVolume(audio, targetVolume, duration) {
   audioVolumeFades.set(audio, fade);
 }
 
-// Ленивая загрузка: ничего не качаем во время первичной сборки layout.
-uiButtonAudio.preload = 'none';
+uiButtonAudio.preload = 'auto';
+uiButtonAudio.load();
 uiButtonAudio.volume = UI_CLICK_VOLUME;
 transitionAudio.preload = 'none';
 transitionAudio.volume = TRANSITION_VOLUME;
 let transitionFadeOutStarted = false;
 
+function stopTransitionAudio() {
+  const fade = audioVolumeFades.get(transitionAudio);
+  if (fade !== undefined) {
+    window.clearInterval(fade);
+    audioVolumeFades.delete(transitionAudio);
+  }
+  if (!transitionAudio.paused) transitionAudio.pause();
+  try { transitionAudio.currentTime = 0; } catch (error) {}
+  transitionAudio.volume = TRANSITION_VOLUME;
+  transitionFadeOutStarted = false;
+}
+
 transitionAudio.addEventListener('timeupdate', () => {
+  if (!Number.isFinite(transitionAudio.duration)) return;
   const remaining = transitionAudio.duration - transitionAudio.currentTime;
-  if (!transitionFadeOutStarted && Number.isFinite(remaining) && remaining <= 0.45) {
+  if (!transitionFadeOutStarted && remaining <= 1.1) {
     transitionFadeOutStarted = true;
-    fadeAudioVolume(transitionAudio, 0, Math.max(100, remaining * 1000));
+    fadeAudioVolume(transitionAudio, 0, Math.max(120, remaining * 1000));
   }
 });
 
@@ -159,33 +176,23 @@ document.addEventListener('click', (event) => {
     clickedButton.getAttribute('aria-disabled') === 'true'
   ) return;
 
-  uiButtonAudio.currentTime = 0;
+  try { uiButtonAudio.currentTime = 0; } catch (error) {}
   const playback = uiButtonAudio.play();
   if (playback) {
     playback.catch((error) => {
       if (error.name !== 'NotAllowedError' && error.name !== 'AbortError') {
-        console.error('UI button sound failed: audio/ui/ui.mp3', error);
+        console.error(`UI button sound failed: ${UI_CLICK_SRC}`, error);
       }
     });
   }
 }, true);
 
-// ---------------------------------------------------------------------------
-// Переиспользуемый 3D-наклон (liquid glass, HIG).
-// Модульная функция init3DTiltEffect(selector, maxTiltAngle) вешает на каждый
-// элемент независимый набор обработчиков: позиция курсора нормализуется к
-// центру ИМЕННО этого элемента, поворот ограничивается maxTiltAngle градусами.
-// Координаты кэшируются на входе (getBoundingClientRect под трансформом давал
-// дрожание), обновления — через requestAnimationFrame без layout-thrash.
-// ---------------------------------------------------------------------------
 function init3DTiltEffect(elementSelector, maxTiltAngle) {
   const element = typeof elementSelector === 'string'
     ? document.querySelector(elementSelector)
     : elementSelector;
   if (!element) return null;
 
-  // Пользователи с prefers-reduced-motion не получают 3D-наклон: остаётся
-  // спокойный отклик рамкой и тенью из CSS.
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return null;
 
   const state = { rect: null, pointer: null, frame: 0, max: maxTiltAngle };
@@ -199,8 +206,6 @@ function init3DTiltEffect(elementSelector, maxTiltAngle) {
     const relativeY = (state.pointer.y - top) / height;
     const tiltX = (relativeX - 0.5) * 2;
     const tiltY = (relativeY - 0.5) * 2;
-    // Пишем только CSS-переменные, а сам transform собирает CSS: так наклон
-    // складывается с hover-подъёмом и нажатием и не перезаписывает их inline-стилем.
     element.style.setProperty('--rotate-x', `${(-tiltY * state.max).toFixed(2)}deg`);
     element.style.setProperty('--rotate-y', `${(tiltX * state.max).toFixed(2)}deg`);
     element.style.setProperty('--scale', '1.018');
@@ -235,7 +240,6 @@ function init3DTiltEffect(elementSelector, maxTiltAngle) {
     element.style.setProperty('--scale', '1');
   };
 
-  // --- Touch-трекинг: палец ведёт наклон 1:1, как курсор на десктопе. ---
   const onTouchStart = (event) => {
     const touch = event.touches[0];
     if (!touch) return;
@@ -247,7 +251,6 @@ function init3DTiltEffect(elementSelector, maxTiltAngle) {
   const onTouchMove = (event) => {
     const touch = event.touches[0];
     if (!touch) return;
-    // Блокируем прокрутку окна, пока пользователь ведёт палец по 3D-слою.
     if (event.cancelable) event.preventDefault();
     scheduleUpdate(touch.clientX, touch.clientY);
   };
@@ -266,38 +269,28 @@ function init3DTiltEffect(elementSelector, maxTiltAngle) {
   return element;
 }
 
-// Тонкая настройка: компактным кнопкам — 7°. Опросный холст сознательно без
-// 3D-наклона: это крупная область, и наклон не сообщал пользователю ничего.
 function initGlassTilt() {
   init3DTiltEffect('#start-btn', 7);
   init3DTiltEffect('#language-toggle', 7);
-  init3DTiltEffect('#discord-support', 7);
   init3DTiltEffect('#vibe-menu-toggle', 7);
 }
 
-/* Лупа удалена целиком: её непрозрачный круг закрывал текст первого экрана,
-   а не увеличивал его. Прежний код строил клон всей страницы и водил линзу
-   по маршруту «заголовок → подзаголовок → Discord». */
 
-// ---------------------------------------------------------------------------
-// Витрина атмосфер на первом экране: акцентный цвет каждого вайба. Цвет играет
-// свечение фона и ореол печатаемого названия в бесконечном цикле витрины.
-// ---------------------------------------------------------------------------
 const VIBE_CARD_ACCENTS = {
-  cosmos: '#9d8bff',
-  solar: '#fbbf24',
-  neon: '#67e8f9',
-  forest: '#8ec49a',
-  night: '#70e7ff',
-  melancholic: '#a8d8f0',
-  zen: '#a7ead4',
-  chaotic: '#ff5c74',
-  happy: '#ffca48',
-  mysterious: '#c49aff',
-  creative: '#ff80bc',
-  nature: '#a8d67b',
-  retro: '#bdf35d',
-  cozy: '#f3bd7d',
+  cosmos: '#8a7cf0', 
+  solar: '#e89a2a', 
+  neon: '#3fe0d0', 
+  forest: '#5f8f63', 
+  night: '#6f9fd8', 
+  melancholic: '#a49bc4', 
+  zen: '#74c7b2', 
+  chaotic: '#e54f6d', 
+  happy: '#f2d861', 
+  mysterious: '#6f4fb8', 
+  creative: '#e07ab4', 
+  nature: '#8fce5c', 
+  retro: '#8f9440', 
+  cozy: '#cf6b3f', 
 };
 
 function hexToRgba(hex, alpha) {
@@ -312,24 +305,10 @@ function hexToRgba(hex, alpha) {
   return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
 }
 
-// ---------------------------------------------------------------------------
-// Витрина атмосфер: бесконечный цикл. Каждый вайб держится на экране
-// SHOWCASE_HOLD_MS, затем слои перекрещиваются кроссфейдом — имя и свечение
-// перетекают в следующий вайб без пустой паузы и рывков.
-//
-// Цвет свечения идёт НЕ через одну анимируемую переменную (её интерполяция
-// проходит через грязные промежуточные оттенки), а через два слоя с
-// фиксированными цветами: входящий проявляется, уходящий гаснет — один цвет
-// постепенно заменяет другой, как и задумано.
-// ---------------------------------------------------------------------------
 const VIBE_SHOWCASE_ORDER = Object.keys(vibeThemes);
-const SHOWCASE_HOLD_MS = 3000; // сколько вайб держится целиком
-const SHOWCASE_FADE_MS = 1400; // длительность кроссфейда (совпадает с CSS)
-// Плотность свечения: должно читаться как мягкая палитра, а не пятно.
+const SHOWCASE_HOLD_MS = 3000; 
+const SHOWCASE_FADE_MS = 1400; 
 const SHOWCASE_GLOW_ALPHA = 0.4;
-// Рукописное проявление имени: длительность штриха одной буквы и шаг каскада.
-// Каскад укладывается в окно кроссфейда (SHOWCASE_FADE_MS), поэтому буквы
-// «дописываются» ровно вовремя и не тянутся в удержание.
 const SHOWCASE_INK_DURATION = 620;
 const SHOWCASE_INK_STEP = 34;
 
@@ -337,8 +316,6 @@ const showcase = {
   order: [],
   index: 0,
   active: false,
-  // Индексы текущих слоёв: имя и свечение идут на «другом» слое каждый шаг,
-  // поэтому смена всегда кроссфейд, а не перезапуск одного элемента.
   layer: 1,
   glowLayer: 1,
   holdTimer: null,
@@ -351,22 +328,17 @@ function stopShowcaseTimers() {
   }
 }
 
-// Окрашивает ореол имени в акцент вайба. Значение ставится один раз на показ —
-// имя проявляется целиком вместе с ореолом, поэтому интерполяция не нужна.
 function setShowcaseAccent(key) {
   const accent = VIBE_CARD_ACCENTS[key] || '#ffffff';
   screens.home.style.setProperty('--preview-glow', hexToRgba(accent, SHOWCASE_GLOW_ALPHA));
 }
 
-// Кроссфейд свечения: входящий слой получает фиксированный цвет вайба и
-// проявляется, уходящий гаснет — один цвет постепенно заменяет другой.
 function crossfadeShowcaseGlow(key) {
   if (homeGlowLayers.length < 2) return;
   const accent = VIBE_CARD_ACCENTS[key] || '#ffffff';
   const previousLayer = showcase.glowLayer;
   const nextLayer = 1 - previousLayer;
   const incoming = homeGlowLayers[nextLayer];
-  // Цвет фиксируем ДО проявления: слой не интерполирует оттенок через грязь.
   incoming.style.setProperty('--glow-color', hexToRgba(accent, SHOWCASE_GLOW_ALPHA));
   incoming.classList.add('is-active');
   homeGlowLayers[previousLayer].classList.remove('is-active');
@@ -382,23 +354,15 @@ function clearShowcaseGlow() {
   });
 }
 
-// Записывает имя в указанный слой, разбивая его на слова и буквы: так каждая
-// буква получает свою задержку рукописного каскада. Разметка пересоздаётся
-// целиком, а имя приходит уже переведённым из showShowcaseVibe, поэтому смена
-// языка просто перерисовывает витрину на новом языке.
 function paintShowcaseLayer(layer, label) {
   layer.classList.remove('is-active');
   layer.textContent = '';
   const words = String(label).split(' ');
   let letterIndex = 0;
   words.forEach((word, wordIndex) => {
-    // Пробел между словами оставляем обычным текстовым узлом: он даёт перенос
-    // по словам, пока буквы внутри слова склеены inline-block.
     if (wordIndex > 0) layer.appendChild(document.createTextNode(' '));
     const wordNode = document.createElement('span');
     wordNode.className = 'vibe-word';
-    // Array.from итерирует по код-поинтам: не разрывает суррогатные пары
-    // (важно для CJK и любой не-латинской локали).
     Array.from(word).forEach((char) => {
       const letterNode = document.createElement('span');
       letterNode.className = 'vibe-letter';
@@ -426,15 +390,12 @@ function showShowcaseVibe() {
   const previousLayer = showcase.layer;
   const nextLayer = 1 - previousLayer;
 
-  // Наполняем скрытый слой и проявляем его, пока предыдущий гаснет своим
-  // переходом — оба переплетаются кроссфейдом.
   paintShowcaseLayer(vibeShowcaseLayers[nextLayer], label);
-  void vibeShowcaseLayers[nextLayer].offsetWidth; // перезапуск перехода
+  void vibeShowcaseLayers[nextLayer].offsetWidth; 
   vibeShowcaseLayers[nextLayer].classList.add('is-active');
   vibeShowcaseLayers[previousLayer].classList.remove('is-active');
 
   showcase.layer = nextLayer;
-  // Полное время показа = проявление (кроссфейд) + удержание целиком.
   showcase.holdTimer = window.setTimeout(advanceShowcase, SHOWCASE_HOLD_MS + SHOWCASE_FADE_MS);
 }
 
@@ -445,8 +406,6 @@ function advanceShowcase() {
   showShowcaseVibe();
 }
 
-// Витрина атмосфер временно отключена на первом экране. Код, данные и таймеры
-// сохранены целиком — достаточно вернуть true, чтобы вернуть витрину.
 const HOME_SHOWCASE_ENABLED = false;
 
 function startVibeShowcase() {
@@ -456,7 +415,6 @@ function startVibeShowcase() {
   if (!showcase.order.length) return;
   showcase.active = true;
   showcase.index = 0;
-  // Стартуем «с другого» слоя, чтобы первый показ уже шёл кроссфейдом.
   showcase.layer = 1;
   showcase.glowLayer = 0;
   stopShowcaseTimers();
@@ -478,16 +436,12 @@ function stopVibeShowcase() {
   clearShowcaseGlow();
 }
 
-// Можно ли проигрывать свайп: не reduced-motion и есть поддержка Web Animations.
 function canSwipeAnimate() {
   return !reducedMotionPref()
     && typeof Element.prototype.animate === 'function'
     && screens.home && screens.survey;
 }
 
-// Горизонтальный свайп между двумя экранами. Направление движения единое
-// (экран уходит вправо, следующий въезжает слева) — как при листании кадров в
-// TikTok. Общий канвас неба лежит вне экранов, поэтому остаётся неподвижным.
 function runScreenSwipe(fromScreen, toScreen, onDone) {
   const distance = window.innerWidth || 1;
   const options = { duration: SWIPE_DURATION, easing: SWIPE_EASING, fill: 'both' };
@@ -510,19 +464,10 @@ function runScreenSwipe(fromScreen, toScreen, onDone) {
     if (settled) return;
     settled = true;
     if (swipeTimer !== null) { window.clearTimeout(swipeTimer); swipeTimer = null; }
-    // Фиксируем конечные положения инлайн-стилем ДО cancel(): иначе отмена
-    // анимации мгновенно вернула бы экраны в исходную точку и дала бы вспышку.
     if (fromScreen) fromScreen.style.transform = `translateX(${distance}px)`;
     if (toScreen) toScreen.style.transform = 'translateX(0)';
     animations.forEach((animation) => { try { animation.cancel(); } catch (error) {} });
-    // showScreen вызывается, пока на .page-shell стоит .is-swiping (transition: none):
-    // active-классы переключаются мгновенно, уходящий экран тут же получает
-    // opacity:0/visibility:hidden — без кроссфейда и без «остаточного» кадра.
     onDone();
-    // Снимаем инлайн-трансформы СРАЗУ, ещё под transition: none. Класс .is-swiping
-    // убираем только в следующем кадре. Так смена transform на CSS-значение
-    // происходит без переходов, а повторное включение transition уже не меняет
-    // никаких свойств — обратной анимации (мерцания лендинга) не возникает.
     if (fromScreen) fromScreen.style.transform = '';
     if (toScreen) toScreen.style.transform = '';
     window.requestAnimationFrame(() => {
@@ -535,16 +480,11 @@ function runScreenSwipe(fromScreen, toScreen, onDone) {
   };
 
   animations.forEach((animation) => { animation.onfinish = finish; });
-  // Страховка: даже если onfinish не придёт, экран не застрянет в переходе.
   swipeTimer = window.setTimeout(finish, SWIPE_DURATION + 150);
 }
 
-// Свайп-навигация к экрану с сохранением обычной логики showScreen в конце.
-// Возвращает true, если переход уже обрабатывается (анимацией или идущим свайпом):
-// тогда вызывающий НЕ должен делать мгновенный showScreen. false — нужен откат к
-// обычному переключению (reduced-motion / нет WAAPI).
 function swipeToScreen(targetName, forward) {
-  if (swipeBusy) return true; // защита от двойных кликов и наложения анимаций
+  if (swipeBusy) return true; 
   if (!canSwipeAnimate()) return false;
 
   const fromScreen = forward ? screens.home : screens.survey;
@@ -554,7 +494,6 @@ function swipeToScreen(targetName, forward) {
 
   swipeBusy = true;
   if (pageShell) pageShell.classList.add('is-swiping');
-  // Входящий экран делаем видимым, но клики он не перехватывает до финиша.
   targetScreen.classList.add('is-swipe-incoming');
 
   runScreenSwipe(fromScreen, toScreen, () => showScreen(targetName));
@@ -568,20 +507,15 @@ function showScreen(name) {
   if (pageShell) pageShell.dataset.activeScreen = name;
   if (name !== 'vibe') screens.vibe.classList.remove('vibe-screen-reveal');
   if (name !== 'vibe') closeVibeMenu();
-  // Вне экрана вайба тетрис и карусель цитат должны быть полностью остановлены.
+  closeProfileMenu();
   if (name !== 'vibe') stopVibeGame();
-  // «Живое небо» — общий фоновый слой приложения. Держим его активным на первом
-  // экране И в опросе, чтобы космос был непрерывным при входе в анкету и не
-  // перезапускался при смене вопроса (модуль рисует один непрерывный цикл).
-  // На остальных экранах слой останавливается и скрывается — ноль фоновой работы.
-  if (name === 'home' || name === 'survey') {
-    if (name === 'home') startVibeShowcase(); // no-op, пока HOME_SHOWCASE_ENABLED = false
+  if (name === 'home' || name === 'survey' || name === 'creation') {
+    if (name === 'home') startVibeShowcase(); 
     setSkyActive(true);
     if (name === 'survey') closeLanguageMenu();
   } else {
     stopVibeShowcase();
     setSkyActive(false);
-    // Уходя с главной, закрываем список языков, чтобы он не остался «висеть».
     closeLanguageMenu();
   }
 }
@@ -590,6 +524,13 @@ function closeVibeMenu(returnFocus = false) {
   vibeMenu.hidden = true;
   vibeMenuToggle.setAttribute('aria-expanded', 'false');
   if (returnFocus) vibeMenuToggle.focus();
+}
+
+function closeProfileMenu(returnFocus = false) {
+  if (!profileMenu || !profileToggle) return;
+  profileMenu.hidden = true;
+  profileToggle.setAttribute('aria-expanded', 'false');
+  if (returnFocus) profileToggle.focus();
 }
 
 function setShareFeedback(message) {
@@ -719,52 +660,58 @@ function cancelVibeCreation() {
     clearTimeout(vibeRevealTimer);
     vibeRevealTimer = null;
   }
+  if (revealCleanupTimer !== null) {
+    clearTimeout(revealCleanupTimer);
+    revealCleanupTimer = null;
+  }
+  if (pageShell) pageShell.classList.remove('is-revealing', 'is-reveal-end');
+  if (constellationEl) {
+    constellationEl.classList.remove('is-forming', 'is-holding', 'is-dissolving');
+  }
   vibeTransition.classList.remove('is-visible');
+  stopTransitionAudio();
 }
 
-// Разбивает слово «VibeFinder» на отдельные <span> и задаёт каждой букве
-// явные animation-delay / animation-duration / animation-timing-function,
-// выстраивая раскрытие ровно за 8 секунд.
-function buildCreationWord() {
-  const container = document.getElementById('vibe-finder-animated-text');
-  if (!container) return;
+function buildConstellation() {
+  if (!constellationEl || !constellationStarsEl || !constellationLinesEl) return;
+  const svgNs = 'http://www.w3.org/2000/svg';
+  const scene = constellationEl.querySelector('.constellation__scene');
+  const size = scene && scene.clientWidth ? scene.clientWidth : 320;
 
-  // Убираем возможные остатки предыдущего запуска
-  container.innerHTML = '';
+  constellationStarsEl.textContent = '';
+  constellationLinesEl.textContent = '';
 
-  const textWord = 'VibeFinder';
-  const lettersArray = textWord.split('');
+  for (let index = 0; index < TRANSITION_STAR_PATTERN.length; index += 1) {
+    const [nx, ny] = TRANSITION_STAR_PATTERN[index];
+    const star = document.createElement('span');
+    star.className = 'constellation__star';
+    star.style.setProperty('--star-move-x', `${(nx - 0.5) * size}px`);
+    star.style.setProperty('--star-move-y', `${(ny - 0.5) * size}px`);
+    constellationStarsEl.appendChild(star);
+  }
 
-  lettersArray.forEach((char, index) => {
-    const spanNode = document.createElement('span');
-    spanNode.textContent = char;
-    spanNode.setAttribute('aria-hidden', 'true');
-
-    // Явные вычисления, записанные прямо в живые CSS-биндинги
-    const delayMiliseconds = index * CREATION_STAGGER_STEP;
-    spanNode.style.animationDelay = `${delayMiliseconds}ms`;
-    spanNode.style.animationDuration = `${CREATION_LETTER_DURATION}ms`;
-    spanNode.style.animationTimingFunction = CREATION_SPRING_EASE;
-
-    container.appendChild(spanNode);
-  });
-
-  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  if (reducedMotion) {
-    container.querySelectorAll('span').forEach((span) => {
-      span.style.animation = 'none';
-      span.style.opacity = '1';
-      span.style.filter = 'none';
-      span.style.transform = 'none';
-    });
+  for (let index = 0; index < TRANSITION_LINKS.length; index += 1) {
+    const [from, to] = TRANSITION_LINKS[index];
+    const line = document.createElementNS(svgNs, 'line');
+    line.setAttribute('x1', String(TRANSITION_STAR_PATTERN[from][0] * 100));
+    line.setAttribute('y1', String(TRANSITION_STAR_PATTERN[from][1] * 100));
+    line.setAttribute('x2', String(TRANSITION_STAR_PATTERN[to][0] * 100));
+    line.setAttribute('y2', String(TRANSITION_STAR_PATTERN[to][1] * 100));
+    line.setAttribute('pathLength', '1');
+    line.setAttribute('class', 'constellation__line');
+    line.style.setProperty(
+      '--line-delay',
+      `${TRANSITION_LINE_BASE_DELAY_MS + index * TRANSITION_LINE_STEP_MS}ms`,
+    );
+    constellationLinesEl.appendChild(line);
   }
 }
 
 function startVibeCreation(vibeKey) {
   cancelVibeCreation();
   const sequence = creationSequence;
-  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  buildCreationWord();
+  const reducedMotion = reducedMotionPref();
+  buildConstellation();
   showScreen('creation');
 
   transitionAudio.pause();
@@ -780,7 +727,7 @@ function startVibeCreation(vibeKey) {
   if (playback) {
     playback.catch((error) => {
       if (error.name !== 'AbortError') {
-        console.error('Transition sound failed: audio/ui/transition.mp3', error);
+        console.error(`Transition sound failed: ${TRANSITION_SRC}`, error);
       }
     });
   }
@@ -788,57 +735,66 @@ function startVibeCreation(vibeKey) {
 
   const revealVibe = () => {
     if (sequence !== creationSequence) return;
+    vibeRevealTimer = null;
     renderVibe(vibeKey);
     screens.vibe.classList.add('vibe-screen-reveal');
     showScreen('vibe');
-    if (reducedMotion) {
-      vibeTransition.classList.remove('is-visible');
-      return;
-    }
-    vibeRevealTimer = window.setTimeout(() => {
-      if (sequence === creationSequence) {
-        vibeTransition.classList.remove('is-visible');
-      }
-      vibeRevealTimer = null;
-    }, 350);
+    stopTransitionAudio();
+    if (pageShell) pageShell.classList.add('is-revealing');
+    revealCleanupTimer = window.setTimeout(() => {
+      if (pageShell) pageShell.classList.add('is-reveal-end');
+      revealCleanupTimer = window.setTimeout(() => {
+        revealCleanupTimer = null;
+        if (pageShell) pageShell.classList.remove('is-revealing', 'is-reveal-end');
+      }, 620);
+    }, 120);
+    constellationEl.classList.remove('is-forming', 'is-holding', 'is-dissolving');
   };
 
-  // Полная длительность письма — ровно 4 секунды; при reduced-motion сокращаем паузу.
-  const writingTime = reducedMotion ? 1400 : CREATION_TOTAL_DURATION;
+  if (reducedMotion) {
+    constellationEl.classList.add('is-forming');
+    creationTimer = window.setTimeout(() => {
+      creationTimer = null;
+      if (sequence !== creationSequence) return;
+      constellationEl.classList.add('is-dissolving');
+      fadeAudioVolume(transitionAudio, 0, TRANSITION_REDUCED_DISSOLVE_MS);
+      vibeRevealTimer = window.setTimeout(revealVibe, TRANSITION_REDUCED_DISSOLVE_MS);
+    }, TRANSITION_REDUCED_FORM_MS);
+    return;
+  }
+
+  constellationEl.classList.add('is-forming');
   creationTimer = window.setTimeout(() => {
     if (sequence !== creationSequence) return;
     creationTimer = null;
-    vibeTransition.classList.add('is-visible');
-    vibeRevealTimer = window.setTimeout(() => {
-      vibeRevealTimer = null;
-      revealVibe();
-    }, reducedMotion ? 250 : 1050);
-  }, writingTime);
+    void constellationEl.offsetWidth;
+    constellationEl.classList.remove('is-forming');
+    constellationEl.classList.add('is-holding');
+  }, TRANSITION_FORM_MS);
+
+  vibeRevealTimer = window.setTimeout(() => {
+    if (sequence !== creationSequence) return;
+    constellationEl.classList.remove('is-holding');
+    constellationEl.classList.add('is-dissolving');
+    fadeAudioVolume(transitionAudio, 0, TRANSITION_DISSOLVE_MS);
+    vibeRevealTimer = window.setTimeout(revealVibe, TRANSITION_REVEAL_MS);
+  }, TRANSITION_TOTAL_MS);
 }
 
-// Единая проверка «можно ли анимировать» с учётом override (?motion=on|off).
 function prefersMotion() {
   return !reducedMotionPref();
 }
 
-// --- Прогресс и навигация --------------------------------------------------
-// Видимый текстовый счётчик «Вопрос X из Y» удалён из интерфейса, но сама
-// модель прогресса сохранена: индексация и порядок вопросов не меняются.
-// Итог всегда равен числу вопросов (адаптивность меняет ПОРЯДОК, не количество),
-// поэтому полоса прогресса остаётся корректной.
 function updateProgress() {
   const step = state.stepIndex + 1;
   const total = questions.length;
   const ratio = total > 0 ? step / total : 0;
-  // Заполняем полосу через scaleX (составной transform, без layout-триггера).
   progressFill.style.transform = `scaleX(${ratio})`;
   progressBar.setAttribute('aria-valuemax', String(total));
   progressBar.setAttribute('aria-valuenow', String(step));
   updateBackButton();
 }
 
-// Кнопка «Назад» показывается только начиная со второго шага,
-// чтобы нельзя было выйти за пределы первого вопроса.
 function updateBackButton() {
   if (!backButton) return;
   const canGoBack = state.stepIndex > 0;
@@ -846,14 +802,10 @@ function updateBackButton() {
   backButton.setAttribute('aria-hidden', String(!canGoBack));
 }
 
-// Текущий объект вопроса по позиции в порядке показа.
 function currentQuestion() {
   return questions[questionIndexById.get(state.order[state.stepIndex])];
 }
 
-// Направленный переход между вопросами. renderContent вызывается в момент,
-// когда уходящий вопрос уже погашен: новый контент появляется невидимым и
-// входит направленной анимацией — без пустых кадров, мерцаний и скачков.
 function transitionStage(direction, renderContent, done) {
   if (surveyLeaveTimer !== null) { window.clearTimeout(surveyLeaveTimer); surveyLeaveTimer = null; }
   if (surveyEnterTimer !== null) { window.clearTimeout(surveyEnterTimer); surveyEnterTimer = null; }
@@ -873,13 +825,10 @@ function transitionStage(direction, renderContent, done) {
   surveyLeaveTimer = window.setTimeout(() => {
     surveyLeaveTimer = null;
     if (token !== surveyToken) return;
-    // Меняем контент, пока вопрос погашен, и сразу ставим входную анимацию:
-    // первый её кадр (opacity: 0) совпадает с текущей невидимостью, поэтому
-    // кадр с новым текстом не успевает проявиться — вспышки нет.
     surveyStage.classList.remove('is-leave');
     renderContent();
     surveyStage.style.setProperty('--enter-x', direction > 0 ? '16px' : '-16px');
-    void surveyStage.offsetWidth; // фиксируем новую разметку и var до старта анимации
+    void surveyStage.offsetWidth; 
     surveyStage.classList.add('is-enter');
     surveyEnterTimer = window.setTimeout(() => {
       surveyEnterTimer = null;
@@ -890,8 +839,6 @@ function transitionStage(direction, renderContent, done) {
   }, SURVEY_LEAVE_MS);
 }
 
-// Заполняет вопрос и варианты текущим шагом (без анимации). Вызывается при
-// первом показе, «назад» и сбросе, а также из transitionStage при смене шага.
 function renderQuestionContent() {
   const current = currentQuestion();
   questionText.textContent = current ? current.text : '';
@@ -899,8 +846,8 @@ function renderQuestionContent() {
   optionButtons.length = 0;
 
   if (current) {
-    // Восстановление выбора при возврате назад: выбранный вариант снова тёплый.
     const chosen = state.answers[current.id];
+    const fragment = document.createDocumentFragment();
     current.options.forEach((option, optionIndex) => {
       const button = document.createElement('button');
       button.className = 'option-btn';
@@ -909,14 +856,14 @@ function renderQuestionContent() {
       button.dataset.optionIndex = String(optionIndex);
       button.style.setProperty('--option-enter-delay', `${optionIndex * SURVEY_STAGGER_MS}ms`);
       if (chosen === optionIndex) button.classList.add('selected');
-      answersContainer.appendChild(button);
+      fragment.appendChild(button);
       optionButtons.push(button);
     });
+    answersContainer.appendChild(fragment);
   }
   updateProgress();
 }
 
-// Немедленная отрисовка шага без входа (первый показ и сброс опроса).
 function renderQuestion() {
   surveyLocked = false;
   if (!state.order.length) state.order.push(questions[0].id);
@@ -924,8 +871,6 @@ function renderQuestion() {
   renderQuestionContent();
 }
 
-// Один делегированный обработчик вместо N замыканий на каждый вопрос:
-// строки опроса перерисовываются, а слушатель остаётся один на контейнер.
 function handleAnswersClick(event) {
   if (surveyLocked) return;
   const button = event.target.closest('.option-btn');
@@ -934,8 +879,6 @@ function handleAnswersClick(event) {
   if (!current) return;
   const optionIndex = Number(button.dataset.optionIndex);
   if (!current.options[optionIndex]) return;
-  // Повторный тап по тому же варианту ничего не делает: один ответ — ровно
-  // один показ следующего вопроса (защита от дублей и повторной обработки).
   if (state.answers[current.id] === optionIndex) return;
   applyAnswer(optionIndex, button);
 }
@@ -946,29 +889,22 @@ function applyAnswer(optionIndex, button) {
   if (!current) return;
   surveyLocked = true;
 
-  // Снимок для «назад» ДО изменения (порядок, шаг и карта ответов).
   state.history.push({
     order: [...state.order],
     stepIndex: state.stepIndex,
     answers: { ...state.answers },
   });
 
-  // Карта ответов перезаписывается по ключу: прежний вклад варианта полностью
-  // заменяется новым — двойного счёта нет, смена ответа считается корректно.
   state.answers[current.id] = optionIndex;
 
-  // Мгновенный отклик выбора: выбранная строка фиксируется, остальные тихо
-  // отступают (CSS .answers.is-locked), синхронно с уходом вопроса.
   optionButtons.forEach((item) => {
     item.classList.toggle('selected', item === button);
+    item.disabled = true;
   });
   answersContainer.classList.add('is-locked');
-  optionButtons.forEach((item) => { item.disabled = true; });
 
   const isLast = state.stepIndex >= questions.length - 1;
 
-  // Финальный шаг: показываем выбор, гасим вопрос уходной анимацией и уходим
-  // в подбор вайба (без повторного «входа» того же контента).
   if (isLast) {
     const finish = () => {
       surveyLocked = false;
@@ -987,18 +923,11 @@ function applyAnswer(optionIndex, button) {
     return;
   }
 
-  // Промежуточный шаг: уход → выбор следующего вопроса → вход нового кадра.
   transitionStage(1, () => {
     if (state.stepIndex + 1 < state.order.length) {
-      // Порядок уже проложен (возврат вперёд) — переиспользуем его как есть.
       state.stepIndex += 1;
     } else {
       let nextIndex = selectNextQuestion(state.answers, new Set(state.order));
-      // Страховка: если адаптивный выбор по какой-то причине не нашёл вопрос
-      // (например, рассогласование данных), берём первый не заданный в исходном
-      // порядке — это сохраняет корректную длину опроса и не завершает его раньше
-      // времени. Только когда действительно не заданных вопросов не осталось,
-      // переходим к подбору вайба.
       if (nextIndex < 0) {
         nextIndex = questions.findIndex(
           (question) => question.id !== undefined
@@ -1017,8 +946,6 @@ function applyAnswer(optionIndex, button) {
   });
 }
 
-// Подбор вайба по взвешенной модели (см. js/data/scoring.js). Детерминирован
-// для одинакового набора ответов; все 14 вайбов участвуют.
 function determineVibe() {
   const ranked = rankVibes(state.answers);
   const chosen = ranked.length ? ranked[0].id : Object.keys(vibeThemes)[0];
@@ -1041,20 +968,13 @@ function renderVibe(vibeKey) {
   initVibeGame(vibeKey);
 }
 
-// ---------------------------------------------------------------------------
-// Вайб-игра (только для «Ночного»): минималистичный тетрис на canvas 10×20 и
-// одна ротирующаяся строка вайб-цитаты под ним. Чистое затухание и корректная
-// уборка ресурсов при выходе с экрана (без фоновых циклов и утечек).
-// ---------------------------------------------------------------------------
 
 const TETRIS_COLS = 10;
 const TETRIS_ROWS = 20;
-// Стандартная скорость гравитации: 1 клетка вниз ровно раз в 800 мс.
 const TETRIS_GRAVITY_MS = 800;
 const QUOTE_ROTATE_MS = 10000;
 const QUOTE_FADE_MS = 800;
 
-// Тетромино: глубокие неоновые оттенки ночного мегаполиса.
 const TETRIS_SHAPES = [
   { color: '#5be1ff', cells: [[0, 0, 0, 0], [1, 1, 1, 1], [0, 0, 0, 0], [0, 0, 0, 0]] },
   { color: '#7f9bff', cells: [[1, 0, 0], [1, 1, 1], [0, 0, 0]] },
@@ -1118,7 +1038,6 @@ function paintGame() {
   const cell = tetrisCanvas.width / TETRIS_COLS;
   ctx.clearRect(0, 0, tetrisCanvas.width, tetrisCanvas.height);
 
-  // Минималистичная неоновая сетка 10×20 под блоками.
   ctx.strokeStyle = 'rgba(255, 255, 255, 0.04)';
   ctx.lineWidth = 0.5;
   ctx.beginPath();
@@ -1169,7 +1088,6 @@ function lockPiece() {
       if (!value) return;
       const boardY = game.piece.y + y;
       const boardX = game.piece.x + x;
-      // Блоки замерли выше нулевой строки — переполнение поля.
       if (boardY < 0) {
         overflowed = true;
         return;
@@ -1231,13 +1149,11 @@ function rotatePiece() {
   paintGame();
 }
 
-// Дельта-цикл: плавная гравитация независимо от частоты кадров.
 function tetrisLoop(time) {
   if (!game.active) return;
   if (!game.lastTime) game.lastTime = time;
   const delta = time - game.lastTime;
   game.lastTime = time;
-  // Ограничиваем дельту (защита от скачков при возврате на вкладку).
   game.dropTimer += Math.min(delta, 100);
   if (game.dropTimer >= TETRIS_GRAVITY_MS) {
     game.dropTimer -= TETRIS_GRAVITY_MS;
@@ -1248,8 +1164,6 @@ function tetrisLoop(time) {
   }
 }
 
-// Обработчик ввода с клавиатуры (WASD). Именованный — для точечного снятия.
-// Используем event.code, чтобы управление работало в любой раскладке.
 function handleTetrisInput(event) {
   if (!game.active || game.over) return;
   if (!screens.vibe.classList.contains('active')) return;
@@ -1280,9 +1194,6 @@ function showQuote(index) {
   if (!vibeQuoteText) return;
   const quotes = state.quoteList;
   if (!quotes || !quotes.length) return;
-  // Ключи цитат хранятся на русском. Пересоздаём текстовый узел, чтобы
-  // i18n-наблюдатель каждый раз брал свежий источник и переводил его по
-  // активному языку (кэш источника привязан к конкретному узлу).
   const key = quotes[index % quotes.length];
   vibeQuoteText.textContent = '';
   vibeQuoteText.appendChild(document.createTextNode(key));
@@ -1321,7 +1232,6 @@ function stopVibeGame() {
     tetrisRestartBtn.removeEventListener('click', game.restartHandler);
     game.restartHandler = null;
   }
-  // Снимаем все touch-биндинги канваса, чтобы не осталось утечек.
   if (game.touchHandlers && tetrisCanvas) {
     const { touchStart, touchMove, touchEnd } = game.touchHandlers;
     tetrisCanvas.removeEventListener('touchstart', touchStart);
@@ -1338,9 +1248,6 @@ function stopVibeGame() {
   hideGameOver();
 }
 
-// --- Мобильное управление свайпами ---------------------------------------
-// Короткий тап — поворот; горизонтальный свайп — смещение по клеткам;
-// свайп вниз — ускоренный мягкий сброс. Отслеживаем смещения от точки старта.
 function onTetrisTouchStart(event) {
   if (!game.active || game.over) return;
   const touch = event.changedTouches[0];
@@ -1352,7 +1259,6 @@ function onTetrisTouchMove(event) {
   if (!game.active || game.over || !game.touchStart) return;
   const touch = event.changedTouches[0];
   if (!touch) return;
-  // Блокируем прокрутку страницы, пока активны свайп-жесты.
   if (event.cancelable) event.preventDefault();
   const cell = tetrisCanvas.width / TETRIS_COLS;
   const threshold = Math.max(18, cell);
@@ -1378,11 +1284,9 @@ function onTetrisTouchEnd(event) {
   const deltaY = touch.clientY - game.touchStart.y;
   const isTap = !game.touchStart.moved && Math.abs(deltaX) < 12 && Math.abs(deltaY) < 12;
   if (isTap) {
-    // Короткий тап — поворот по часовой (аналог клавиши W).
     if (event.cancelable) event.preventDefault();
     rotatePiece();
   } else if (!game.touchStart.moved && deltaY > 36) {
-    // Свайп вниз — ускоренное падение на одну клетку.
     if (event.cancelable) event.preventDefault();
     stepPiece();
   }
@@ -1410,12 +1314,10 @@ function hideGameOver() {
 function showGameOver() {
   if (!tetrisGameOver) return;
   tetrisGameOver.hidden = false;
-  // Форсируем reflow, чтобы CSS-переход прозрачности сработал.
   void tetrisGameOver.offsetWidth;
   tetrisGameOver.classList.add('is-visible');
 }
 
-// Запускает цикл: чистое поле, новая фигура, свежий тик-рендер.
 function startTetrisLoop() {
   if (!game.context) return;
   game.field = createField();
@@ -1468,7 +1370,6 @@ function initVibeGame(vibeKey) {
   }
 }
 
-// Перезапуск после Game Over: сброс поля/очков, новая фигура, старт цикла.
 function restartVibeGame() {
   if (game.raf) {
     window.cancelAnimationFrame(game.raf);
@@ -1480,7 +1381,6 @@ function restartVibeGame() {
 function endVibeGame() {
   if (game.over) return;
   game.over = true;
-  // Останавливаем физику, но не сносим обработчик рестарта/клавиш.
   if (game.raf) {
     window.cancelAnimationFrame(game.raf);
     game.raf = 0;
@@ -1496,14 +1396,9 @@ function resetSurvey() {
   state.history = [];
   state.activeVibe = null;
   renderQuestion();
-  // Горизонтальный свайп лендинг → опрос; при reduced-motion или отсутствии
-  // поддержки WAAPI — обычное мгновенное переключение экрана.
   if (!swipeToScreen('survey', true)) showScreen('survey');
 }
 
-// Возврат к предыдущему вопросу: восстанавливаем точный снимок (порядок, шаг,
-// ответы) и въезжаем в кадр с противоположной стороны. Прежние ответы и выбор
-// сохраняются — состояние не сбрасывается.
 function handleBackRequest() {
   if (surveyLocked) return;
   if (state.history.length === 0) return;
@@ -1545,8 +1440,6 @@ function performReturn() {
   if (window.location.hash) {
     window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}`);
   }
-  // Обратный свайп (опрос → лендинг), если уходим именно из опроса; из остальных
-  // экранов — обычное переключение, чтобы не навязывать движение не по контексту.
   const leavingSurvey = pageShell && pageShell.dataset.activeScreen === 'survey';
   if (leavingSurvey && swipeToScreen('home', false)) return;
   showScreen('home');
@@ -1573,11 +1466,9 @@ window.addEventListener('vibe-language-change', () => {
   } else if (screens.share.classList.contains('active')) {
     shareVibeName.textContent = translateText('Неизвестный вайб');
   }
-  // Мгновенно перерисовываем текущую строку цитат на новом языке.
   if (state.quoteList && state.quoteList.length) {
     showQuote(game.quoteIndex);
   }
-  // Перезапускаем витрину, чтобы имя текущего вайба сразу встало на новом языке.
   if (screens.home.classList.contains('active')) startVibeShowcase();
   shareFeedback.textContent = '';
 });
@@ -1593,20 +1484,38 @@ document.addEventListener('keydown', (event) => {
   }
 });
 
-// ---------------------------------------------------------------------------
-// Каталог атмосфер на домашнем экране. Список строится из ТЕХ ЖЕ данных, что
-// и подбор вайба (vibeThemes), поэтому имена, id и порядок всегда совпадают с
-// источником: никаких придуманных вайбов и жёстко прописанных названий.
-// ---------------------------------------------------------------------------
+if (profileToggle && profileMenu) {
+  profileToggle.addEventListener('click', () => {
+    const open = profileMenu.hidden;
+    profileMenu.hidden = !open;
+    profileToggle.setAttribute('aria-expanded', String(open));
+  });
+
+  profileMenu.addEventListener('click', (event) => {
+    if (event.target.closest('.language-switcher')) return;
+    event.stopPropagation();
+    if (event.target.closest('.profile-menu__item')) closeProfileMenu();
+  });
+
+  document.addEventListener('click', (event) => {
+    if (!event.target.closest('#profile-nav') && !profileMenu.hidden) {
+      closeProfileMenu();
+    }
+  });
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && !profileMenu.hidden) {
+      event.preventDefault();
+      closeProfileMenu(true);
+    }
+  });
+}
+
 const vibeList = document.getElementById('vibe-list');
 const exploreVibesBtn = document.getElementById('explore-vibes-btn');
-// Переключатель языка — элемент, общий для всего приложения, но видимый
-// только на первом экране (управляется через существующий data-active-screen).
-const languageSwitcher = document.querySelector('.language-switcher');
 const languageOptions = document.getElementById('language-options');
 const languageToggle = document.getElementById('language-toggle');
 
-// Закрывает раскрытый список языков — вызывается при уходе с главной.
 function closeLanguageMenu() {
   if (!languageOptions || !languageToggle) return;
   languageOptions.hidden = true;
@@ -1615,12 +1524,6 @@ function closeLanguageMenu() {
 
 let catalogOpenTimer = null;
 
-// Одна карточка вайба. Акцент берём из общей карты VIBE_CARD_ACCENTS, поэтому
-// все 14 карточек окрашены так же, как свечение витрины на первом экране.
-// Один пункт каталога — это почти чистая типографика: только название вайба,
-// набранное прямо на фоне. Ни карточек, ни картинок, ни рамок, ни иконок.
-// Русский заголовок из данных — источник локализации (см. js/i18n/index.js),
-// поэтому перевод ставится наблюдателем i18n без дублирования словаря.
 function buildVibeLink(vibeKey) {
   const vibe = vibeThemes[vibeKey];
   if (!vibe) return null;
@@ -1634,9 +1537,6 @@ function buildVibeLink(vibeKey) {
   return link;
 }
 
-// Список каталога: все 14 вайбов ровно по одному разу, в исходном порядке
-// данных. Раскладку (число колонок) задаёт CSS — один markup для мобильных и
-// десктопа, без отдельных реализаций.
 function renderVibeCatalog() {
   if (!vibeList) return;
 
@@ -1650,8 +1550,6 @@ function renderVibeCatalog() {
   });
 }
 
-// Плавная прокрутка к каталогу. Прокручивается ближайший контейнер
-// (#home-screen), сам #start-btn и опрос не трогаются; hash не меняется.
 function scrollToCatalog() {
   const target = document.getElementById('vibe-catalog');
   if (!target) return;
@@ -1659,9 +1557,6 @@ function scrollToCatalog() {
   target.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' });
 }
 
-// Открытие вайба с карточки: используем существующую машинерию экранов
-// (renderVibe + showScreen + #vibe-transition). Короткий кинематографический
-// фейд, без 4-секундной последовательности «создания» и без новых маршрутов.
 function openVibeFromCatalog(vibeKey) {
   if (!vibeThemes[vibeKey]) return;
 
@@ -1690,9 +1585,7 @@ function openVibeFromCatalog(vibeKey) {
   }, 280);
 }
 
-// Единая проверка reduced-motion (учитывает override ?motion=on|off).
 function reducedMotionPref() {
-  // Единая точка проверки с учётом явного override (?motion=on|off).
   const forced = document.documentElement.dataset.motion;
   if (forced === 'force') return false;
   if (forced === 'off') return true;
@@ -1700,30 +1593,12 @@ function reducedMotionPref() {
     && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
-// ---------------------------------------------------------------------------
-// Цветовой отклик космического фона на вайб. Имя вайба в каталоге плавно
-// подкрашивает фон в его цвет (низкая luminансность, CSS-переход). Слой
-// .home-tint лежит ПОД частицами (z-index:0 против z-index:1 у .sky-canvas),
-// поэтому звёзды и частицы не перекрашиваются и их система не меняется.
-//
-// Делегирование: по одному слушателю на список вместо 14 обработчиков.
-//   • Мышь/перо — как и прежде: наведение (pointerover) красит, уход (pointerleave)
-//     и потеря фокуса окном снимают оттенок. Переход между именами НЕ отпускает
-//     список, поэтому фон перетекает из цвета в цвет без вспышки чёрного.
-//   • Тач (палец) — нажатие и УДЕРЖАНИЕ включает тот же оттенок: на телефонах
-//     hover нет, поэтому единственный надёжный вход — долгое касание. Короткий
-//     тап остаётся обычной навигацией по вайбу (цвет не меняется).
-// Один набор Pointer Events обслуживает и мышь, и перо, и палец — без дублирующих
-// touch-обработчиков. Слушатели пассивны: обычные тапы и прокрутка не блокируются.
-// В reduced-motion отклик отключён (уважение системной настройки).
-// ---------------------------------------------------------------------------
 const homeTint = document.querySelector('.home-tint');
 
 function applyVibeTint(key) {
   if (!homeTint || reducedMotionPref()) return;
   const accent = VIBE_CARD_ACCENTS[key];
   if (!accent) return;
-  // Прозрачность держим низкой: это намёк на цвет, а не заливка.
   homeTint.style.setProperty('--vibe-tint', hexToRgba(accent, 0.16));
 }
 
@@ -1731,28 +1606,21 @@ function clearVibeTint() {
   if (homeTint) homeTint.style.removeProperty('--vibe-tint');
 }
 
-// Сколько держать палец, прежде чем включится оттенок. Порог намеренно чуть
-// выше мгновенного тапа: обычное касание не должно менять цвет фона.
 const VIBE_HOLD_MS = 420;
-// Допустимый сдвиг пальца: большее смещение — это уже прокрутка/жест, а не
-// удержание, поэтому удержание отменяем (страница при этом скроллится штатно).
 const VIBE_HOLD_SLOP = 12;
 
 function initVibeHover() {
   if (!vibeList) return;
 
-  // --- Мышь и перо: прежнее наведение, поведение не изменено. ---
   vibeList.addEventListener('pointerover', (event) => {
     if (event.pointerType && event.pointerType !== 'mouse' && event.pointerType !== 'pen') return;
     const item = event.target.closest('.vibe-link');
     if (item) applyVibeTint(item.dataset.vibe);
   }, { passive: true });
-  // Уход за пределы списка (или потеря фокуса окном) возвращает чёрный фон.
   vibeList.addEventListener('pointerleave', clearVibeTint, { passive: true });
 
-  // --- Палец: нажатие и удержание. ---
   let holdTimer = null;
-  let holdStart = null; // { id, x, y } — точка касания для контроля сдвига
+  let holdStart = null; 
   let holdActive = false;
 
   const cancelHold = () => {
@@ -1764,22 +1632,18 @@ function initVibeHover() {
     holdActive = false;
   };
 
-  // Отпускание/отмена/уход: гарантированно снимаем таймер и гасим оттенок,
-  // чтобы состояние не «залипло» ни при обычном тапе, ни при жесте, ни при уходе.
   const releaseHold = () => {
     cancelHold();
     clearVibeTint();
   };
 
   vibeList.addEventListener('pointerdown', (event) => {
-    // Мышь и перо обрабатывает ветка наведения выше.
     if (event.pointerType === 'mouse' || event.pointerType === 'pen') return;
     const item = event.target.closest('.vibe-link');
     if (!item) return;
     holdStart = { id: event.pointerId, x: event.clientX, y: event.clientY };
     holdTimer = window.setTimeout(() => {
       holdTimer = null;
-      // holdStart мог быть сброшен (сдвиг/отпускание) — тогда просто выходим.
       if (!holdStart) return;
       holdActive = true;
       applyVibeTint(item.dataset.vibe);
@@ -1803,9 +1667,6 @@ function initVibeHover() {
     releaseHold();
   }, { passive: true });
 
-  // Пока палец удерживается, подавляем системный контекстный тап (Android/Safari),
-  // иначе длинный тап открывал бы меню вместо смены цвета. Вне удержания обычное
-  // поведение (в т.ч. контекстное меню) сохраняется.
   vibeList.addEventListener('contextmenu', (event) => {
     if (holdActive) event.preventDefault();
   });
@@ -1820,38 +1681,48 @@ if (exploreVibesBtn) {
   exploreVibesBtn.addEventListener('click', scrollToCatalog);
 }
 
-// Порядок важен: сначала локализация (переводит статические тексты и запускает
-// наблюдатель за динамическими узлами), затем построение UI.
 initI18n('ru');
-// Каталог строим после i18n: наблюдатель перевода уже активен и переведёт
-// названия карточек сразу при их добавлении в DOM.
 renderVibeCatalog();
 initGlassTilt();
 renderQuestion();
 showScreen('home');
 handleHashRoute();
 
-// Включаем JS-зависимые эффекты только теперь (после сборки UI и определения
-// стартового экрана) — без мигания и лишней работы на загрузке.
 document.documentElement.classList.add('vf-js');
 initSky();
 initVibeHover();
 
-// Аудио стартует лениво — только после первого взаимодействия пользователя.
-// Так аудио-буферы не конкурируют с рендером первого экрана, частицами
-// и анимацией появления (layout уже собран к этому моменту).
-let audioPipelineStarted = false;
-function startAudioPipelineLazily() {
-  if (audioPipelineStarted) return;
-  audioPipelineStarted = true;
-  document.removeEventListener('pointerdown', startAudioPipelineLazily);
-  document.removeEventListener('keydown', startAudioPipelineLazily);
+let audioUnlocked = false;
+let transitionWarmStarted = false;
 
-  // Прогреваем UI-звуки (клик/переход), чтобы первый клик не буферизовался.
-  uiButtonAudio.preload = 'auto';
-  uiButtonAudio.load();
+function warmTransitionAudio() {
+  if (transitionWarmStarted) return;
+  transitionWarmStarted = true;
   transitionAudio.preload = 'auto';
   transitionAudio.load();
+  if (typeof transitionAudio.decode === 'function') {
+    transitionAudio.decode().catch(() => {});
+  }
+  const restoreVolume = transitionAudio.volume;
+  transitionAudio.volume = 0;
+  const unlock = transitionAudio.play();
+  if (unlock) {
+    unlock
+      .then(() => {
+        transitionAudio.pause();
+        try { transitionAudio.currentTime = 0; } catch (error) {}
+        transitionAudio.volume = restoreVolume;
+      })
+      .catch(() => { transitionAudio.volume = restoreVolume; });
+  }
 }
-document.addEventListener('pointerdown', startAudioPipelineLazily, { once: true });
-document.addEventListener('keydown', startAudioPipelineLazily, { once: true });
+
+function primeAudioUnlock() {
+  if (audioUnlocked) return;
+  audioUnlocked = true;
+  warmTransitionAudio();
+}
+
+document.addEventListener('pointerdown', primeAudioUnlock, { once: true });
+document.addEventListener('keydown', primeAudioUnlock, { once: true });
+document.addEventListener('touchstart', primeAudioUnlock, { once: true, passive: true });
