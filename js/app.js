@@ -1,10 +1,10 @@
 
-import { questions } from './data/questions.js?v=40';
-import { vibeThemes, vibeShareSlugs, vibeKeysByShareSlug } from './data/themes.js?v=40';
-import { rankVibes, selectNextQuestion, questionIndexById } from './data/scoring.js?v=40';
-import { initI18n, translateText } from './i18n/index.js?v=40';
-import { initCinematicIntro } from './intro.js?v=40';
-import { initSky, setSkyActive } from './sky.js?v=40';
+import { questions } from './data/questions.js?v=41';
+import { vibeThemes, vibeShareSlugs, vibeKeysByShareSlug } from './data/themes.js?v=41';
+import { rankVibes, selectNextQuestion, questionIndexById } from './data/scoring.js?v=41';
+import { initI18n, translateText } from './i18n/index.js?v=41';
+import { initCinematicIntro } from './intro.js?v=41';
+import { initSky, setSkyActive } from './sky.js?v=41';
 
 initCinematicIntro();
 
@@ -74,8 +74,8 @@ const state = {
 
 const vibeTransition = document.getElementById('vibe-transition');
 
-const UI_CLICK_VOLUME = 0.12;
-const TRANSITION_VOLUME = 0.15;
+const UI_CLICK_VOLUME = 0.09;
+const TRANSITION_VOLUME = 0.11;
 
 const TRANSITION_FORM_MS = 3000;      
 const TRANSITION_HOLD_MS = 3500;      
