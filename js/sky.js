@@ -11,9 +11,6 @@ let height = 0;
 
 let stars = [];
 let particles = [];
-let lights = [];
-let lightSprites = null;
-const LIGHT_SPRITE_SIZE = 256;
 
 let lastTime = 0;
 let reduceQuery = null;
@@ -85,34 +82,6 @@ function seed() {
       tint: Math.random() < 0.7 ? 'rgba(214, 216, 222, 1)' : 'rgba(168, 172, 180, 1)',
     };
   }
-
-  const base = Math.max(width, height);
-  lights = [
-    { x: width * 0.24, y: height * 0.26, radius: base * 0.52, color: '255, 255, 255', speed: 0.045, phase: 0 },
-    { x: width * 0.79, y: height * 0.16, radius: base * 0.44, color: '200, 204, 212', speed: 0.031, phase: 2.1 },
-  ];
-  buildLightSprites();
-}
-
-function buildLightSprites() {
-  if (typeof document === 'undefined' || typeof document.createElement !== 'function') {
-    lightSprites = null;
-    return;
-  }
-  lightSprites = lights.map((L) => {
-    const sprite = document.createElement('canvas');
-    sprite.width = LIGHT_SPRITE_SIZE;
-    sprite.height = LIGHT_SPRITE_SIZE;
-    const sctx = sprite.getContext('2d');
-    if (!sctx) return null;
-    const center = LIGHT_SPRITE_SIZE / 2;
-    const grad = sctx.createRadialGradient(center, center, 0, center, center, center);
-    grad.addColorStop(0, `rgba(${L.color}, 1)`);
-    grad.addColorStop(1, `rgba(${L.color}, 0)`);
-    sctx.fillStyle = grad;
-    sctx.fillRect(0, 0, LIGHT_SPRITE_SIZE, LIGHT_SPRITE_SIZE);
-    return sprite;
-  });
 }
 
 function wrap(p) {
@@ -126,19 +95,6 @@ function wrap(p) {
 function draw(dt, time) {
   if (!ctx) return;
   ctx.clearRect(0, 0, width, height);
-
-  for (let i = 0; i < lights.length; i += 1) {
-    const sprite = lightSprites ? lightSprites[i] : null;
-    if (!sprite) continue;
-    const L = lights[i];
-    const sway = Math.sin(time * L.speed + L.phase) * 0.5 + 0.5;
-    const lx = L.x + Math.cos(time * L.speed * 0.7 + L.phase) * width * 0.05;
-    const ly = L.y + Math.sin(time * L.speed * 0.9 + L.phase) * height * 0.04;
-    const radius = L.radius * (0.92 + sway * 0.16);
-    const alpha = 0.04 + sway * 0.045;
-    ctx.globalAlpha = alpha;
-    ctx.drawImage(sprite, lx - radius, ly - radius, radius * 2, radius * 2);
-  }
 
   for (let i = 0; i < particles.length; i += 1) {
     const p = particles[i];

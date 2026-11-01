@@ -318,6 +318,7 @@ const translationCatalog = {
 "Russian": "Russian",
 "Профиль": "Profile",
 "Язык": "Language",
+"Эта атмосфера находится в разработке": "This atmosphere is currently under development",
 };
 
 const dynamicTranslations = [
@@ -578,11 +579,6 @@ export function setLanguage(language) {
   if (!localeCodes.includes(language)) return;
   currentLanguage = language;
   document.documentElement.lang = localeMetadata[language].htmlLang;
-  document.querySelectorAll('.language-toggle').forEach((toggle) => {
-    const label = toggle.querySelector('.control-label');
-    if (label) label.textContent = localeMetadata[language].code;
-    else toggle.textContent = localeMetadata[language].code;
-  });
   document.querySelectorAll('[data-language]').forEach((option) => {
     option.setAttribute('aria-pressed', String(option.dataset.language === language));
   });
@@ -592,11 +588,26 @@ export function setLanguage(language) {
   window.dispatchEvent(new CustomEvent('vibe-language-change', { detail: { language } }));
 }
 
+export function closeLanguageOptions(returnFocus = false) {
+  if (!languageOptions || !languageToggle) return;
+  languageOptions.hidden = true;
+  languageToggle.setAttribute('aria-expanded', 'false');
+  if (returnFocus) languageToggle.focus();
+}
+
 export function initI18n(defaultLanguage = 'ru') {
   languageToggle = document.getElementById('language-toggle');
   languageOptions = document.getElementById('language-options');
 
-  languageToggle.addEventListener('click', () => {
+  if (!languageToggle || !languageOptions) {
+    translateTree(document.body);
+    setLanguage(readStoredLanguage() || defaultLanguage);
+    document.documentElement.classList.add('i18n-ready');
+    return;
+  }
+
+  languageToggle.addEventListener('click', (event) => {
+    event.stopPropagation();
     const open = languageOptions.hidden;
     languageOptions.hidden = !open;
     languageToggle.setAttribute('aria-expanded', String(open));
@@ -606,24 +617,26 @@ export function initI18n(defaultLanguage = 'ru') {
   languageOptions.addEventListener('click', (event) => {
     const option = event.target.closest('[data-language]');
     if (!option) return;
+    event.stopPropagation();
     setLanguage(option.dataset.language);
-    languageOptions.hidden = true;
-    languageToggle.setAttribute('aria-expanded', 'false');
-    languageToggle.focus();
+    closeLanguageOptions(true);
   });
 
   document.addEventListener('click', (event) => {
-    if (!event.target.closest('.language-switcher')) {
-      languageOptions.hidden = true;
-      languageToggle.setAttribute('aria-expanded', 'false');
-    }
+    if (languageOptions.hidden) return;
+    if (event.target.closest('#language-options') || event.target.closest('#language-toggle')) return;
+    closeLanguageOptions();
   });
 
   document.addEventListener('keydown', (event) => {
     if (event.key !== 'Escape' || languageOptions.hidden) return;
-    languageOptions.hidden = true;
-    languageToggle.setAttribute('aria-expanded', 'false');
-    languageToggle.focus();
+    event.preventDefault();
+    closeLanguageOptions(true);
+  });
+
+  languageOptions.addEventListener('keydown', (event) => {
+    if (event.key !== 'Tab') return;
+    closeLanguageOptions();
   });
 
   translateTree(document.body);

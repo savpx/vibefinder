@@ -1,10 +1,10 @@
 
-import { questions } from './data/questions.js?v=41';
-import { vibeThemes, vibeShareSlugs, vibeKeysByShareSlug } from './data/themes.js?v=41';
-import { rankVibes, selectNextQuestion, questionIndexById } from './data/scoring.js?v=41';
-import { initI18n, translateText } from './i18n/index.js?v=41';
-import { initCinematicIntro } from './intro.js?v=41';
-import { initSky, setSkyActive } from './sky.js?v=41';
+import { questions } from './data/questions.js?v=42';
+import { vibeThemes, vibeShareSlugs, vibeKeysByShareSlug } from './data/themes.js?v=42';
+import { rankVibes, selectNextQuestion, questionIndexById } from './data/scoring.js?v=43';
+import { initI18n, translateText, closeLanguageOptions } from './i18n/index.js?v=42';
+import { initCinematicIntro } from './intro.js?v=42';
+import { initSky, setSkyActive } from './sky.js?v=43';
 
 initCinematicIntro();
 
@@ -60,6 +60,9 @@ const tetrisCanvas = document.getElementById('tetris-canvas');
 const vibeQuoteText = document.getElementById('vibe-quote-text');
 const tetrisGameOver = document.getElementById('tetris-game-over');
 const tetrisRestartBtn = document.getElementById('tetris-restart-btn');
+const vibeDevelopment = document.getElementById('vibe-development');
+
+const READY_VIBES = new Set(['night']);
 
 const state = {
   order: [],
@@ -139,7 +142,9 @@ uiButtonAudio.load();
 uiButtonAudio.volume = UI_CLICK_VOLUME;
 transitionAudio.preload = 'none';
 transitionAudio.volume = TRANSITION_VOLUME;
+transitionAudio.muted = false;
 let transitionFadeOutStarted = false;
+let transitionPlayToken = 0;
 
 function stopTransitionAudio() {
   const fade = audioVolumeFades.get(transitionAudio);
@@ -149,11 +154,13 @@ function stopTransitionAudio() {
   }
   if (!transitionAudio.paused) transitionAudio.pause();
   try { transitionAudio.currentTime = 0; } catch (error) {}
+  transitionAudio.muted = false;
   transitionAudio.volume = TRANSITION_VOLUME;
   transitionFadeOutStarted = false;
 }
 
 transitionAudio.addEventListener('timeupdate', () => {
+  if (transitionAudio.muted) return;
   if (!Number.isFinite(transitionAudio.duration)) return;
   const remaining = transitionAudio.duration - transitionAudio.currentTime;
   if (!transitionFadeOutStarted && remaining <= 1.1) {
@@ -271,7 +278,6 @@ function init3DTiltEffect(elementSelector, maxTiltAngle) {
 
 function initGlassTilt() {
   init3DTiltEffect('#start-btn', 7);
-  init3DTiltEffect('#language-toggle', 7);
   init3DTiltEffect('#vibe-menu-toggle', 7);
 }
 
@@ -500,6 +506,27 @@ function swipeToScreen(targetName, forward) {
   return true;
 }
 
+// Matches the .vibe-game entrance animation delay used in style.css.
+const GAME_REVEAL_DELAY_MS = 2550;
+const GAME_REVEAL_REDUCED_MS = 640;
+let gameStartTimer = null;
+
+function clearGameStartTimer() {
+  if (gameStartTimer === null) return;
+  window.clearTimeout(gameStartTimer);
+  gameStartTimer = null;
+}
+
+function schedulePendingVibeGame() {
+  clearGameStartTimer();
+  if (!game.pendingStart) return;
+  const delay = reducedMotionPref() ? GAME_REVEAL_REDUCED_MS : GAME_REVEAL_DELAY_MS;
+  gameStartTimer = window.setTimeout(() => {
+    gameStartTimer = null;
+    startPendingVibeGame();
+  }, delay);
+}
+
 function showScreen(name) {
   Object.entries(screens).forEach(([key, screen]) => {
     screen.classList.toggle('active', key === name);
@@ -508,15 +535,21 @@ function showScreen(name) {
   if (name !== 'vibe') screens.vibe.classList.remove('vibe-screen-reveal');
   if (name !== 'vibe') closeVibeMenu();
   closeProfileMenu();
-  if (name !== 'vibe') stopVibeGame();
+  if (name !== 'vibe') {
+    clearGameStartTimer();
+    stopVibeGame();
+  } else {
+    screens.vibe.classList.remove('vibe-screen-reveal');
+    void screens.vibe.offsetWidth;
+    screens.vibe.classList.add('vibe-screen-reveal');
+    schedulePendingVibeGame();
+  }
   if (name === 'home' || name === 'survey' || name === 'creation') {
-    if (name === 'home') startVibeShowcase(); 
+    if (name === 'home') startVibeShowcase();
     setSkyActive(true);
-    if (name === 'survey') closeLanguageMenu();
   } else {
     stopVibeShowcase();
     setSkyActive(false);
-    closeLanguageMenu();
   }
 }
 
@@ -530,6 +563,7 @@ function closeProfileMenu(returnFocus = false) {
   if (!profileMenu || !profileToggle) return;
   profileMenu.hidden = true;
   profileToggle.setAttribute('aria-expanded', 'false');
+  closeLanguageOptions();
   if (returnFocus) profileToggle.focus();
 }
 
@@ -714,7 +748,11 @@ function startVibeCreation(vibeKey) {
   buildConstellation();
   showScreen('creation');
 
+  // Invalidate any in-flight unlock playback so it cannot pause or rewind
+  // the real transition that is starting now.
+  transitionPlayToken += 1;
   transitionAudio.pause();
+  transitionAudio.muted = false;
   const transitionFade = audioVolumeFades.get(transitionAudio);
   if (transitionFade !== undefined) {
     window.clearInterval(transitionFade);
@@ -737,7 +775,6 @@ function startVibeCreation(vibeKey) {
     if (sequence !== creationSequence) return;
     vibeRevealTimer = null;
     renderVibe(vibeKey);
-    screens.vibe.classList.add('vibe-screen-reveal');
     showScreen('vibe');
     stopTransitionAudio();
     if (pageShell) pageShell.classList.add('is-revealing');
@@ -962,6 +999,10 @@ function renderVibe(vibeKey) {
   document.body.classList.add(config.palette);
   screens.vibe.dataset.vibe = vibeKey;
 
+  const isReady = READY_VIBES.has(vibeKey);
+  screens.vibe.classList.toggle('is-under-development', !isReady);
+  if (vibeDevelopment) vibeDevelopment.hidden = isReady;
+
   themeName.textContent = config.title;
   themeDescription.textContent = config.description;
 
@@ -1001,6 +1042,7 @@ const game = {
   field: [],
   piece: null,
   context: null,
+  pendingStart: false,
 };
 
 function createField() {
@@ -1212,6 +1254,7 @@ function rotateQuote() {
 }
 
 function stopVibeGame() {
+  clearGameStartTimer();
   if (game.raf) {
     window.cancelAnimationFrame(game.raf);
     game.raf = 0;
@@ -1245,6 +1288,7 @@ function stopVibeGame() {
   game.piece = null;
   game.lastTime = 0;
   game.dropTimer = 0;
+  game.pendingStart = false;
   hideGameOver();
 }
 
@@ -1320,6 +1364,7 @@ function showGameOver() {
 
 function startTetrisLoop() {
   if (!game.context) return;
+  game.pendingStart = false;
   game.field = createField();
   game.piece = spawnPiece();
   game.active = true;
@@ -1329,6 +1374,17 @@ function startTetrisLoop() {
   hideGameOver();
   paintGame();
   game.raf = window.requestAnimationFrame(tetrisLoop);
+}
+
+function focusTetrisCanvas() {
+  if (!tetrisCanvas || !screens.vibe.classList.contains('active')) return;
+  try { tetrisCanvas.focus({ preventScroll: true }); } catch (error) { tetrisCanvas.focus(); }
+}
+
+function startPendingVibeGame() {
+  if (!game.pendingStart) return;
+  focusTetrisCanvas();
+  startTetrisLoop();
 }
 
 function initVibeGame(vibeKey) {
@@ -1349,9 +1405,6 @@ function initVibeGame(vibeKey) {
   showQuote(0);
 
   game.context = tetrisCanvas.getContext('2d');
-  if (tetrisCanvas) {
-    tetrisCanvas.focus();
-  }
 
   game.keyHandler = handleTetrisInput;
   window.addEventListener('keydown', game.keyHandler);
@@ -1363,7 +1416,19 @@ function initVibeGame(vibeKey) {
 
   bindTetrisTouch();
 
-  startTetrisLoop();
+  if (screens.vibe.classList.contains('active')) {
+    focusTetrisCanvas();
+    startTetrisLoop();
+  } else {
+    game.pendingStart = true;
+    game.field = createField();
+    game.piece = spawnPiece();
+    game.over = false;
+    game.lastTime = 0;
+    game.dropTimer = 0;
+    hideGameOver();
+    paintGame();
+  }
 
   if (state.quoteList && state.quoteList.length > 1) {
     game.quoteTimer = window.setInterval(rotateQuote, QUOTE_ROTATE_MS);
@@ -1485,42 +1550,37 @@ document.addEventListener('keydown', (event) => {
 });
 
 if (profileToggle && profileMenu) {
-  profileToggle.addEventListener('click', () => {
+  profileToggle.addEventListener('click', (event) => {
+    event.stopPropagation();
     const open = profileMenu.hidden;
     profileMenu.hidden = !open;
     profileToggle.setAttribute('aria-expanded', String(open));
+    if (!open) closeLanguageOptions();
   });
 
   profileMenu.addEventListener('click', (event) => {
-    if (event.target.closest('.language-switcher')) return;
-    event.stopPropagation();
+    if (event.target.closest('.profile-menu__item--language')) return;
     if (event.target.closest('.profile-menu__item')) closeProfileMenu();
   });
 
   document.addEventListener('click', (event) => {
-    if (!event.target.closest('#profile-nav') && !profileMenu.hidden) {
+    if (!profileMenu.hidden && !event.target.closest('#profile-nav')) {
       closeProfileMenu();
     }
   });
 
   document.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape' && !profileMenu.hidden) {
-      event.preventDefault();
-      closeProfileMenu(true);
-    }
+    if (event.key !== 'Escape' || profileMenu.hidden) return;
+    if (event.defaultPrevented) return;
+    const options = document.getElementById('language-options');
+    if (options && !options.hidden) return;
+    event.preventDefault();
+    closeProfileMenu(true);
   });
 }
 
 const vibeList = document.getElementById('vibe-list');
 const exploreVibesBtn = document.getElementById('explore-vibes-btn');
-const languageOptions = document.getElementById('language-options');
-const languageToggle = document.getElementById('language-toggle');
-
-function closeLanguageMenu() {
-  if (!languageOptions || !languageToggle) return;
-  languageOptions.hidden = true;
-  languageToggle.setAttribute('aria-expanded', 'false');
-}
 
 let catalogOpenTimer = null;
 
@@ -1703,18 +1763,27 @@ function warmTransitionAudio() {
   if (typeof transitionAudio.decode === 'function') {
     transitionAudio.decode().catch(() => {});
   }
-  const restoreVolume = transitionAudio.volume;
-  transitionAudio.volume = 0;
+  // Prime the element for the real transition without emitting any sound.
+  // `muted` is respected on every browser, unlike `volume` (iOS Safari ignores
+  // volume on media elements), so no fragment of the track can be heard.
+  const unlockToken = ++transitionPlayToken;
+  transitionAudio.muted = true;
   const unlock = transitionAudio.play();
-  if (unlock) {
-    unlock
-      .then(() => {
-        transitionAudio.pause();
-        try { transitionAudio.currentTime = 0; } catch (error) {}
-        transitionAudio.volume = restoreVolume;
-      })
-      .catch(() => { transitionAudio.volume = restoreVolume; });
+  if (!unlock) {
+    transitionAudio.muted = false;
+    return;
   }
+  unlock
+    .then(() => {
+      if (unlockToken !== transitionPlayToken) return;
+      transitionAudio.pause();
+      try { transitionAudio.currentTime = 0; } catch (error) {}
+      transitionAudio.muted = false;
+    })
+    .catch(() => {
+      if (unlockToken !== transitionPlayToken) return;
+      transitionAudio.muted = false;
+    });
 }
 
 function primeAudioUnlock() {

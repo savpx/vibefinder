@@ -1,6 +1,6 @@
 
-import { questions } from './questions.js?v=36';
-import { vibeThemes } from './themes.js?v=36';
+import { questions } from './questions.js?v=42';
+import { vibeThemes } from './themes.js?v=42';
 
 export const VIBE_IDS = Object.keys(vibeThemes);
 

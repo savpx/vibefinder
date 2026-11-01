@@ -7,16 +7,13 @@
     "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC",
     "Noto Sans", "Noto Sans Arabic", "Segoe UI Historic", Tahoma,
     sans-serif;
-  --font-display: var(--font-sans);           
-  --font-script-latin: 'Alex Brush', 'Marck Script', cursive;   
-  --font-script-cyr: 'Marck Script', 'Alex Brush', cursive;     
+  --font-display: var(--font-sans);
   --font-mono: "Courier New", ui-monospace, "SFMono-Regular", Menlo, monospace;
 
   --weight-body: 400;
   --weight-medium: 500;
   --weight-semibold: 600;
   --weight-bold: 700;
-  --weight-heavy: 800;
 
   --bg: #000000;
   --text: #f3f5f9;
@@ -32,12 +29,9 @@
   --material-blur: blur(20px) saturate(190%);
   --inset-highlight: inset 0 0.5px 0 rgba(255, 255, 255, 0.15);
 
-  --system-gray-4: #3A3A3C;
-
   --radius-container: 22px;
   --radius-control: 12px;
 
-  --type-title2-size: 22px;
   --type-title2-tracking: -0.4px;
   --type-body-size: 17px;
   --type-body-tracking: -0.4px;
@@ -161,90 +155,52 @@ input {
   isolation: isolate;
 }
 
-.language-switcher {
-  position: fixed;
-  top: max(18px, env(safe-area-inset-top));
-  left: max(20px, env(safe-area-inset-left));
-  z-index: 22;
+.profile-menu__language-btn {
   display: flex;
-  align-items: flex-start;
-  gap: 0.45rem;
-  direction: ltr;
-}
-
-.language-toggle,
-.language-options button {
-  min-width: 36px;
-  min-height: 36px;
+  align-items: center;
+  gap: 0.7rem;
+  width: 100%;
+  min-height: 44px;
+  padding: 0.55rem 0.7rem;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: inherit;
   font-family: var(--font-sans);
-  font-size: 0.66rem;
-  font-weight: 600;
-  letter-spacing: 0.06em;
+  font-size: 0.95rem;
+  font-weight: var(--weight-medium);
+  text-align: start;
   cursor: pointer;
-  color: var(--label-secondary);
-  background: var(--material-bg);
-  border: 0.5px solid var(--material-border);
-  border-radius: var(--radius-control);
-  box-shadow: var(--inset-highlight);
-  backdrop-filter: var(--material-blur);
-  -webkit-backdrop-filter: var(--material-blur);
-  transition:
-    --press 0.2s var(--ease-spring),
-    --rotate-x 0.4s var(--ease-spring),
-    --rotate-y 0.4s var(--ease-spring),
-    --scale 0.4s var(--ease-spring),
-    --lift 0.4s var(--ease-spring),
-    color 0.4s var(--ease-spring),
-    background-color 0.4s var(--ease-spring),
-    border-color 0.4s var(--ease-spring),
-    box-shadow 0.4s var(--ease-spring);
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color 0.2s ease;
 }
 
-.language-toggle:hover,
-.language-options button:hover,
-.language-toggle:focus-visible,
-.language-options button:focus-visible {
-  color: var(--label-primary);
-  border-color: rgba(255, 255, 255, 0.24);
-  background: rgba(35, 35, 35, 0.55);
-  box-shadow: var(--inset-highlight), 0 8px 24px rgba(0, 0, 0, 0.35);
+.profile-menu__language-btn:hover,
+.profile-menu__language-btn:focus-visible,
+.profile-menu__language-btn[aria-expanded="true"] {
+  background: rgba(255, 255, 255, 0.08);
+  outline: none;
 }
 
-.language-toggle:hover,
-.language-toggle:focus-visible {
-  --lift: -2px;
-}
-
-.language-toggle:active {
-  --press: 0.965;
-  transition: --press 0.08s ease-out;
-}
-
-.language-options button:active {
-  transform: scale(0.96);
-  transition: transform 0.1s;
-}
-
-.language-toggle {
-  position: relative;
-}
-
-.language-toggle::before {
-  position: absolute;
-  inset: -4px;
-  content: "";
+.profile-menu__language-btn:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.7);
+  outline-offset: -2px;
 }
 
 .language-options {
-  display: flex;
-  gap: 0.35rem;
-  padding: 0.25rem;
-  border: 0.5px solid var(--material-border);
+  position: absolute;
+  z-index: 4;
+  top: calc(100% + 0.35rem);
+  inset-inline: 0;
+  display: grid;
+  gap: 0.15rem;
+  padding: 0.3rem;
+  border: 0.5px solid rgba(255, 255, 255, 0.14);
   border-radius: var(--radius-control);
-  background: rgba(20, 20, 20, 0.55);
-  box-shadow: var(--inset-highlight), 0 16px 32px rgba(0, 0, 0, 0.32);
-  backdrop-filter: var(--material-blur);
-  -webkit-backdrop-filter: var(--material-blur);
+  background: rgba(0, 0, 0, 0.94);
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.34);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 
 .language-options[hidden] {
@@ -252,27 +208,48 @@ input {
 }
 
 .language-options button {
-  min-width: 32px;
-  min-height: 30px;
-  border-color: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  min-height: 40px;
+  padding: 0.5rem 0.65rem;
+  border: 0;
+  border-radius: 8px;
   background: transparent;
-  box-shadow: none;
+  color: var(--label-secondary);
+  font-family: var(--font-sans);
+  font-size: 0.9rem;
+  font-weight: var(--weight-medium);
+  text-align: start;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.language-options button:hover,
+.language-options button:focus-visible {
+  color: var(--label-primary);
+  background: rgba(255, 255, 255, 0.08);
+  outline: none;
 }
 
 .language-options button[aria-pressed="true"] {
   color: var(--label-primary);
-  border-color: rgba(255, 255, 255, 0.24);
   background: rgba(255, 255, 255, 0.1);
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .language-toggle,
-  .language-options button {
-    transition: none;
-  }
+.language-options button[aria-pressed="true"]::after {
+  content: "";
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
 
-  .language-toggle:active,
-  .language-options button:active {
+@media (prefers-reduced-motion: reduce) {
+  .profile-menu__language-btn,
+  .language-options button {
     transition: none;
   }
 }
@@ -636,7 +613,6 @@ input {
 }
 
 .primary-btn,
-.language-toggle,
 .vibe-menu-toggle {
   position: relative;
   perspective: 1000px;
@@ -667,7 +643,6 @@ input {
 }
 
 .primary-btn.is-tilting,
-.language-toggle.is-tilting,
 .vibe-menu-toggle.is-tilting {
   transition:
     --press 0.2s var(--ease-spring),
@@ -676,7 +651,6 @@ input {
 }
 
 .primary-btn > *,
-.language-toggle > *,
 .vibe-menu-toggle > * {
   pointer-events: none;
 }
@@ -687,16 +661,13 @@ input {
 }
 
 .primary-btn:active,
-.language-toggle:active,
 .vibe-menu-toggle:active {
   --press: 0.965;
   transition: --press 0.08s ease-out;
 }
 
 .primary-btn:hover,
-.primary-btn:focus-visible,
-.language-toggle:hover,
-.language-toggle:focus-visible {
+.primary-btn:focus-visible {
   --lift: -2px;
   border-color: rgba(255, 255, 255, 0.2);
   box-shadow: 0 14px 26px -16px rgba(0, 0, 0, 0.5);
@@ -748,7 +719,6 @@ input {
 .vibe-showcase__name {
   grid-area: 1 / 1;
   max-width: min(900px, 88vw);
-  font-family: var(--font-script-latin);
   font-size: clamp(1.6rem, 3vw, 2.15rem);
   font-weight: 400;
   line-height: 1.15;
@@ -840,11 +810,14 @@ input {
 
 #survey-screen {
   padding:
-    calc(clamp(1rem, 4vh, 1.75rem) + env(safe-area-inset-top))
-    calc(clamp(1rem, 4vw, 1.5rem) + env(safe-area-inset-right))
-    calc(clamp(1rem, 4vh, 1.75rem) + env(safe-area-inset-bottom))
-    calc(clamp(1rem, 4vw, 1.5rem) + env(safe-area-inset-left));
+    calc(clamp(0.75rem, 3vh, 1.25rem) + env(safe-area-inset-top))
+    calc(clamp(0.85rem, 4vw, 1.5rem) + env(safe-area-inset-right))
+    calc(clamp(0.75rem, 3vh, 1.25rem) + env(safe-area-inset-bottom))
+    calc(clamp(0.85rem, 4vw, 1.5rem) + env(safe-area-inset-left));
+  /* `flex-start` + `margin: auto` on the panel centres it when there is room
+     and still lets tall panels scroll from their top edge. */
   align-items: flex-start;
+  justify-content: center;
   overflow-y: auto;
   overflow-x: hidden;
 }
@@ -854,26 +827,29 @@ input {
 }
 
 .survey-panel {
-  width: min(620px, 100%);
+  width: min(560px, 100%);
+  min-height: 0;
   margin: auto;
   display: flex;
   flex-direction: column;
   position: relative;
   z-index: 2;
-  padding: clamp(1.15rem, 3.5vw, 1.75rem);
+  padding: clamp(1rem, 2.6vw, 1.4rem) clamp(1rem, 3vw, 1.5rem);
   border-radius: var(--radius-container);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  background: rgba(18, 18, 19, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(8, 8, 9, 0.34);
   box-shadow:
-    0 0 16px -4px rgba(255, 255, 255, 0.07),
-    0 20px 50px -36px rgba(0, 0, 0, 0.85);
-  -webkit-backdrop-filter: blur(14px) saturate(115%);
-  backdrop-filter: blur(14px) saturate(115%);
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.34),
+    0 1px 2px rgba(0, 0, 0, 0.28),
+    0 24px 64px -32px rgba(0, 0, 0, 0.92);
+  -webkit-backdrop-filter: blur(22px) saturate(105%);
+  backdrop-filter: blur(22px) saturate(105%);
 }
 
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   .survey-panel {
-    background: rgba(12, 12, 13, 0.8);
+    background: rgba(8, 8, 9, 0.82);
   }
 }
 
@@ -881,6 +857,8 @@ input {
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  height: 40px;
+  flex: none;
 }
 
 .survey-back-btn {
@@ -888,7 +866,7 @@ input {
   place-items: center;
   width: 40px;
   height: 40px;
-  margin-left: -10px;  
+  margin-left: -10px;
   padding: 0;
   border: 0;
   border-radius: 999px;
@@ -905,8 +883,12 @@ input {
   color: var(--label-primary);
 }
 
+/* Keep the button's 40px box reserved on the first question so the panel
+   never changes height or shifts vertically when it appears. */
 .survey-back-btn[hidden] {
-  display: none;
+  display: inline-grid;
+  visibility: hidden;
+  pointer-events: none;
 }
 
 .progress-bar {
@@ -932,11 +914,18 @@ input {
 
 .survey-stage {
   position: relative;
-  margin-top: clamp(0.9rem, 3vh, 1.5rem);
+  margin-top: clamp(0.65rem, 1.8vh, 1rem);
 }
 
 .survey-question {
-  margin: 0 0 clamp(1rem, 3.5vh, 1.5rem);
+  /* The heading is laid out in a fixed two-line box so that a one-line
+     question does not shrink the panel. The text is centred inside that box
+     instead of leaving a gap at the bottom, so no empty space appears. */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(2 * 1.24em);
+  margin: 0 0 clamp(0.7rem, 2.2vh, 1.05rem);
   font-size: clamp(1.45rem, 4.4vw, 1.9rem);
   font-weight: var(--weight-semibold);
   line-height: 1.24;
@@ -955,9 +944,19 @@ input {
 
 .option-btn {
   position: relative;
+  display: flex;
+  align-items: center;
   width: 100%;
+  /* The row always reserves exactly two lines and the label is vertically
+     centred inside it. Because the reserve is constant (and the divider is
+     drawn with box-shadow instead of a border), every answer and every
+     question keeps the same geometry — the panel never changes size or jumps.
+     `min-height` still lets a row grow if a label ever needs a third line, so
+     text is never clipped. */
+  min-height: calc(2 * 1.45em + 2 * 0.46rem);
+  box-sizing: border-box;
   margin: 0;
-  padding: 0.85rem 0.5rem 0.85rem 2.15rem;
+  padding: 0.46rem 0.5rem 0.46rem 2.15rem;
   text-align: start;
   font-size: var(--type-body-size);
   font-weight: var(--weight-body);
@@ -966,7 +965,7 @@ input {
   color: var(--label-secondary);
   background: none;
   border: 0;
-  border-top: 1px solid rgba(255, 255, 255, 0.09);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.09);
   border-radius: 0;
   cursor: pointer;
   overflow-wrap: anywhere;
@@ -982,7 +981,9 @@ input {
 }
 
 .option-btn:last-child {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.09);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.09),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.09);
 }
 
 .option-btn::before {
@@ -1188,6 +1189,8 @@ body.theme-forest #vibe-screen {
 #vibe-screen.active.vibe-screen-reveal #theme-name,
 #vibe-screen.active.vibe-screen-reveal .vibe-description-wrap,
 #vibe-screen.active.vibe-screen-reveal .vibe-divider,
+#vibe-screen.active.vibe-screen-reveal .vibe-game,
+#vibe-screen.active.vibe-screen-reveal .vibe-development,
 #vibe-screen.active.vibe-screen-reveal ~ .vibe-navigation .vibe-menu-toggle {
   animation-name: vibe-result-reveal;
   animation-duration: 850ms;
@@ -1208,8 +1211,18 @@ body.theme-forest #vibe-screen {
   animation-delay: 1700ms;
 }
 
+#vibe-screen.active.vibe-screen-reveal .vibe-development {
+  animation-duration: 1000ms;
+  animation-delay: 1700ms;
+}
+
 #vibe-screen.active.vibe-screen-reveal .vibe-divider {
   animation-delay: 2400ms;
+}
+
+#vibe-screen.active.vibe-screen-reveal .vibe-game {
+  animation-duration: 950ms;
+  animation-delay: 2550ms;
 }
 
 #vibe-screen.active.vibe-screen-reveal ~ .vibe-navigation .vibe-menu-toggle {
@@ -1225,6 +1238,47 @@ body.theme-forest #vibe-screen {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+#vibe-screen.is-under-development {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+#vibe-screen.is-under-development .vibe-shell {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  min-height: 0;
+}
+
+#vibe-screen.is-under-development .vibe-description-wrap,
+#vibe-screen.is-under-development .vibe-divider {
+  display: none;
+}
+
+.vibe-development {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44vh;
+  margin: 0;
+  padding: clamp(1.75rem, 7vh, 3.5rem) clamp(1.25rem, 6vw, 3rem);
+  font-family: var(--font-display);
+  font-size: clamp(1.3rem, 3.6vw, 1.95rem);
+  font-weight: var(--weight-semibold);
+  line-height: 1.45;
+  letter-spacing: -0.015em;
+  color: var(--label-primary);
+  text-align: center;
+  text-wrap: balance;
+}
+
+.vibe-development[hidden] {
+  display: none;
 }
 
 #vibe-screen[data-vibe] {
@@ -1355,58 +1409,48 @@ body.theme-forest #vibe-screen {
 }
 
 .profile-nav {
-  position: fixed;
-  z-index: 30;  
-  top: max(18px, env(safe-area-inset-top));
-  left: 0;
-  right: 0;
-  width: min(1180px, 100%);
-  margin: 0 auto;
-  padding: 0 clamp(1rem, 4vw, 2rem);
-  display: none;
-  align-items: flex-start;
-  justify-content: flex-end;
-  pointer-events: none;
-}
-
-.profile-nav > * {
-  pointer-events: auto;
-}
-
-.page-shell[data-active-screen="home"] ~ .profile-nav {
+  position: relative;
+  z-index: 5;
   display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex: none;
+  margin-left: auto;
 }
 
 .profile-toggle {
   display: grid;
   place-items: center;
-  width: 40px;
-  height: 40px;
+  width: 34px;
+  height: 34px;
+  flex: none;
   padding: 0;
-  color: var(--label-primary);
-  background: rgba(8, 8, 9, 0.92);
-  border: 0.5px solid rgba(255, 255, 255, 0.16);
-  border-radius: 12px;
-  box-shadow: var(--inset-highlight);
+  color: var(--label-secondary);
+  background: rgba(0, 0, 0, 0.45);
+  border: 0.5px solid rgba(255, 255, 255, 0.14);
+  border-radius: 10px;
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
   transition:
+    color 0.25s var(--ease-spring),
     background-color 0.25s var(--ease-spring),
     border-color 0.25s var(--ease-spring),
     transform 0.12s ease;
 }
 
 .profile-toggle__icon {
-  width: 20px;
-  height: 20px;
+  width: 17px;
+  height: 17px;
   fill: currentColor;
-  opacity: 0.92;
+  opacity: 0.9;
   transition: opacity 0.25s var(--ease-spring);
 }
 
 .profile-toggle:hover,
 .profile-toggle[aria-expanded="true"] {
-  background: #17171b;
-  border-color: rgba(255, 255, 255, 0.28);
+  color: var(--label-primary);
+  background: rgba(0, 0, 0, 0.62);
+  border-color: rgba(255, 255, 255, 0.24);
 }
 
 .profile-toggle:hover .profile-toggle__icon,
@@ -1417,8 +1461,9 @@ body.theme-forest #vibe-screen {
 .profile-toggle:focus-visible {
   outline: 2px solid rgba(255, 255, 255, 0.7);
   outline-offset: 2px;
-  background: #17171b;
-  border-color: rgba(255, 255, 255, 0.28);
+  color: var(--label-primary);
+  background: rgba(0, 0, 0, 0.62);
+  border-color: rgba(255, 255, 255, 0.24);
 }
 
 .profile-toggle:active {
@@ -1428,18 +1473,18 @@ body.theme-forest #vibe-screen {
 .profile-menu {
   position: absolute;
   z-index: 31;
-  top: calc(100% + 0.5rem);
-  inset-inline-end: clamp(1rem, 4vw, 2rem);
+  top: calc(100% + 0.55rem);
+  inset-inline-end: 0;
   display: grid;
   width: min(232px, calc(100vw - 2rem));
   gap: 0.15rem;
   padding: 0.35rem;
-  border: 0.5px solid var(--material-border);
+  border: 0.5px solid rgba(255, 255, 255, 0.14);
   border-radius: var(--radius-control);
-  background: rgba(14, 14, 16, 0.88);
-  box-shadow: 0 16px 42px rgba(0, 0, 0, 0.36), var(--inset-highlight);
-  backdrop-filter: var(--material-blur);
-  -webkit-backdrop-filter: var(--material-blur);
+  background: rgba(0, 0, 0, 0.88);
+  box-shadow: 0 16px 42px rgba(0, 0, 0, 0.36);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   transform-origin: top right;
   animation: profile-menu-enter 0.22s var(--ease-spring) both;
 }
@@ -1492,29 +1537,10 @@ body.theme-forest #vibe-screen {
 }
 
 .profile-menu__item--language {
-  cursor: default;
-}
-
-.profile-menu .language-switcher {
-  position: relative;  
-  inset: auto;
-  z-index: auto;
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-  margin-left: auto;
-}
-
-.profile-menu .language-options {
-  position: absolute;
-  top: calc(100% + 0.4rem);
-  inset-inline-end: 0;
-  z-index: 4;
-}
-
-.profile-menu .language-toggle {
-  min-width: 36px;
-  min-height: 32px;
+  position: relative;
+  display: block;
+  padding: 0;
+  min-height: 0;
 }
 
 @keyframes profile-menu-enter {
@@ -1721,6 +1747,8 @@ button:disabled {
   #vibe-screen.active.vibe-screen-reveal #theme-name,
   #vibe-screen.active.vibe-screen-reveal .vibe-description-wrap,
   #vibe-screen.active.vibe-screen-reveal .vibe-divider,
+  #vibe-screen.active.vibe-screen-reveal .vibe-game,
+  #vibe-screen.active.vibe-screen-reveal .vibe-development,
   #vibe-screen.active.vibe-screen-reveal ~ .vibe-navigation .vibe-menu-toggle {
     animation-name: vibe-result-reveal-reduced;
     animation-duration: 160ms;
@@ -1730,7 +1758,9 @@ button:disabled {
   #vibe-screen.active.vibe-screen-reveal .theme-tag { animation-delay: 0ms; }
   #vibe-screen.active.vibe-screen-reveal #theme-name { animation-delay: 160ms; }
   #vibe-screen.active.vibe-screen-reveal .vibe-description-wrap { animation-delay: 320ms; }
+  #vibe-screen.active.vibe-screen-reveal .vibe-development { animation-delay: 320ms; }
   #vibe-screen.active.vibe-screen-reveal .vibe-divider { animation-delay: 480ms; }
+  #vibe-screen.active.vibe-screen-reveal .vibe-game { animation-delay: 480ms; }
   #vibe-screen.active.vibe-screen-reveal ~ .vibe-navigation .vibe-menu-toggle { animation-delay: 1120ms; }
 
   @keyframes vibe-result-reveal-reduced {
@@ -1755,16 +1785,23 @@ button:disabled {
 
 @media (max-width: 768px) {
   .option-btn {
-    min-height: 52px;
-    padding-top: 0.9rem;
-    padding-bottom: 0.9rem;
+    /* Same reserved two-line row as the desktop rule, with slightly tighter
+       vertical padding so four answers still fit on a short phone screen. */
+    min-height: calc(2 * 1.45em + 2 * 0.42rem);
+    padding-top: 0.42rem;
+    padding-bottom: 0.42rem;
   }
 
   .survey-panel {
+    width: 100%;
     padding: clamp(1rem, 4.5vw, 1.35rem);
-    -webkit-backdrop-filter: blur(8px) saturate(110%);
-    backdrop-filter: blur(8px) saturate(110%);
-    background: rgba(16, 16, 17, 0.36);
+    -webkit-backdrop-filter: blur(16px) saturate(105%);
+    backdrop-filter: blur(16px) saturate(105%);
+    background: rgba(8, 8, 9, 0.42);
+  }
+
+  .survey-question {
+    font-size: clamp(1.3rem, 5.2vw, 1.7rem);
   }
 
   .share-card h1 {
@@ -1773,6 +1810,14 @@ button:disabled {
 
   .share-invitation {
     overflow-wrap: anywhere;
+  }
+}
+
+@media (max-width: 344px) {
+  /* On the narrowest phones the longest questions wrap to three lines, so the
+     reserve grows with them and the panel keeps a stable height. */
+  .survey-question {
+    min-height: calc(3 * 1.24em);
   }
 }
 
@@ -1943,15 +1988,12 @@ button:disabled {
   }
 
   .primary-btn,
-  .language-toggle,
   .vibe-menu-toggle {
     transition: box-shadow 0.2s ease, border-color 0.2s ease;
   }
 
   .primary-btn:hover,
   .primary-btn:focus-visible,
-  .language-toggle:hover,
-  .language-toggle:focus-visible,
   .vibe-menu-toggle:hover,
   .vibe-menu-toggle:focus-visible,
   .vibe-menu-toggle[aria-expanded="true"] {
@@ -1959,7 +2001,6 @@ button:disabled {
   }
 
   .primary-btn:active,
-  .language-toggle:active,
   .vibe-menu-toggle:active {
     --press: 1;
   }
@@ -1967,10 +2008,8 @@ button:disabled {
 
 
 :root {
-  --intro-full-hold: 850ms;     
-  --intro-full-fade: 1150ms;    
-  --intro-short-hold: 40ms;
-  --intro-short-fade: 320ms;    
+  --intro-full-fade: 1150ms;
+  --intro-short-fade: 320ms;
 }
 
 .cinematic-intro {
@@ -2802,6 +2841,10 @@ html[data-intro="short"] #home-screen.active .subtitle { animation-delay: 130ms;
   position: relative;
   z-index: 2;
 }
+
+.home-header {
+  z-index: 6;
+}
 #home-screen.active {
   transform: none;
 }
@@ -2812,6 +2855,7 @@ html[data-intro="short"] #home-screen.active .subtitle { animation-delay: 130ms;
   display: flex;
   align-items: center;
   gap: clamp(0.55rem, 1.4vw, 0.85rem);
+  flex: 0 1 auto;
   min-width: 0;
 }
 
@@ -2895,9 +2939,8 @@ button, input, select, textarea {
 }
 
 .vibe-menu button,
-.language-toggle,
 .language-options button {
-  font-weight: var(--weight-semibold);  
+  font-weight: var(--weight-semibold);
 }
 
 .subtitle,
@@ -2932,7 +2975,7 @@ html[lang="ru"] .vibe-link {
 }
 
 .vibe-showcase__name {
-  font-family: var(--font-script-latin);
+  font-family: var(--font-display);
 }
 
 #vibe-screen[data-vibe="retro"],
