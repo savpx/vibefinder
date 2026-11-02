@@ -33,9 +33,11 @@
       href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@700&display=swap"
       rel="stylesheet"
     />
-    <link rel="icon" href="data:," />
-    <link rel="stylesheet" href="css/style.css?v=53" />
-    <link rel="modulepreload" href="js/app.js?v=45" />
+    <link rel="icon" type="image/png" sizes="48x48" href="img/favicon-48.png?v=3" />
+    <link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32.png?v=3" />
+    <link rel="icon" type="image/png" sizes="16x16" href="img/favicon-16.png?v=3" />
+    <link rel="apple-touch-icon" sizes="180x180" href="img/apple-touch-icon.png?v=3" />
+    <link rel="stylesheet" href="css/style.css?v=67" />
   </head>
   <body>
     <div class="page-shell">
@@ -59,6 +61,15 @@
                 <span class="home-wordmark__text">Vibe Finder</span>
               </a>
             </div>
+            <img
+              class="home-logo"
+              src="img/vibefinder-logo-mark.png?v=4"
+              alt=""
+              width="188"
+              height="174"
+              decoding="async"
+              fetchpriority="high"
+            />
             <div id="profile-nav" class="profile-nav">
               <button
                 id="profile-toggle"
@@ -110,7 +121,7 @@
           </header>
 
           <div class="hero-wrap">
-            <h1>Найди свою атмосферу.</h1>
+            <h1>Найди свою <span class="hero-word-accent">атмосферу</span>.</h1>
             <p class="subtitle">14 вайбов. 14 разных миров.</p>
             <div class="hero-actions">
               <button id="start-btn" class="primary-btn">
@@ -250,6 +261,6 @@
       <span class="cinematic-intro__grain"></span>
     </div>
 
-    <script type="module" src="js/app.js?v=45"></script>
+    <script type="module" src="js/app.js?v=46"></script>
   </body>
 </html>

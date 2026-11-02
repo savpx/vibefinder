@@ -7,6 +7,8 @@ const localeMetadata = {
 const translationCatalog = {
 "Vibe Finder": "Vibe Finder",
 "Найди свою атмосферу.": "Find your own atmosphere.",
+"Найди свою": "Find your own",
+"атмосферу": "atmosphere",
 "14 вайбов. 14 разных миров.": "14 vibes. 14 different worlds.",
 "Каталог": "Catalog",
 "Атмосфера": "Vibe",

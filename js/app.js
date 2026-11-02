@@ -2,7 +2,7 @@
 import { questions } from './data/questions.js?v=42';
 import { vibeThemes, vibeShareSlugs, vibeKeysByShareSlug } from './data/themes.js?v=42';
 import { rankVibes, selectNextQuestion, questionIndexById } from './data/scoring.js?v=43';
-import { initI18n, translateText, closeLanguageOptions } from './i18n/index.js?v=43';
+import { initI18n, translateText, closeLanguageOptions } from './i18n/index.js?v=44';
 import { initCinematicIntro } from './intro.js?v=42';
 import { initSky, setSkyActive } from './sky.js?v=43';
 
@@ -748,8 +748,7 @@ function startVibeCreation(vibeKey) {
   buildConstellation();
   showScreen('creation');
 
-  // Invalidate any in-flight unlock playback so it cannot pause or rewind
-  // the real transition that is starting now.
+  // Invalidate in-flight unlock playback so it cannot affect this transition.
   transitionPlayToken += 1;
   transitionAudio.pause();
   transitionAudio.muted = false;
@@ -1763,9 +1762,7 @@ function warmTransitionAudio() {
   if (typeof transitionAudio.decode === 'function') {
     transitionAudio.decode().catch(() => {});
   }
-  // Prime the element for the real transition without emitting any sound.
-  // `muted` is respected on every browser, unlike `volume` (iOS Safari ignores
-  // volume on media elements), so no fragment of the track can be heard.
+  // `muted` is honoured everywhere; iOS Safari ignores `volume` on media.
   const unlockToken = ++transitionPlayToken;
   transitionAudio.muted = true;
   const unlock = transitionAudio.play();

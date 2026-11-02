@@ -337,7 +337,6 @@ input {
 }
 
 #home-screen {
-  background: transparent;
   align-items: flex-start;
   overflow-x: hidden;
   overflow-y: auto;
@@ -623,22 +622,18 @@ input {
 }
 
 .primary-btn {
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
-  color: var(--text);
-  border-radius: 999px;
-  cursor: pointer;
-  min-height: 44px;
-  transition: box-shadow 0.22s ease, border-color 0.22s ease, background-color 0.22s ease;
-}
-
-.primary-btn {
   padding: 14px 20px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  background: linear-gradient(135deg, rgba(240, 240, 240, 0.16), rgba(130, 130, 130, 0.12));
+  color: var(--text);
   font-weight: 600;
   font-size: var(--type-body-size);
   letter-spacing: var(--type-body-tracking);
-  background: linear-gradient(135deg, rgba(240, 240, 240, 0.16), rgba(130, 130, 130, 0.12));
+  cursor: pointer;
+  min-height: 44px;
   box-shadow: var(--inset-highlight);
+  transition: box-shadow 0.22s ease, border-color 0.22s ease, background-color 0.22s ease;
 }
 
 .primary-btn,
@@ -801,14 +796,6 @@ input {
   animation: hero-fade 900ms var(--ease-spring) both;
 }
 
-#home-screen.active .hero-wrap > h1 {
-  animation-delay: 60ms;
-}
-
-#home-screen.active .subtitle {
-  animation-delay: 170ms;
-}
-
 #home-screen.active .primary-btn {
   animation-delay: 400ms;
 }
@@ -947,9 +934,7 @@ input {
 }
 
 .survey-question {
-  /* The heading is laid out in a fixed two-line box so that a one-line
-     question does not shrink the panel. The text is centred inside that box
-     instead of leaving a gap at the bottom, so no empty space appears. */
+  /* Fixed two-line box so one- and three-line questions keep the same layout. */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -976,12 +961,8 @@ input {
   display: flex;
   align-items: center;
   width: 100%;
-  /* The row always reserves exactly two lines and the label is vertically
-     centred inside it. Because the reserve is constant (and the divider is
-     drawn with box-shadow instead of a border), every answer and every
-     question keeps the same geometry — the panel never changes size or jumps.
-     `min-height` still lets a row grow if a label ever needs a third line, so
-     text is never clipped. */
+  /* Constant two-line reserve keeps every row the same height, so the panel
+     never resizes when answers change. A third line can still grow. */
   min-height: calc(2 * 1.45em + 2 * 0.46rem);
   box-sizing: border-box;
   margin: 0;
@@ -1122,26 +1103,6 @@ input {
   .option-btn:active {
     background: none;
   }
-}
-
-#home-screen .primary-btn {
-  padding: 15px 34px;
-  border-color: transparent;
-  background: linear-gradient(180deg, #ffffff, #dcdde2);
-  color: #0a0a0c;
-  font-weight: 700;
-  font-size: var(--type-body-size);
-  letter-spacing: 0.005em;
-  box-shadow: 0 12px 30px -18px rgba(0, 0, 0, 0.9), 0 0 0 1px rgba(255, 255, 255, 0.06);
-}
-
-#home-screen .primary-btn:hover,
-#home-screen .primary-btn:focus-visible {
-  --lift: -3px;
-  border-color: transparent;
-  box-shadow:
-    0 22px 50px -20px var(--preview-glow, rgba(255, 255, 255, 0.5)),
-    0 0 0 1px rgba(255, 255, 255, 0.08);
 }
 
 #vibe-screen {
@@ -2182,19 +2143,6 @@ html[data-intro="short"] .cinematic-intro__grain {
   100% { opacity: 0.22; }
 }
 
-html[data-intro="full"] #home-screen.active .hero-wrap > h1,
-html[data-intro="full"] #home-screen.active .subtitle {
-  animation-duration: 900ms;
-}
-
-html[data-intro="full"] #home-screen.active .hero-wrap > h1 {
-  animation-delay: 620ms;
-}
-
-html[data-intro="full"] #home-screen.active .subtitle {
-  animation-delay: 780ms;
-}
-
 html[data-intro="full"] #home-screen.active .primary-btn {
   animation-duration: 900ms;
   animation-delay: 1050ms;
@@ -2203,16 +2151,6 @@ html[data-intro="full"] #home-screen.active .primary-btn {
 html[data-intro="full"] #home-screen.active .vibe-showcase {
   animation-duration: 1100ms;
   animation-delay: 1180ms;
-}
-
-html[data-intro="short"] #home-screen.active .hero-wrap > h1 {
-  animation-duration: 520ms;
-  animation-delay: 120ms;
-}
-
-html[data-intro="short"] #home-screen.active .subtitle {
-  animation-duration: 520ms;
-  animation-delay: 200ms;
 }
 
 html[data-intro="short"] #home-screen.active .primary-btn {
@@ -2269,7 +2207,6 @@ html[data-intro="short"] #home-screen.active .vibe-showcase {
 
 .home-header {
   position: relative;
-  z-index: 4;  
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -2277,13 +2214,55 @@ html[data-intro="short"] #home-screen.active .vibe-showcase {
   width: min(1180px, 100%);
   margin: 0 auto;
   padding: clamp(0.6rem, 2vw, 1rem) clamp(1rem, 4vw, 2rem) 0;
+  min-height: clamp(40px, 4vw, 58px);
+}
+
+/* Centred on the header itself, so the wordmark and the profile button cannot
+   shift it and it stays put while scrolling. */
+.home-logo {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: block;
+  height: clamp(40px, 4vw, 58px);
+  width: auto;
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
+  z-index: 1;
+}
+
+/* On narrow screens the wordmark and the button crowd the centre, so the logo
+   shrinks instead of overlapping them. */
+@media (max-width: 420px) {
+  .home-logo {
+    height: 32px;
+  }
+
+  .home-header {
+    min-height: 32px;
+    gap: 0.5rem;
+    padding-inline: 0.75rem;
+  }
+}
+
+@media (max-width: 340px) {
+  .home-logo {
+    height: 26px;
+  }
+
+  .home-header {
+    padding-inline: 0.6rem;
+  }
+
+  .home-header .home-wordmark {
+    font-size: 1.15rem;
+  }
 }
 
 .home-wordmark {
   font-family: var(--font-display);
-  font-size: clamp(1.05rem, 2.4vw, 1.3rem);
-  font-weight: 700;
-  letter-spacing: -0.02em;
   color: var(--label-primary);
   text-decoration: none;
   white-space: nowrap;
@@ -2332,24 +2311,9 @@ html[data-intro="short"] #home-screen.active .vibe-showcase {
     box-shadow 0.35s var(--ease-spring);
 }
 
-#home-screen .explore-btn:hover,
-#home-screen .explore-btn:focus-visible {
-  transform: translateY(-2px);
-  border-color: rgba(255, 255, 255, 0.32);
-  background: rgba(255, 255, 255, 0.07);
-  box-shadow: 0 14px 30px -18px rgba(0, 0, 0, 0.7), var(--inset-highlight);
-}
-
-#home-screen .explore-btn:active {
-  transform: translateY(-1px) scale(0.99);
-}
-
 #home-screen .primary-btn {
   padding: 15px 34px;
   border: 1px solid transparent;
-  background: linear-gradient(180deg, #ffffff, #dcdde2);
-  color: #0a0a0c;
-  font-weight: 700;
   font-size: var(--type-body-size);
   letter-spacing: 0.005em;
   box-shadow:
@@ -2462,14 +2426,6 @@ html[data-intro="short"] #home-screen.active .vibe-showcase {
 
 #home-screen.active .home-header {
   animation: hero-fade 700ms var(--ease-spring) both;
-}
-
-#home-screen.active .hero-wrap > h1 {
-  animation-delay: 60ms;
-}
-
-#home-screen.active .subtitle {
-  animation-delay: 170ms;
 }
 
 #home-screen.active .hero-actions {
@@ -2595,79 +2551,9 @@ html[data-intro="short"] #home-screen.active .vibe-catalog {
 }
 
 
-.home-wordmark__text {
-  color: #ffffff;
-  text-shadow: 0 0 26px rgba(124, 92, 255, 0.28);
-}
-
 .home-main .hero-wrap {
   position: relative;
   padding-top: clamp(3.8rem, 10vh, 6.4rem);
-}
-
-.home-main .hero-wrap > h1 {
-  background: linear-gradient(180deg, #ffffff 0%, #e3ddfb 58%, #b9a9ec 116%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  -webkit-text-fill-color: transparent;
-  text-shadow: 0 0 60px rgba(124, 92, 255, 0.22);
-}
-
-@supports not ((-webkit-background-clip: text) or (background-clip: text)) {
-  .home-main .hero-wrap > h1 {
-    color: var(--label-primary);
-    -webkit-text-fill-color: currentColor;
-  }
-}
-
-.home-main .subtitle {
-  color: var(--label-secondary);
-  letter-spacing: 0.015em;
-}
-
-#home-screen .explore-btn {
-  background: rgba(255, 255, 255, 0.035);
-  border-color: rgba(255, 255, 255, 0.2);
-  box-shadow: var(--inset-highlight);
-}
-
-#home-screen .primary-btn {
-  border-color: transparent;
-  background: linear-gradient(180deg, #ffffff, #dcdde2);
-  color: #0a0a0c;
-  box-shadow:
-    0 12px 30px -18px rgba(0, 0, 0, 0.9),
-    0 0 0 1px rgba(255, 255, 255, 0.06),
-    0 0 34px -16px rgba(124, 92, 255, 0.38);
-}
-
-
-#home-screen .explore-btn:active {
-  transform: translateY(-1px) scale(0.985);
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.34);
-}
-
-#home-screen .primary-btn:active {
-  box-shadow:
-    0 8px 20px -16px rgba(0, 0, 0, 0.95),
-    0 0 0 1px rgba(255, 255, 255, 0.05),
-    0 0 26px -18px rgba(124, 92, 255, 0.34);
-}
-
-#home-screen .explore-btn,
-#home-screen .primary-btn {
-  border-radius: 2px;
-}
-
-.home-wordmark {
-  font-weight: 800;
-  letter-spacing: -0.03em;
-}
-
-.home-wordmark__text {
-  text-shadow: none;
 }
 
 .home-main .hero-wrap > h1 {
@@ -2724,7 +2610,6 @@ html[data-intro="short"] #home-screen.active .vibe-catalog {
   text-decoration: underline;
   text-underline-offset: 6px;
   text-decoration-thickness: 1px;
-  text-decoration-color: rgba(255, 255, 255, 0.3);
 }
 
 #home-screen .explore-btn:hover,
@@ -2733,7 +2618,6 @@ html[data-intro="short"] #home-screen.active .vibe-catalog {
   background: transparent;
   border-color: transparent;
   box-shadow: none;
-  color: var(--label-primary);
 }
 
 #home-screen .explore-btn:hover .control-label,
@@ -2782,11 +2666,6 @@ html[data-intro="short"] #home-screen.active .subtitle { animation-delay: 130ms;
   box-shadow: 0 14px 30px -20px rgba(0, 0, 0, 0.9);
 }
 
-#home-screen .primary-btn:hover,
-#home-screen .primary-btn:focus-visible {
-  box-shadow: 0 20px 40px -22px rgba(0, 0, 0, 0.95), 0 0 0 1px rgba(255, 255, 255, 0.35);
-}
-
 #home-screen .explore-btn {
   border-radius: 8px;
   padding: 12px 14px;
@@ -2797,17 +2676,8 @@ html[data-intro="short"] #home-screen.active .subtitle { animation-delay: 130ms;
   outline-offset: 2px;
 }
 
-#home-screen .vibe-catalog {
-  gap: clamp(1.4rem, 3vw, 2rem);
-}
-
-#home-screen .catalog-head {
-  gap: 0.55rem;
-}
-
-
 #home-screen {
-  --mono-text: #f2f3f5;                   
+  --mono-text: #f2f3f5;
   --mono-muted: rgba(255, 255, 255, 0.52);
 }
 
@@ -2962,10 +2832,6 @@ button, input, select, textarea {
   font-weight: var(--weight-body);
 }
 
-.option-btn {
-  font-weight: var(--weight-body);  
-}
-
 html[lang="ru"] .subtitle,
 html[lang="ru"] .vibe-description-wrap,
 html[lang="ru"] .share-invitation,
@@ -3093,5 +2959,52 @@ html[data-motion="force"] {
   pointer-events: none;
   background-color: var(--vibe-tint, transparent);
   transition: background-color 320ms ease;
+}
+
+
+/* Animated gradient, applied only to the accent word inside the hero heading.
+   The span is the same DOM node in both locales, so switching language never
+   restarts the animation. */
+@supports ((-webkit-background-clip: text) or (background-clip: text)) {
+  .hero-word-accent {
+    background-image: linear-gradient(
+      100deg,
+      #42152f 0%,
+      #76264d 20%,
+      #b43d75 40%,
+      #d66b91 60%,
+      #e58a91 80%,
+      #c879a5 100%
+    );
+    background-size: 200% 100%;
+    background-position: 0% 50%;
+    background-repeat: repeat-x;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+  }
+}
+
+/* One full image width of travel per cycle, so the loop is seamless. */
+@keyframes hero-gradient-drift {
+  from {
+    background-position: 0% 50%;
+  }
+  to {
+    background-position: 200% 50%;
+  }
+}
+
+.hero-word-accent,
+#home-screen.active .hero-word-accent {
+  animation: hero-gradient-drift 14s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-word-accent,
+  #home-screen.active .hero-word-accent {
+    animation: none;
+  }
 }
 
