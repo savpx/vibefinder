@@ -9,7 +9,6 @@ const translationCatalog = {
 "Найди свою атмосферу.": "Find your own atmosphere.",
 "14 вайбов. 14 разных миров.": "14 vibes. 14 different worlds.",
 "Каталог": "Catalog",
-"Логотип колледжа IT.Москва": "IT.Moscow college logo",
 "Атмосфера": "Vibe",
 "Открой мир, который подстроится под тебя.": "Open a world that adapts to you.",
 "created by the Bsoul team": "created by the Bsoul team",
