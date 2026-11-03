@@ -2218,26 +2218,80 @@ html[data-intro="short"] #home-screen.active .vibe-showcase {
 }
 
 /* Centred on the header itself, so the wordmark and the profile button cannot
-   shift it and it stays put while scrolling. */
+   shift it and it stays put while scrolling. The mark is line art, so it needs
+   a little more height than a solid glyph to stay legible.
+
+   The logo is a 3D object: this element only sets up the stage (size, centring,
+   perspective), while .home-logo__scene rotates inside it. Keeping the 2D
+   centring transform here means the spin never has to fight with it. The
+   aspect ratio matches the 188x174 asset, so the responsive height rules below
+   still drive the width. */
 .home-logo {
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
   display: block;
-  height: clamp(40px, 4vw, 58px);
-  width: auto;
-  object-fit: contain;
+  height: clamp(46px, 4.6vw, 64px);
+  aspect-ratio: 188 / 174;
+  perspective: 560px;
   pointer-events: none;
   user-select: none;
   z-index: 1;
+}
+
+/* The rotating half of the object. preserve-3d lets the two faces keep their
+   own 180deg offset instead of being flattened onto one plane. */
+.home-logo__scene {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  animation: home-logo-spin 6s linear infinite;
+  will-change: transform;
+}
+
+/* Both faces share the same asset and the same box, so the art is never scaled
+   or stretched: it is only ever shown at its original proportions. */
+.home-logo__face {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+
+/* The reverse side, so the far half of the spin shows the mark instead of its
+   mirrored backface. Only one face is visible at any time. */
+.home-logo__face--back {
+  transform: rotateY(180deg);
+}
+
+/* A full 360deg turn is identical at both ends, so with a constant angular
+   velocity the loop point is invisible: no jump, no pause, no easing seam. */
+@keyframes home-logo-spin {
+  from {
+    transform: rotateY(0deg);
+  }
+  to {
+    transform: rotateY(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-logo__scene {
+    animation: none;
+    will-change: auto;
+  }
 }
 
 /* On narrow screens the wordmark and the button crowd the centre, so the logo
    shrinks instead of overlapping them. */
 @media (max-width: 420px) {
   .home-logo {
-    height: 32px;
+    height: 38px;
   }
 
   .home-header {
@@ -2249,7 +2303,7 @@ html[data-intro="short"] #home-screen.active .vibe-showcase {
 
 @media (max-width: 340px) {
   .home-logo {
-    height: 26px;
+    height: 32px;
   }
 
   .home-header {
@@ -2969,12 +3023,12 @@ html[data-motion="force"] {
   .hero-word-accent {
     background-image: linear-gradient(
       100deg,
-      #42152f 0%,
-      #76264d 20%,
-      #b43d75 40%,
-      #d66b91 60%,
-      #e58a91 80%,
-      #c879a5 100%
+      #ffffff 0%,
+      #666666 24%,
+      #292929 40%,
+      #454545 54%,
+      #666666 68%,
+      #ffffff 100%
     );
     background-size: 200% 100%;
     background-position: 0% 50%;
