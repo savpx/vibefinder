@@ -1,9 +1,15 @@
 
 /* Local language fonts. Weight range 100-900 keeps the single-weight files
-   from being artificially emboldened by the browser. */
+   from being artificially emboldened by the browser.
+
+   WOFF2 is listed first: same glyph set, roughly a third of the transfer size.
+   The original TTF/OTF files stay as a fallback for very old engines, and are
+   only fetched when WOFF2 cannot be decoded. */
 @font-face {
   font-family: "Belepotan RUS";
-  src: url("../fonts/ru/ofont.ru_Belepotan.ttf");
+  src:
+    url("../fonts/ru/belepotan-ru.woff2?v=1") format("woff2"),
+    url("../fonts/ru/ofont.ru_Belepotan.ttf?v=1") format("truetype");
   font-weight: 100 900;
   font-style: normal;
   font-display: swap;
@@ -11,7 +17,9 @@
 
 @font-face {
   font-family: "Belepotan";
-  src: url("../fonts/eng/belepotan.regular.otf") format("opentype");
+  src:
+    url("../fonts/eng/belepotan-eng.woff2?v=1") format("woff2"),
+    url("../fonts/eng/belepotan.regular.otf?v=1") format("opentype");
   font-weight: 100 900;
   font-style: normal;
   font-display: swap;
@@ -19,7 +27,7 @@
 
 :root {
   --font-sans:
-    "Belepotan", "Space Grotesk", "Manrope",
+    "Belepotan",
     -apple-system, BlinkMacSystemFont, "Segoe UI Variable Text", "Segoe UI",
     Roboto, "Helvetica Neue", Arial,
     "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC",
@@ -60,7 +68,7 @@
 /* Russian localisation uses Belepotan; every other locale keeps the default stack. */
 html[lang="ru"] {
   --font-sans:
-    "Belepotan RUS", "Space Grotesk", "Manrope",
+    "Belepotan RUS",
     -apple-system, BlinkMacSystemFont, "Segoe UI Variable Text", "Segoe UI",
     Roboto, "Helvetica Neue", Arial,
     "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC",
@@ -1895,7 +1903,10 @@ button:disabled {
   text-transform: uppercase;
   cursor: pointer;
   box-shadow: 0 12px 34px rgba(0, 0, 0, 0.42), var(--inset-highlight);
-  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  transition:
+    transform 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+    background-color 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 #tetris-restart-btn:hover,
@@ -2395,6 +2406,7 @@ html[data-intro="short"] #home-screen.active .vibe-showcase {
 }
 
 .vibe-catalog {
+  --catalog-gap: clamp(0.9rem, 2vw, 1.3rem);
   position: relative;
   z-index: 2;
   width: min(1180px, 100%);
@@ -2402,7 +2414,7 @@ html[data-intro="short"] #home-screen.active .vibe-showcase {
   padding: clamp(1.5rem, 4vw, 2.5rem) clamp(1rem, 4vw, 2rem) clamp(2rem, 5vw, 3.5rem);
   display: flex;
   flex-direction: column;
-  gap: clamp(0.9rem, 2vw, 1.3rem);
+  gap: var(--catalog-gap);
 }
 
 .catalog-head {
@@ -2472,6 +2484,181 @@ html[data-intro="short"] #home-screen.active .vibe-showcase {
   outline: 2px solid rgba(255, 255, 255, 0.7);
   outline-offset: 3px;
   color: var(--label-primary);
+}
+
+/* ---------- Atmospheres: typographic expandable catalog ---------- */
+
+.catalog-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55em;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
+  font: inherit;
+  font-weight: inherit;
+  letter-spacing: inherit;
+  line-height: inherit;
+  color: var(--mono-text, #f2f3f5);
+  text-align: start;
+  cursor: pointer;
+  opacity: 1;
+  -webkit-tap-highlight-color: transparent;
+  transition: opacity 240ms var(--ease-spring);
+}
+
+.catalog-toggle__label {
+  white-space: nowrap;
+}
+
+.catalog-toggle:hover {
+  opacity: 0.58;
+}
+
+.catalog-toggle:active {
+  opacity: 0.82;
+}
+
+.catalog-toggle:focus-visible {
+  opacity: 1;
+  outline: 2px solid rgba(255, 255, 255, 0.5);
+  outline-offset: 6px;
+  border-radius: 2px;
+}
+
+.catalog-toggle__mark {
+  position: relative;
+  display: inline-block;
+  flex: 0 0 auto;
+  width: 0.5em;
+  height: 0.5em;
+  color: currentColor;
+  opacity: 0.62;
+  transition: opacity 260ms var(--ease-spring);
+}
+
+.catalog-toggle__mark::before,
+.catalog-toggle__mark::after {
+  content: "";
+  position: absolute;
+  background: currentColor;
+  transition:
+    transform 340ms var(--ease-spring),
+    opacity 340ms var(--ease-spring);
+}
+
+.catalog-toggle__mark::before {
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  transform: translateY(-50%);
+}
+
+.catalog-toggle__mark::after {
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 1px;
+  transform: translateX(-50%);
+}
+
+.vibe-catalog.is-expanded .catalog-toggle__mark::after {
+  transform: translateX(-50%) scaleY(0);
+  opacity: 0;
+}
+
+.catalog-collapse {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  visibility: hidden;
+  margin-top: calc(-1 * var(--catalog-gap, 0px));
+  transition:
+    grid-template-rows 440ms var(--ease-spring),
+    opacity 260ms ease,
+    margin-top 440ms var(--ease-spring),
+    visibility 0s linear 440ms;
+}
+
+.catalog-collapse > .vibe-list {
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Keeps the focus ring inside the clipped area of the collapsing container. */
+.catalog-collapse .vibe-link:focus-visible {
+  outline-offset: -2px;
+}
+
+.vibe-catalog.is-expanded .catalog-collapse {
+  grid-template-rows: 1fr;
+  opacity: 1;
+  visibility: visible;
+  margin-top: 0;
+  transition:
+    grid-template-rows 520ms var(--ease-spring),
+    opacity 380ms ease 40ms,
+    margin-top 520ms var(--ease-spring),
+    visibility 0s linear 0s;
+}
+
+.catalog-collapse .vibe-link {
+  opacity: 0;
+  transform: translateY(6px);
+  transition:
+    opacity 260ms var(--ease-spring),
+    transform 260ms var(--ease-spring),
+    color 180ms ease;
+  transition-delay:
+    calc((var(--vibe-count, 14) - 1 - var(--vibe-index, 0)) * 10ms),
+    calc((var(--vibe-count, 14) - 1 - var(--vibe-index, 0)) * 10ms),
+    0s;
+}
+
+.vibe-catalog.is-expanded .catalog-collapse .vibe-link {
+  opacity: 0.6;
+  transform: none;
+  transition-delay:
+    calc(var(--vibe-index, 0) * 26ms + 90ms),
+    calc(var(--vibe-index, 0) * 26ms + 90ms),
+    0s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .catalog-collapse,
+  .vibe-catalog.is-expanded .catalog-collapse,
+  .catalog-collapse .vibe-link,
+  .vibe-catalog.is-expanded .catalog-collapse .vibe-link,
+  .catalog-toggle,
+  .catalog-toggle__mark,
+  .catalog-toggle__mark::before,
+  .catalog-toggle__mark::after {
+    transition-duration: 0.01ms;
+    transition-delay: 0s;
+  }
+
+  .catalog-collapse .vibe-link {
+    transform: none;
+  }
+}
+
+html[data-motion="off"] .catalog-collapse,
+html[data-motion="off"] .vibe-catalog.is-expanded .catalog-collapse,
+html[data-motion="off"] .catalog-collapse .vibe-link,
+html[data-motion="off"] .vibe-catalog.is-expanded .catalog-collapse .vibe-link,
+html[data-motion="off"] .catalog-toggle,
+html[data-motion="off"] .catalog-toggle__mark,
+html[data-motion="off"] .catalog-toggle__mark::before,
+html[data-motion="off"] .catalog-toggle__mark::after {
+  transition-duration: 0.01ms;
+  transition-delay: 0s;
+}
+
+html[data-motion="off"] .catalog-collapse .vibe-link {
+  transform: none;
 }
 
 .vibe-transition.is-quick {
@@ -2715,11 +2902,6 @@ html[data-intro="short"] #home-screen.active .subtitle { animation-delay: 130ms;
   }
 }
 
-#home-screen .primary-btn {
-  border-radius: 10px;
-  box-shadow: 0 14px 30px -20px rgba(0, 0, 0, 0.9);
-}
-
 #home-screen .explore-btn {
   border-radius: 8px;
   padding: 12px 14px;
@@ -2733,9 +2915,6 @@ html[data-intro="short"] #home-screen.active .subtitle { animation-delay: 130ms;
 #home-screen {
   --mono-text: #f2f3f5;
   --mono-muted: rgba(255, 255, 255, 0.52);
-}
-
-#home-screen {
   background: transparent;
 }
 
@@ -2759,6 +2938,7 @@ html[data-intro="short"] #home-screen.active .subtitle { animation-delay: 130ms;
 }
 
 #home-screen .primary-btn {
+  border-radius: 10px;
   background: #ffffff;
   color: #0a0a0c;
   box-shadow: 0 14px 30px -20px rgba(0, 0, 0, 0.9);
@@ -2826,7 +3006,7 @@ html[data-intro="short"] #home-screen.active .subtitle { animation-delay: 130ms;
 }
 
 #home-screen .vibe-catalog {
-  gap: clamp(0.9rem, 2vw, 1.3rem);
+  gap: var(--catalog-gap);
 }
 
 #home-screen .catalog-title {

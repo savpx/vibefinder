@@ -601,7 +601,8 @@ export function initI18n(defaultLanguage = 'ru') {
   languageOptions = document.getElementById('language-options');
 
   if (!languageToggle || !languageOptions) {
-    translateTree(document.body);
+    // setLanguage() already walks the whole document, so translating it here
+    // as well would double the work on every page load.
     setLanguage(readStoredLanguage() || defaultLanguage);
     document.documentElement.classList.add('i18n-ready');
     return;
@@ -640,7 +641,8 @@ export function initI18n(defaultLanguage = 'ru') {
     closeLanguageOptions();
   });
 
-  translateTree(document.body);
+  // setLanguage() runs translateTree(document.body) itself; calling it twice
+  // here walked every text node twice on startup for no benefit.
   setLanguage(readStoredLanguage() || defaultLanguage);
 
   const translationObserver = new MutationObserver((records) => {

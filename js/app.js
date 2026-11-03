@@ -2,7 +2,7 @@
 import { questions } from './data/questions.js?v=42';
 import { vibeThemes, vibeShareSlugs, vibeKeysByShareSlug } from './data/themes.js?v=42';
 import { rankVibes, selectNextQuestion, questionIndexById } from './data/scoring.js?v=43';
-import { initI18n, translateText, closeLanguageOptions } from './i18n/index.js?v=44';
+import { initI18n, translateText, closeLanguageOptions } from './i18n/index.js?v=45';
 import { initCinematicIntro } from './intro.js?v=42';
 import { initSky, setSkyActive } from './sky.js?v=43';
 
@@ -531,6 +531,7 @@ function showScreen(name) {
   Object.entries(screens).forEach(([key, screen]) => {
     screen.classList.toggle('active', key === name);
   });
+  if (name !== 'home') clearVibeTint();
   if (pageShell) pageShell.dataset.activeScreen = name;
   if (name !== 'vibe') screens.vibe.classList.remove('vibe-screen-reveal');
   if (name !== 'vibe') closeVibeMenu();
@@ -1579,9 +1580,45 @@ if (profileToggle && profileMenu) {
 }
 
 const vibeList = document.getElementById('vibe-list');
+const vibeCatalog = document.getElementById('vibe-catalog');
+const atmospheresToggle = document.getElementById('atmospheres-toggle');
+const catalogCollapse = document.getElementById('catalog-collapse');
 const exploreVibesBtn = document.getElementById('explore-vibes-btn');
 
 let catalogOpenTimer = null;
+let catalogExpanded = false;
+let cancelVibeHold = null;
+
+function setCatalogExpanded(expanded) {
+  const next = Boolean(expanded);
+  if (next === catalogExpanded) return;
+  catalogExpanded = next;
+
+  // Focus inside a collapsed inert region would be lost, so hand it back
+  // to the toggle button instead.
+  if (!next && catalogCollapse && atmospheresToggle
+    && catalogCollapse.contains(document.activeElement)) {
+    atmospheresToggle.focus({ preventScroll: true });
+  }
+
+  if (vibeCatalog) vibeCatalog.classList.toggle('is-expanded', next);
+  if (atmospheresToggle) atmospheresToggle.setAttribute('aria-expanded', String(next));
+
+  if (catalogCollapse) {
+    if (next) {
+      catalogCollapse.removeAttribute('inert');
+    } else {
+      catalogCollapse.setAttribute('inert', '');
+    }
+  }
+
+  // The hover tint lifecycle is bound to the section state: no listeners work,
+  // no timers run and the background returns to its default while collapsed.
+  if (!next) {
+    if (typeof cancelVibeHold === 'function') cancelVibeHold();
+    clearVibeTint();
+  }
+}
 
 function buildVibeLink(vibeKey) {
   const vibe = vibeThemes[vibeKey];
@@ -1603,15 +1640,19 @@ function renderVibeCatalog() {
   if (!order.length) return;
 
   vibeList.textContent = '';
-  order.forEach((key) => {
+  vibeList.style.setProperty('--vibe-count', String(order.length));
+  order.forEach((key, index) => {
     const link = buildVibeLink(key);
-    if (link) vibeList.appendChild(link);
+    if (!link) return;
+    link.style.setProperty('--vibe-index', String(index));
+    vibeList.appendChild(link);
   });
 }
 
 function scrollToCatalog() {
   const target = document.getElementById('vibe-catalog');
   if (!target) return;
+  setCatalogExpanded(true);
   const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   target.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' });
 }
@@ -1655,6 +1696,7 @@ function reducedMotionPref() {
 const homeTint = document.querySelector('.home-tint');
 
 function applyVibeTint(key) {
+  if (!catalogExpanded) return;
   if (!homeTint || reducedMotionPref()) return;
   const accent = VIBE_CARD_ACCENTS[key];
   if (!accent) return;
@@ -1671,12 +1713,19 @@ const VIBE_HOLD_SLOP = 12;
 function initVibeHover() {
   if (!vibeList) return;
 
+  // Single set of listeners bound once. Every handler bails out immediately
+  // while the catalog is collapsed, so no tint work is performed and no
+  // timers or extra listeners are created on repeated open/close cycles.
   vibeList.addEventListener('pointerover', (event) => {
+    if (!catalogExpanded) return;
     if (event.pointerType && event.pointerType !== 'mouse' && event.pointerType !== 'pen') return;
     const item = event.target.closest('.vibe-link');
     if (item) applyVibeTint(item.dataset.vibe);
   }, { passive: true });
-  vibeList.addEventListener('pointerleave', clearVibeTint, { passive: true });
+  vibeList.addEventListener('pointerleave', () => {
+    if (!catalogExpanded) return;
+    clearVibeTint();
+  }, { passive: true });
 
   let holdTimer = null;
   let holdStart = null; 
@@ -1697,13 +1746,14 @@ function initVibeHover() {
   };
 
   vibeList.addEventListener('pointerdown', (event) => {
+    if (!catalogExpanded) return;
     if (event.pointerType === 'mouse' || event.pointerType === 'pen') return;
     const item = event.target.closest('.vibe-link');
     if (!item) return;
     holdStart = { id: event.pointerId, x: event.clientX, y: event.clientY };
     holdTimer = window.setTimeout(() => {
       holdTimer = null;
-      if (!holdStart) return;
+      if (!holdStart || !catalogExpanded) return;
       holdActive = true;
       applyVibeTint(item.dataset.vibe);
     }, VIBE_HOLD_MS);
@@ -1730,14 +1780,26 @@ function initVibeHover() {
     if (holdActive) event.preventDefault();
   });
 
-  window.addEventListener('blur', clearVibeTint, { passive: true });
+  window.addEventListener('blur', () => {
+    if (!catalogExpanded) return;
+    clearVibeTint();
+  }, { passive: true });
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) releaseHold();
   });
+
+  // Used by the collapse path to invalidate any pending long-press timer.
+  cancelVibeHold = releaseHold;
 }
 
 if (exploreVibesBtn) {
   exploreVibesBtn.addEventListener('click', scrollToCatalog);
+}
+
+if (atmospheresToggle) {
+  atmospheresToggle.addEventListener('click', () => {
+    setCatalogExpanded(!catalogExpanded);
+  });
 }
 
 initI18n('ru');
