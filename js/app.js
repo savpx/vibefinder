@@ -2,7 +2,7 @@
 import { questions } from './data/questions.js?v=42';
 import { vibeThemes, vibeShareSlugs, vibeKeysByShareSlug } from './data/themes.js?v=42';
 import { rankVibes, selectNextQuestion, questionIndexById } from './data/scoring.js?v=43';
-import { initI18n, translateText, closeLanguageOptions } from './i18n/index.js?v=45';
+import { initI18n, translateText, closeLanguageOptions } from './i18n/index.js?v=46';
 import { initCinematicIntro } from './intro.js?v=42';
 import { initSky, setSkyActive } from './sky.js?v=43';
 

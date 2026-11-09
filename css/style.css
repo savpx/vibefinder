@@ -2228,31 +2228,9 @@ html[data-intro="short"] #home-screen.active .vibe-showcase {
   min-height: clamp(40px, 4vw, 58px);
 }
 
-/* Centred on the header itself, so the wordmark and the profile button cannot
-   shift it and it stays put while scrolling. The mark is line art, so it needs
-   a little more height than a solid glyph to stay legible.
-
-   The logo is a 3D object: this element only sets up the stage (size, centring,
-   perspective), while .home-logo__scene rotates inside it. Keeping the 2D
-   centring transform here means the spin never has to fight with it. The
-   aspect ratio matches the 188x174 asset, so the responsive height rules below
-   still drive the width. */
-.home-logo {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  display: block;
-  height: clamp(46px, 4.6vw, 64px);
-  aspect-ratio: 188 / 174;
-  perspective: 560px;
-  pointer-events: none;
-  user-select: none;
-  z-index: 1;
-}
-
 /* The rotating half of the object. preserve-3d lets the two faces keep their
-   own 180deg offset instead of being flattened onto one plane. */
+   own 180deg offset instead of being flattened onto one plane. The hero only
+   sets the stage size; the spin itself is unchanged from the original design. */
 .home-logo__scene {
   position: absolute;
   inset: 0;
@@ -2298,13 +2276,8 @@ html[data-intro="short"] #home-screen.active .vibe-showcase {
   }
 }
 
-/* On narrow screens the wordmark and the button crowd the centre, so the logo
-   shrinks instead of overlapping them. */
-@media (max-width: 420px) {
-  .home-logo {
-    height: 38px;
-  }
 
+@media (max-width: 420px) {
   .home-header {
     min-height: 32px;
     gap: 0.5rem;
@@ -2313,10 +2286,6 @@ html[data-intro="short"] #home-screen.active .vibe-showcase {
 }
 
 @media (max-width: 340px) {
-  .home-logo {
-    height: 32px;
-  }
-
   .home-header {
     padding-inline: 0.6rem;
   }
@@ -2338,19 +2307,105 @@ html[data-intro="short"] #home-screen.active .vibe-showcase {
   color: #ffffff;
 }
 
+/* Asymmetric editorial layout: the logo owns the left column, the headline,
+   subtitle and the button group stack in the right one. The hero spans the
+   same 1180px measure as the header and the catalog so all three align. */
 .home-main .hero-wrap {
+  display: grid;
+  flex: 1 1 auto;
+  grid-template-columns: minmax(0, 34fr) minmax(0, 66fr);
+  grid-template-areas:
+    "logo heading"
+    "logo subtitle"
+    "logo actions";
+  align-items: start;
+  align-content: center;
+  justify-items: start;
+  text-align: start;
+  column-gap: clamp(1.5rem, 3.5vw, 3.5rem);
+  row-gap: 1.1rem;
+  width: min(1180px, 100%);
   margin: 0 auto;
-  padding: clamp(3.5rem, 9vh, 6rem) 1.5rem clamp(2.5rem, 7vh, 4.5rem);
-  gap: 1.3rem;
+  padding: clamp(2.5rem, 7vh, 4.5rem) clamp(1rem, 4vw, 2rem) clamp(2rem, 6vh, 3.5rem);
+}
+
+.hero-visual {
+  grid-area: logo;
+  align-self: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-width: 0;
+}
+
+/* The same mark, the same two faces and the same spin as before, only promoted
+   from the header into the hero and scaled up. The full-size source asset is
+   used here so the mark stays crisp at hero scale instead of being upscaled
+   from the small header thumbnail. */
+.hero-logo {
+  position: relative;
+  display: block;
+  width: min(100%, clamp(170px, 26vw, 360px));
+  aspect-ratio: 1299 / 1211;
+  perspective: 900px;
+  pointer-events: none;
+  user-select: none;
+}
+
+
+.home-main .hero-wrap > h1 {
+  grid-area: heading;
+}
+
+.home-main .subtitle {
+  grid-area: subtitle;
 }
 
 .hero-actions {
+  grid-area: actions;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 0.85rem;
   margin-top: 0.35rem;
+}
+
+/* Tablet and below: the composition stacks, logo first, everything centred. */
+@media (max-width: 860px) {
+  .home-main .hero-wrap {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "logo"
+      "heading"
+      "subtitle"
+      "actions";
+    justify-items: center;
+    align-items: center;
+    text-align: center;
+    row-gap: 1.05rem;
+    column-gap: 0;
+    padding-top: clamp(1.75rem, 5vh, 3rem);
+  }
+
+  .hero-logo {
+    width: min(56vw, 240px);
+  }
+
+  .hero-actions {
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .hero-logo {
+    width: min(62vw, 210px);
+  }
+
+  .home-main .subtitle {
+    max-width: 30ch;
+  }
 }
 
 #home-screen .explore-btn {
@@ -2395,6 +2450,35 @@ html[data-intro="short"] #home-screen.active .vibe-showcase {
     0 22px 50px -20px var(--preview-glow, rgba(255, 255, 255, 0.5)),
     0 0 0 1px rgba(255, 255, 255, 0.08),
     0 0 44px -14px rgba(124, 92, 255, 0.5);
+}
+
+/* The catalog section and its heading carry no divider rule in the editorial
+   layout: the heading plus the plus mark stand on their own. Only the plus
+   mark itself (.catalog-toggle__mark) keeps its pseudo-elements. */
+#home-screen .catalog-head,
+#home-screen .vibe-catalog,
+#home-screen .catalog-title,
+#home-screen .catalog-toggle,
+#home-screen .catalog-toggle__label {
+  border: 0;
+  background-image: none;
+  box-shadow: none;
+}
+
+#home-screen .catalog-head::before,
+#home-screen .catalog-head::after,
+#home-screen .vibe-catalog::before,
+#home-screen .vibe-catalog::after,
+#home-screen .catalog-title::before,
+#home-screen .catalog-title::after,
+#home-screen .catalog-toggle::before,
+#home-screen .catalog-toggle::after,
+#home-screen .catalog-toggle__label::before,
+#home-screen .catalog-toggle__label::after {
+  content: none;
+  display: none;
+  border: 0;
+  background-image: none;
 }
 
 #home-screen .vibe-showcase {
@@ -2509,8 +2593,11 @@ html[data-intro="short"] #home-screen.active .vibe-showcase {
   transition: opacity 240ms var(--ease-spring);
 }
 
+/* The mark draws the plus, the label is plain text set in caps so both locales
+   read as "КАТАЛОГ ТЕМ +" and "THEME CATALOG +". */
 .catalog-toggle__label {
   white-space: nowrap;
+  text-transform: uppercase;
 }
 
 .catalog-toggle:hover {
@@ -2771,16 +2858,6 @@ html[data-intro="short"] #home-screen.active .vibe-catalog {
 }
 
 
-.home-header::before {
-  content: "";
-  position: absolute;
-  inset-inline: clamp(1rem, 4vw, 2rem);
-  bottom: 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1) 22%, rgba(255, 255, 255, 0.1) 78%, transparent);
-  pointer-events: none;
-}
-
 .home-wordmark {
   display: inline-flex;
   align-items: center;
@@ -2794,7 +2871,6 @@ html[data-intro="short"] #home-screen.active .vibe-catalog {
 
 .home-main .hero-wrap {
   position: relative;
-  padding-top: clamp(3.8rem, 10vh, 6.4rem);
 }
 
 .home-main .hero-wrap > h1 {
@@ -2803,11 +2879,14 @@ html[data-intro="short"] #home-screen.active .vibe-catalog {
   background-clip: border-box;
   color: #ffffff;
   -webkit-text-fill-color: currentColor;
-  font-size: clamp(2.9rem, 7.4vw, 5.4rem);
+  font-size: clamp(2.7rem, 6.6vw, 5.1rem);
   letter-spacing: -0.05em;
   line-height: 0.98;
   text-shadow: none;
-  max-width: 15ch;
+  /* The headline now lives in the narrower right column, so it wraps inside
+     that column instead of using the old full-width measure. */
+  max-width: 100%;
+  overflow-wrap: break-word;
 }
 
 .home-main .subtitle {
@@ -2919,9 +2998,6 @@ html[data-intro="short"] #home-screen.active .subtitle { animation-delay: 130ms;
 }
 
 
-#home-screen .home-header::before {
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.12) 22%, rgba(255, 255, 255, 0.12) 78%, transparent);
-}
 
 .home-wordmark__text {
   color: #ffffff;
@@ -3196,49 +3272,16 @@ html[data-motion="force"] {
 }
 
 
-/* Animated gradient, applied only to the accent word inside the hero heading.
-   The span is the same DOM node in both locales, so switching language never
-   restarts the animation. */
-@supports ((-webkit-background-clip: text) or (background-clip: text)) {
-  .hero-word-accent {
-    background-image: linear-gradient(
-      100deg,
-      #ffffff 0%,
-      #666666 24%,
-      #292929 40%,
-      #454545 54%,
-      #666666 68%,
-      #ffffff 100%
-    );
-    background-size: 200% 100%;
-    background-position: 0% 50%;
-    background-repeat: repeat-x;
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-    -webkit-text-fill-color: transparent;
-  }
-}
-
-/* One full image width of travel per cycle, so the loop is seamless. */
-@keyframes hero-gradient-drift {
-  from {
-    background-position: 0% 50%;
-  }
-  to {
-    background-position: 200% 50%;
-  }
-}
-
+/* The accent word stays plain solid white: no gradient, no fill tricks and no
+   animation. The span is still used by the i18n layer, so it keeps the same
+   DOM node in both locales. */
 .hero-word-accent,
 #home-screen.active .hero-word-accent {
-  animation: hero-gradient-drift 14s linear infinite;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .hero-word-accent,
-  #home-screen.active .hero-word-accent {
-    animation: none;
-  }
+  background: none;
+  -webkit-background-clip: border-box;
+  background-clip: border-box;
+  color: #ffffff;
+  -webkit-text-fill-color: #ffffff;
+  animation: none;
 }
 

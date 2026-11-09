@@ -18,6 +18,7 @@ const translationCatalog = {
 "Поиск": "Search",
 "14 атмосфер · 10 вопросов": "14 atmospheres · 10 questions",
 "Атмосферы": "Atmospheres",
+"Каталог тем": "Theme catalog",
 "Вопрос 1 из 10": "Question 1 of 10",
 "Вернуться к предыдущему вопросу": "Back to the previous question",
 "Прогресс опроса": "Quiz progress",
