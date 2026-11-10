@@ -17,7 +17,7 @@ const translationCatalog = {
   "14 вайбов. 14 разных миров.": "14 vibes. 14 different worlds.",
   "Каталог": "Catalog",
   "Поиск": "Search",
-  "Каталог тем": "Theme catalog",
+  "Каталог тем:": "Theme catalog:",
 
   "Профиль": "Profile",
   "Язык": "Language",

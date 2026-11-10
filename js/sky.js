@@ -26,6 +26,40 @@ const MAX_PARTICLES = 42;
 const MIN_PARTICLES = 12;
 const TAU = Math.PI * 2;
 
+/*
+ * The sky borrows the crimson palette of the "Vibe Finder" wordmark and the
+ * "Каталог тем" heading, so the background and the two gradient headings read
+ * as one visual system. 20% of every seeded group takes a colour from that
+ * palette; the remaining 80% stay white/grey exactly as before.
+ *
+ * The accent count is computed from the group size, so the ratio is exact
+ * rather than merely expected — important because a phone seeds as few as 12
+ * motes, where a random 20% could easily swing to 33%. Accents are spread
+ * evenly through the array; since positions are random, the pattern is
+ * invisible. All five palette stops are kept for fidelity, with the bright
+ * crimson repeated so most accents stay clearly visible on black.
+ */
+const CRIMSON_RATIO = 0.2;
+const CRIMSON_TINTS = [
+  'rgba(255, 100, 124, 1)', // #ff647c soft pink-red
+  'rgba(229, 46, 88, 1)',   // #e52e58 crimson
+  'rgba(229, 46, 88, 1)',   // #e52e58 crimson (doubled: the signature hue)
+  'rgba(165, 29, 80, 1)',   // #a51d50 rich raspberry
+  'rgba(155, 18, 60, 1)',   // #9b123c dark wine red
+  'rgba(74, 7, 27, 1)',     // #4a071b deep burgundy
+];
+
+/* Flags exactly `count * CRIMSON_RATIO` entries, spaced evenly through the
+   group, so the crimson share never drifts with the viewport size. */
+function crimsonFlags(count) {
+  const flags = new Array(count).fill(false);
+  const accent = Math.max(1, Math.round(count * CRIMSON_RATIO));
+  for (let k = 0; k < accent; k += 1) {
+    flags[Math.floor(((k + 0.5) * count) / accent)] = true;
+  }
+  return flags;
+}
+
 function rand(min, max) {
   return min + Math.random() * (max - min);
 }
@@ -39,9 +73,21 @@ function prefersReduce() {
 
 function starTint() {
   const roll = Math.random();
-  if (roll < 0.9) return 'rgba(255, 255, 255, 1)'; 
-  if (roll < 0.97) return 'rgba(200, 204, 212, 1)'; 
-  return 'rgba(150, 155, 164, 1)'; 
+  if (roll < 0.9) return 'rgba(255, 255, 255, 1)';
+  if (roll < 0.97) return 'rgba(200, 204, 212, 1)';
+  return 'rgba(150, 155, 164, 1)';
+}
+
+/*
+ * Stars only use the brighter half of the palette: the deep burgundy and the
+ * darkest wine red are too close to black to register as "a coloured star" at
+ * one or two pixels, and they would read as missing lights instead. The soft
+ * dust motes, which are dim by design, cycle through the full palette.
+ */
+const CRIMSON_STAR_STOPS = 4;
+
+function crimsonTint(order, stops) {
+  return CRIMSON_TINTS[order % (stops || CRIMSON_TINTS.length)];
 }
 
 function seed() {
@@ -51,9 +97,15 @@ function seed() {
     Math.min(MAX_STARS, Math.max(MIN_STARS, area / 8200)),
   );
   stars = new Array(starCount);
+  const starAccents = crimsonFlags(starCount);
+  let starOrder = 0;
   for (let i = 0; i < starCount; i += 1) {
-    const depth = rand(0.32, 1); 
-    const bright = Math.random() < 0.06; 
+    const depth = rand(0.32, 1);
+    const bright = Math.random() < 0.06;
+    // One in five stars joins the crimson palette; the rest keep the original
+    // white/grey tints, so the field stays mostly neutral.
+    const crimson = starAccents[i];
+    const order = crimson ? starOrder++ : 0;
     stars[i] = {
       x: Math.random() * width,
       y: Math.random() * height,
@@ -66,7 +118,7 @@ function seed() {
       swaySpeed: rand(0.08, 0.22),
       twinkle: Math.random() < 0.45,
       twinkleSpeed: rand(0.35, 1.15),
-      tint: starTint(),
+      tint: crimson ? crimsonTint(order, CRIMSON_STAR_STOPS) : starTint(),
     };
   }
 
@@ -74,16 +126,26 @@ function seed() {
     Math.min(MAX_PARTICLES, Math.max(MIN_PARTICLES, area / 62000)),
   );
   particles = new Array(pCount);
+  const particleAccents = crimsonFlags(pCount);
+  let particleOrder = 0;
   for (let i = 0; i < pCount; i += 1) {
     const depth = rand(0.35, 1);
+    // Same one-in-five rule as the stars: 20% of the drifting motes take a
+    // crimson tint, the rest stay in the original white/grey range.
+    const crimson = particleAccents[i];
+    const order = crimson ? particleOrder++ : 0;
     particles[i] = {
       x: Math.random() * width,
       y: Math.random() * height,
       radius: rand(0.7, 2) * (0.7 + depth * 0.6),
-      alpha: rand(0.05, 0.18) * (0.6 + depth * 0.6),
+      // Crimson sits far lower in luminance than white, so the accent motes get
+      // a small alpha lift to stay perceptible at the same on-screen size.
+      alpha: (crimson ? 1.55 : 1) * rand(0.05, 0.18) * (0.6 + depth * 0.6),
       vx: rand(-5, 5) * (0.5 + depth * 0.6),
       vy: rand(-12, -2.5) * (0.5 + depth * 0.6),
-      tint: Math.random() < 0.7 ? 'rgba(214, 216, 222, 1)' : 'rgba(168, 172, 180, 1)',
+      tint: crimson
+        ? crimsonTint(order)
+        : (Math.random() < 0.7 ? 'rgba(214, 216, 222, 1)' : 'rgba(168, 172, 180, 1)'),
     };
   }
 }

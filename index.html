@@ -39,7 +39,7 @@
       href="img/vibefinder-logo.png?v=7"
       fetchpriority="high"
     />
-    <link rel="stylesheet" href="css/style.css?v=79" />
+    <link rel="stylesheet" href="css/style.css?v=91" />
   </head>
   <body>
     <div class="page-shell">
@@ -64,6 +64,17 @@
                 aria-controls="profile-menu"
               >
                 <svg class="profile-toggle__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <!-- Static crimson fill shared with the wordmark and catalogue
+                       heading. Only the light stops are used: on the black plate
+                       the deep burgundy would read as a hole in the figure. -->
+                  <defs>
+                    <linearGradient id="profile-icon-gradient" x1="0" y1="0" x2="1" y2="1">
+                      <stop offset="0%" stop-color="#ff647c" />
+                      <stop offset="34%" stop-color="#e52e58" />
+                      <stop offset="68%" stop-color="#a51d50" />
+                      <stop offset="100%" stop-color="#9b123c" />
+                    </linearGradient>
+                  </defs>
                   <path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm0 1.6c-3.68 0-6.8 1.98-6.8 4.4V20h13.6v-1.5c0-2.42-3.12-4.4-6.8-4.4Z"></path>
                 </svg>
               </button>
@@ -129,7 +140,7 @@
                 </span>
               </span>
             </div>
-            <h1>Найди свою <span class="hero-word-accent">атмосферу</span>.</h1>
+            <h1>Найди свою <span class="hero-word-accent">атмосферу</span></h1>
             <p class="subtitle">14 вайбов. 14 разных миров.</p>
             <div class="hero-actions">
               <button id="start-btn" class="primary-btn">
@@ -143,7 +154,7 @@
 
           <section id="vibe-catalog" class="vibe-catalog" aria-labelledby="catalog-title">
             <div class="catalog-head">
-              <h2 id="catalog-title" class="catalog-title">Каталог тем</h2>
+              <h2 id="catalog-title" class="catalog-title">Каталог тем:</h2>
             </div>
             <div id="vibe-list" class="vibe-list"></div>
           </section>
@@ -267,6 +278,6 @@
       <span class="cinematic-intro__grain"></span>
     </div>
 
-    <script type="module" src="js/app.js?v=53"></script>
+    <script type="module" src="js/app.js?v=55"></script>
   </body>
 </html>

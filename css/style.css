@@ -809,11 +809,30 @@ input {
   overflow: hidden;
 }
 
+/*
+ * The quiz progress fill borrows the crimson palette of the home-screen
+ * headings, so the survey reads as the same world as the catalogue.
+ *
+ * The gradient is static: the fill is driven by `transform: scaleX()`, and a
+ * moving background inside a 2px-high line that also stretches on every answer
+ * would merely add noise. `background-color` stays as the paint fallback.
+ *
+ * The near-black burgundy stop is left out. At 2px height on a black page it
+ * would not read as colour but as a gap at the start of the bar; the four
+ * lighter stops keep the whole filled segment visible.
+ */
 .progress-bar span {
   display: block;
   height: 100%;
   width: 100%;
-  background: var(--label-primary);
+  background-color: var(--label-primary);
+  background-image: linear-gradient(
+    90deg,
+    #ff647c 0%,
+    #e52e58 34%,
+    #a51d50 68%,
+    #9b123c 100%
+  );
   border-radius: inherit;
   transform: scaleX(0.1);
   transform-origin: left center;
@@ -973,6 +992,15 @@ input {
 @keyframes survey-enter {
   from { opacity: 0; transform: translateX(var(--enter-x, 16px)); }
   to { opacity: 1; transform: translateX(0); }
+}
+
+/* High-contrast modes drop background images, so the fill keeps its solid
+   fallback colour instead of turning invisible. */
+@media (forced-colors: active) {
+  .progress-bar span {
+    background-image: none;
+    background-color: CanvasText;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1339,11 +1367,17 @@ body.theme-forest #vibe-screen {
   transition: opacity 0.25s var(--ease-spring);
 }
 
+/* The figure itself: a static crimson gradient, defined once in the page SVG.
+   If the reference were ever unresolved the icon would keep the inherited
+   white fill instead of vanishing. */
+.profile-toggle__icon path {
+  fill: url(#profile-icon-gradient);
+}
+
 .profile-toggle:hover,
 .profile-toggle[aria-expanded="true"] {
   color: var(--label-primary);
   background: rgba(0, 0, 0, 0.62);
-  border-color: rgba(255, 255, 255, 0.24);
 }
 
 .profile-toggle:hover .profile-toggle__icon,
@@ -1361,6 +1395,14 @@ body.theme-forest #vibe-screen {
 
 .profile-toggle:active {
   transform: scale(0.96);
+}
+
+/* High-contrast modes drop gradient fills; fall back to a system colour so the
+   figure stays visible instead of turning into a blank hole. */
+@media (forced-colors: active) {
+  .profile-toggle__icon path {
+    fill: CanvasText;
+  }
 }
 
 .profile-menu {
@@ -2335,16 +2377,122 @@ html[data-intro="short"] .cinematic-intro__grain {
   outline-offset: 2px;
 }
 
+/*
+ * Catalog button wash: the same crimson drift as the "Каталог тем" heading and
+ * the "Vibe Finder" wordmark, applied to the label only.
+ *
+ * This button is deliberately quieter than those headings — its label stays
+ * translucent (0.68) so it does not compete with the solid "Поиск" button, but
+ * still slightly lifted from the original 0.52 so the crimson reads clearly.
+ * That translucency is kept via `opacity` on the label rather than by baking
+ * alpha into the gradient stops: the existing hover lift to full strength then
+ * stays a smooth 0.35s fade instead of a jump between two background images,
+ * which cannot be interpolated.
+ *
+ * The near-black burgundy stop is left out. It passes across the whole label
+ * during the loop, and even at 0.68 it would sit at roughly 1.6:1 contrast on
+ * the black page — the word would briefly fade out. The lighter stops keep the
+ * palette recognisable and stay legible throughout.
+ */
+@supports ((background-clip: text) or (-webkit-background-clip: text)) {
+  #home-screen .explore-btn .control-label {
+    background-image: linear-gradient(
+      90deg,
+      #9b123c 0%,
+      #a51d50 25%,
+      #e52e58 50%,
+      #ff647c 75%,
+      #9b123c 100%
+    );
+    background-size: 200% 100%;
+    background-position: 0% 50%;
+    background-repeat: repeat-x;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+    opacity: 0.68;
+    /* The underline is painted separately from the glyphs, so it keeps its own
+       colour. The alpha is divided by the label opacity above to reproduce the
+       original 0.32 appearance exactly. */
+    text-decoration-color: rgba(255, 255, 255, 0.47);
+    transition: opacity 0.35s var(--ease-spring);
+    animation: catalog-title-flow 7.2s linear infinite;
+  }
+
+  /* Overrides the generic `text-decoration-color: currentColor`: currentColor
+     is transparent here, so the underline would vanish on hover. */
+  #home-screen .explore-btn:hover .control-label,
+  #home-screen .explore-btn:focus-visible .control-label {
+    opacity: 1;
+    text-decoration-color: #ffffff;
+  }
+}
+
+/* A still crimson label for reduced motion and the site-wide motion switch. */
+@media (prefers-reduced-motion: reduce) {
+  html:not([data-motion="force"]) #home-screen .explore-btn .control-label {
+    animation: none;
+    background-position: 50% 50%;
+  }
+}
+
+html[data-motion="off"] #home-screen .explore-btn .control-label {
+  animation: none;
+  background-position: 50% 50%;
+}
+
+/* High-contrast modes drop gradient fills, so restore a real text colour. */
+@media (forced-colors: active) {
+  #home-screen .explore-btn .control-label {
+    color: CanvasText;
+    -webkit-text-fill-color: CanvasText;
+  }
+}
+
+/*
+ * The catalogue sits in the same rounded frame as the quiz panel, but reads as
+ * a thin outline rather than a card: the plate is almost fully transparent, so
+ * only the hairline border marks the boundary and the black page stays black.
+ * Radius and border width match the panel exactly, which is what keeps the two
+ * screens feeling like one component.
+ *
+ * The frame hugs its list (`fit-content`) instead of taking the full 1180px
+ * measure. The atmosphere names are short, so a fixed-width frame left a wide
+ * empty strip on the right that read as a layout bug rather than as breathing
+ * room. `max-width: 100%` still clamps it on narrow screens, where the columns
+ * then shrink and the names wrap (`.vibe-link` already wraps anywhere).
+ *
+ * Padding is tight on purpose: the panel is a card holding one question, while
+ * the catalogue is a full list, and large insets left empty bands between the
+ * border and the first/last row.
+ */
 .vibe-catalog {
-  --catalog-gap: clamp(0.9rem, 2vw, 1.3rem);
+  --catalog-gap: clamp(0.8rem, 1.7vw, 1.05rem);
   position: relative;
   z-index: 2;
-  width: min(1180px, 100%);
+  width: fit-content;
+  max-width: 100%;
   margin: 0 auto;
-  padding: clamp(1.5rem, 4vw, 2.5rem) clamp(1rem, 4vw, 2rem) clamp(2rem, 5vw, 3.5rem);
+  padding: clamp(0.85rem, 2vw, 1.15rem) clamp(0.9rem, 2.4vw, 1.15rem);
   display: flex;
   flex-direction: column;
   gap: var(--catalog-gap);
+  border-radius: var(--radius-container);
+  border: 1px solid rgba(255, 255, 255, 0.045);
+  background: rgba(8, 8, 9, 0.02);
+  -webkit-backdrop-filter: blur(3px) saturate(101%);
+  backdrop-filter: blur(3px) saturate(101%);
+}
+
+/* Without backdrop-filter the border is the only thing separating the list
+   from the star field, so the plate steps up slightly — still far lighter than
+   the quiz panel's fallback. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .vibe-catalog {
+    border-color: rgba(255, 255, 255, 0.07);
+    background: rgba(8, 8, 9, 0.14);
+  }
 }
 
 .catalog-head {
@@ -2359,6 +2507,83 @@ html[data-intro="short"] .cinematic-intro__grain {
   letter-spacing: -0.02em;
   color: var(--mono-text, #f2f3f5);
   text-transform: uppercase;
+}
+
+/*
+ * Catalog heading wash: a deep crimson palette painted into the glyphs
+ * themselves and drifted horizontally. `width: fit-content` keeps the text
+ * exactly where it was but lets the clipped background span the word instead
+ * of the whole row, so several colours stay visible at once.
+ *
+ * The gradient is exactly horizontal (90deg) and starts and ends on the same
+ * deep burgundy, so tiling it horizontally has no visible seam. The stops
+ * climb from the dark tones to the brightest pink-red at the midpoint and then
+ * mirror back down, which keeps every transition a smooth interpolation. One
+ * cycle moves the image by exactly one tile width (200% of the element), which
+ * makes the loop perfectly seamless — no jump, no easing seam.
+ */
+@supports ((background-clip: text) or (-webkit-background-clip: text)) {
+  .catalog-title {
+    width: fit-content;
+    max-width: 100%;
+    background-image: linear-gradient(
+      90deg,
+      #4a071b 0%,
+      #9b123c 12.5%,
+      #a51d50 25%,
+      #e52e58 37.5%,
+      #ff647c 50%,
+      #e52e58 62.5%,
+      #a51d50 75%,
+      #9b123c 87.5%,
+      #4a071b 100%
+    );
+    background-size: 200% 100%;
+    background-position: 0% 50%;
+    background-repeat: repeat-x;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+    animation: catalog-title-flow 7.2s linear infinite;
+  }
+
+  /* The catalogue exists only on the home screen; pause off-screen instead of
+     repainting the heading while the quiz, creation or result screens show. */
+  #home-screen:not(.active) .catalog-title {
+    animation-play-state: paused;
+  }
+}
+
+@keyframes catalog-title-flow {
+  from {
+    background-position: 0% 50%;
+  }
+  to {
+    background-position: 200% 50%;
+  }
+}
+
+/* Still spectrum for reduced motion (and for the site-wide motion switch):
+   the colours stay, only the drift stops. */
+@media (prefers-reduced-motion: reduce) {
+  html:not([data-motion="force"]) .catalog-title {
+    animation: none;
+    background-position: 50% 50%;
+  }
+}
+
+html[data-motion="off"] .catalog-title {
+  animation: none;
+  background-position: 50% 50%;
+}
+
+/* Forced-colour modes drop background images, so restore a real text colour. */
+@media (forced-colors: active) {
+  .catalog-title {
+    color: CanvasText;
+    -webkit-text-fill-color: CanvasText;
+  }
 }
 
 .vibe-list {
@@ -2670,6 +2895,69 @@ html[data-intro="short"] #home-screen.active .subtitle { animation-delay: 130ms;
 .home-wordmark__text {
   color: #ffffff;
   text-shadow: 0 0 26px rgba(255, 255, 255, 0.12);
+}
+
+/*
+ * Wordmark wash: the very same crimson drift as the catalog heading, reused
+ * verbatim — same 90deg gradient, same stops, same 200% tile, same
+ * `catalog-title-flow` keyframes and the same 7.2s linear loop — so both
+ * headings read in one palette and move in one rhythm.
+ *
+ * The span is a flex item of the inline-flex anchor, so its box is already
+ * sized to the text; the clipped background therefore covers exactly the two
+ * words. The inherited white text-shadow is dropped here: with a transparent
+ * fill it would surface as a pale halo behind the crimson glyphs.
+ */
+@supports ((background-clip: text) or (-webkit-background-clip: text)) {
+  .home-wordmark__text {
+    background-image: linear-gradient(
+      90deg,
+      #4a071b 0%,
+      #9b123c 12.5%,
+      #a51d50 25%,
+      #e52e58 37.5%,
+      #ff647c 50%,
+      #e52e58 62.5%,
+      #a51d50 75%,
+      #9b123c 87.5%,
+      #4a071b 100%
+    );
+    background-size: 200% 100%;
+    background-position: 0% 50%;
+    background-repeat: repeat-x;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+    text-shadow: none;
+    animation: catalog-title-flow 7.2s linear infinite;
+  }
+
+  /* Mirrors the catalog heading: no repaint while another screen is shown. */
+  #home-screen:not(.active) .home-wordmark__text {
+    animation-play-state: paused;
+  }
+}
+
+/* Still crimson for reduced motion (and the site-wide motion switch). */
+@media (prefers-reduced-motion: reduce) {
+  html:not([data-motion="force"]) .home-wordmark__text {
+    animation: none;
+    background-position: 50% 50%;
+  }
+}
+
+html[data-motion="off"] .home-wordmark__text {
+  animation: none;
+  background-position: 50% 50%;
+}
+
+/* Forced-colour modes drop background images, so restore a real text colour. */
+@media (forced-colors: active) {
+  .home-wordmark__text {
+    color: CanvasText;
+    -webkit-text-fill-color: CanvasText;
+  }
 }
 
 .home-main .hero-wrap {

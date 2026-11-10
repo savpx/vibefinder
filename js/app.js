@@ -2,9 +2,9 @@
 import { questions } from './data/questions.js?v=43';
 import { vibeThemes, vibeShareSlugs, vibeKeysByShareSlug } from './data/themes.js?v=43';
 import { rankVibes, selectNextQuestion, questionIndexById } from './data/scoring.js?v=44';
-import { initI18n, translateText, closeLanguageOptions } from './i18n/index.js?v=48';
+import { initI18n, translateText, closeLanguageOptions } from './i18n/index.js?v=49';
 import { initCinematicIntro } from './intro.js?v=43';
-import { initSky, setSkyActive } from './sky.js?v=44';
+import { initSky, setSkyActive } from './sky.js?v=45';
 
 initCinematicIntro();
 
