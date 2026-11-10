@@ -21,8 +21,6 @@ const translationCatalog = {
 
   "Профиль": "Profile",
   "Язык": "Language",
-  "Change language": "Change language",
-  "Choose language": "Choose language",
   "English": "English",
   "Russian": "Russian",
 

@@ -39,7 +39,7 @@
       href="img/vibefinder-logo.png?v=7"
       fetchpriority="high"
     />
-    <link rel="stylesheet" href="css/style.css?v=75" />
+    <link rel="stylesheet" href="css/style.css?v=79" />
   </head>
   <body>
     <div class="page-shell">
@@ -47,7 +47,6 @@
       <canvas id="sky-canvas" class="sky-canvas" aria-hidden="true"></canvas>
 
       <section id="home-screen" class="screen active">
-        <div class="home-tint" aria-hidden="true"></div>
         <div class="home-main">
           <header class="home-header">
             <div class="home-brand">
@@ -144,22 +143,9 @@
 
           <section id="vibe-catalog" class="vibe-catalog" aria-labelledby="catalog-title">
             <div class="catalog-head">
-              <h2 id="catalog-title" class="catalog-title">
-                <button
-                  id="atmospheres-toggle"
-                  class="catalog-toggle"
-                  type="button"
-                  aria-expanded="false"
-                  aria-controls="catalog-collapse"
-                >
-                  <span class="catalog-toggle__label">Каталог тем</span>
-                  <span class="catalog-toggle__mark" aria-hidden="true"></span>
-                </button>
-              </h2>
+              <h2 id="catalog-title" class="catalog-title">Каталог тем</h2>
             </div>
-            <div id="catalog-collapse" class="catalog-collapse" inert>
-              <div id="vibe-list" class="vibe-list"></div>
-            </div>
+            <div id="vibe-list" class="vibe-list"></div>
           </section>
 
         </div>
@@ -275,14 +261,12 @@
       </div>
     </div>
 
-    <div id="vibe-transition" class="vibe-transition" aria-hidden="true"></div>
-
     <div id="cinematic-intro" class="cinematic-intro" aria-hidden="true">
       <span class="cinematic-intro__bloom"></span>
       <span class="cinematic-intro__vignette"></span>
       <span class="cinematic-intro__grain"></span>
     </div>
 
-    <script type="module" src="js/app.js?v=49"></script>
+    <script type="module" src="js/app.js?v=53"></script>
   </body>
 </html>

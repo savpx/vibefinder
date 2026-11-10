@@ -2,7 +2,7 @@
 import { questions } from './data/questions.js?v=43';
 import { vibeThemes, vibeShareSlugs, vibeKeysByShareSlug } from './data/themes.js?v=43';
 import { rankVibes, selectNextQuestion, questionIndexById } from './data/scoring.js?v=44';
-import { initI18n, translateText, closeLanguageOptions } from './i18n/index.js?v=47';
+import { initI18n, translateText, closeLanguageOptions } from './i18n/index.js?v=48';
 import { initCinematicIntro } from './intro.js?v=43';
 import { initSky, setSkyActive } from './sky.js?v=44';
 
@@ -76,8 +76,6 @@ const state = {
   shareVibeKey: null,
   quoteList: null,
 };
-
-const vibeTransition = document.getElementById('vibe-transition');
 
 const UI_CLICK_VOLUME = 0.09;
 const TRANSITION_VOLUME = 0.11;
@@ -289,35 +287,6 @@ function initGlassTilt() {
 }
 
 
-const VIBE_CARD_ACCENTS = {
-  cosmos: '#8a7cf0', 
-  solar: '#e89a2a', 
-  neon: '#3fe0d0', 
-  forest: '#5f8f63', 
-  night: '#6f9fd8', 
-  melancholic: '#a49bc4', 
-  zen: '#74c7b2', 
-  chaotic: '#e54f6d', 
-  happy: '#f2d861', 
-  mysterious: '#6f4fb8', 
-  creative: '#e07ab4', 
-  nature: '#8fce5c', 
-  retro: '#8f9440', 
-  cozy: '#cf6b3f', 
-};
-
-function hexToRgba(hex, alpha) {
-  const value = hex.replace('#', '');
-  const full = value.length === 3
-    ? value.split('').map((channel) => channel + channel).join('')
-    : value;
-  const numeric = Number.parseInt(full, 16);
-  const red = (numeric >> 16) & 255;
-  const green = (numeric >> 8) & 255;
-  const blue = numeric & 255;
-  return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
-}
-
 
 
 function canSwipeAnimate() {
@@ -409,7 +378,6 @@ function showScreen(name) {
   Object.entries(screens).forEach(([key, screen]) => {
     screen.classList.toggle('active', key === name);
   });
-  if (name !== 'home') clearVibeTint();
   if (pageShell) pageShell.dataset.activeScreen = name;
   if (name !== 'vibe') screens.vibe.classList.remove('vibe-screen-reveal');
   if (name !== 'vibe') closeVibeMenu();
@@ -581,7 +549,6 @@ function cancelVibeCreation() {
   if (constellationEl) {
     constellationEl.classList.remove('is-forming', 'is-holding', 'is-dissolving');
   }
-  vibeTransition.classList.remove('is-visible');
   stopTransitionAudio();
 }
 
@@ -1447,44 +1414,39 @@ if (profileToggle && profileMenu) {
 }
 
 const vibeList = document.getElementById('vibe-list');
-const vibeCatalog = document.getElementById('vibe-catalog');
-const atmospheresToggle = document.getElementById('atmospheres-toggle');
-const catalogCollapse = document.getElementById('catalog-collapse');
 const exploreVibesBtn = document.getElementById('explore-vibes-btn');
 
-let catalogOpenTimer = null;
-let catalogExpanded = false;
-let cancelVibeHold = null;
-
-function setCatalogExpanded(expanded) {
-  const next = Boolean(expanded);
-  if (next === catalogExpanded) return;
-  catalogExpanded = next;
-
-  // Focus inside a collapsed inert region would be lost, so hand it back
-  // to the toggle button instead.
-  if (!next && catalogCollapse && atmospheresToggle
-    && catalogCollapse.contains(document.activeElement)) {
-    atmospheresToggle.focus({ preventScroll: true });
+/*
+ * A small deterministic hash gives every atmosphere its own breathing rhythm.
+ * The offsets are derived from the key, not from Math.random(), so the layout
+ * looks hand-scattered yet stays identical across reloads and locales.
+ */
+function hashString(value) {
+  let hash = 2166136261;
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
   }
+  return hash >>> 0;
+}
 
-  if (vibeCatalog) vibeCatalog.classList.toggle('is-expanded', next);
-  if (atmospheresToggle) atmospheresToggle.setAttribute('aria-expanded', String(next));
+function applyVeilTiming(label, vibeKey) {
+  const hash = hashString(vibeKey);
+  // 7.4s–11.2s cycles: close enough to feel like one atmosphere, far enough
+  // apart that neighbouring names never breathe in lockstep.
+  const duration = 7.4 + ((hash & 0xff) / 255) * 3.8;
+  // Spread the phases over a full cycle so the list looks already mid-motion
+  // on the very first frame instead of starting from a synchronized zero.
+  const delay = -(((hash >>> 8) & 0xff) / 255) * duration;
+  label.style.setProperty('--veil-duration', `${duration.toFixed(2)}s`);
+  label.style.setProperty('--veil-delay', `${delay.toFixed(2)}s`);
+}
 
-  if (catalogCollapse) {
-    if (next) {
-      catalogCollapse.removeAttribute('inert');
-    } else {
-      catalogCollapse.setAttribute('inert', '');
-    }
-  }
-
-  // The hover tint lifecycle is bound to the section state: no listeners work,
-  // no timers run and the background returns to its default while collapsed.
-  if (!next) {
-    if (typeof cancelVibeHold === 'function') cancelVibeHold();
-    clearVibeTint();
-  }
+function setSpoilerRevealed(link, revealed) {
+  const next = Boolean(revealed);
+  if (link.classList.contains('is-revealed') === next) return;
+  link.classList.toggle('is-revealed', next);
+  link.setAttribute('aria-pressed', String(next));
 }
 
 function buildVibeLink(vibeKey) {
@@ -1495,8 +1457,21 @@ function buildVibeLink(vibeKey) {
   link.type = 'button';
   link.className = 'vibe-link';
   link.dataset.vibe = vibeKey;
-  link.textContent = vibe.title;
-  link.addEventListener('click', () => openVibeFromCatalog(vibeKey));
+  link.setAttribute('aria-pressed', 'false');
+
+  const labelWrap = document.createElement('span');
+  labelWrap.className = 'vibe-link__label';
+
+  const label = document.createElement('span');
+  label.className = 'vibe-link__text';
+  label.textContent = vibe.title;
+  applyVeilTiming(label, vibeKey);
+
+  labelWrap.appendChild(label);
+  link.appendChild(labelWrap);
+  link.addEventListener('click', () => {
+    setSpoilerRevealed(link, !link.classList.contains('is-revealed'));
+  });
   return link;
 }
 
@@ -1507,11 +1482,9 @@ function renderVibeCatalog() {
   if (!order.length) return;
 
   vibeList.textContent = '';
-  vibeList.style.setProperty('--vibe-count', String(order.length));
-  order.forEach((key, index) => {
+  order.forEach((key) => {
     const link = buildVibeLink(key);
     if (!link) return;
-    link.style.setProperty('--vibe-index', String(index));
     vibeList.appendChild(link);
   });
 }
@@ -1519,38 +1492,10 @@ function renderVibeCatalog() {
 function scrollToCatalog() {
   const target = document.getElementById('vibe-catalog');
   if (!target) return;
-  setCatalogExpanded(true);
   target.scrollIntoView({
     behavior: reducedMotionPref() ? 'auto' : 'smooth',
     block: 'start',
   });
-}
-
-function openVibeFromCatalog(vibeKey) {
-  if (!vibeThemes[vibeKey]) return;
-
-  closeVibeMenu();
-  cancelVibeCreation();
-  renderVibe(vibeKey);
-  state.activeVibe = vibeKey;
-
-  if (reducedMotionPref()) {
-    showScreen('vibe');
-    return;
-  }
-
-  if (catalogOpenTimer !== null) {
-    window.clearTimeout(catalogOpenTimer);
-    catalogOpenTimer = null;
-  }
-  vibeTransition.classList.add('is-quick', 'is-visible');
-  catalogOpenTimer = window.setTimeout(() => {
-    showScreen('vibe');
-    catalogOpenTimer = window.setTimeout(() => {
-      vibeTransition.classList.remove('is-visible', 'is-quick');
-      catalogOpenTimer = null;
-    }, 140);
-  }, 280);
 }
 
 function reducedMotionPref() {
@@ -1560,113 +1505,8 @@ function reducedMotionPref() {
   return Boolean(reducedMotionQuery && reducedMotionQuery.matches);
 }
 
-const homeTint = document.querySelector('.home-tint');
-
-function applyVibeTint(key) {
-  if (!catalogExpanded) return;
-  if (!homeTint || reducedMotionPref()) return;
-  const accent = VIBE_CARD_ACCENTS[key];
-  if (!accent) return;
-  homeTint.style.setProperty('--vibe-tint', hexToRgba(accent, 0.16));
-}
-
-function clearVibeTint() {
-  if (homeTint) homeTint.style.removeProperty('--vibe-tint');
-}
-
-const VIBE_HOLD_MS = 420;
-const VIBE_HOLD_SLOP = 12;
-
-function initVibeHover() {
-  if (!vibeList) return;
-
-  // Single set of listeners bound once. Every handler bails out immediately
-  // while the catalog is collapsed, so no tint work is performed and no
-  // timers or extra listeners are created on repeated open/close cycles.
-  vibeList.addEventListener('pointerover', (event) => {
-    if (!catalogExpanded) return;
-    if (event.pointerType && event.pointerType !== 'mouse' && event.pointerType !== 'pen') return;
-    const item = event.target.closest('.vibe-link');
-    if (item) applyVibeTint(item.dataset.vibe);
-  }, { passive: true });
-  vibeList.addEventListener('pointerleave', () => {
-    if (!catalogExpanded) return;
-    clearVibeTint();
-  }, { passive: true });
-
-  let holdTimer = null;
-  let holdStart = null; 
-  let holdActive = false;
-
-  const cancelHold = () => {
-    if (holdTimer !== null) {
-      window.clearTimeout(holdTimer);
-      holdTimer = null;
-    }
-    holdStart = null;
-    holdActive = false;
-  };
-
-  const releaseHold = () => {
-    cancelHold();
-    clearVibeTint();
-  };
-
-  vibeList.addEventListener('pointerdown', (event) => {
-    if (!catalogExpanded) return;
-    if (event.pointerType === 'mouse' || event.pointerType === 'pen') return;
-    const item = event.target.closest('.vibe-link');
-    if (!item) return;
-    holdStart = { id: event.pointerId, x: event.clientX, y: event.clientY };
-    holdTimer = window.setTimeout(() => {
-      holdTimer = null;
-      if (!holdStart || !catalogExpanded) return;
-      holdActive = true;
-      applyVibeTint(item.dataset.vibe);
-    }, VIBE_HOLD_MS);
-  }, { passive: true });
-
-  vibeList.addEventListener('pointermove', (event) => {
-    if (!holdStart || event.pointerId !== holdStart.id) return;
-    const dx = event.clientX - holdStart.x;
-    const dy = event.clientY - holdStart.y;
-    if (Math.hypot(dx, dy) > VIBE_HOLD_SLOP) releaseHold();
-  }, { passive: true });
-
-  vibeList.addEventListener('pointerup', (event) => {
-    if (!holdStart || event.pointerId !== holdStart.id) return;
-    releaseHold();
-  }, { passive: true });
-
-  vibeList.addEventListener('pointercancel', (event) => {
-    if (!holdStart || event.pointerId !== holdStart.id) return;
-    releaseHold();
-  }, { passive: true });
-
-  vibeList.addEventListener('contextmenu', (event) => {
-    if (holdActive) event.preventDefault();
-  });
-
-  window.addEventListener('blur', () => {
-    if (!catalogExpanded) return;
-    clearVibeTint();
-  }, { passive: true });
-  document.addEventListener('visibilitychange', () => {
-    if (document.hidden) releaseHold();
-  });
-
-  // Used by the collapse path to invalidate any pending long-press timer.
-  cancelVibeHold = releaseHold;
-}
-
 if (exploreVibesBtn) {
   exploreVibesBtn.addEventListener('click', scrollToCatalog);
-}
-
-if (atmospheresToggle) {
-  atmospheresToggle.addEventListener('click', () => {
-    setCatalogExpanded(!catalogExpanded);
-  });
 }
 
 initI18n('ru');
@@ -1677,7 +1517,6 @@ showScreen('home');
 handleHashRoute();
 
 initSky();
-initVibeHover();
 
 let audioUnlocked = false;
 let transitionWarmStarted = false;
