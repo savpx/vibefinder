@@ -9,6 +9,9 @@ const SETTLE_MARGIN_MS = 600;
 const SKIP_FADE_MS = 240;
 
 const root = document.documentElement;
+const reducedMotionQuery = typeof window.matchMedia === 'function'
+  ? window.matchMedia('(prefers-reduced-motion: reduce)')
+  : null;
 
 function readVisited() {
   try {
@@ -29,8 +32,7 @@ function prefersReducedMotion() {
   const forced = root.dataset.motion;
   if (forced === 'force') return false;
   if (forced === 'off') return true;
-  return typeof window.matchMedia === 'function'
-    && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  return Boolean(reducedMotionQuery && reducedMotionQuery.matches);
 }
 
 function isHomeRoute() {

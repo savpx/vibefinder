@@ -1,10 +1,10 @@
 
-import { questions } from './data/questions.js?v=42';
-import { vibeThemes, vibeShareSlugs, vibeKeysByShareSlug } from './data/themes.js?v=42';
-import { rankVibes, selectNextQuestion, questionIndexById } from './data/scoring.js?v=43';
-import { initI18n, translateText, closeLanguageOptions } from './i18n/index.js?v=46';
-import { initCinematicIntro } from './intro.js?v=42';
-import { initSky, setSkyActive } from './sky.js?v=43';
+import { questions } from './data/questions.js?v=43';
+import { vibeThemes, vibeShareSlugs, vibeKeysByShareSlug } from './data/themes.js?v=43';
+import { rankVibes, selectNextQuestion, questionIndexById } from './data/scoring.js?v=44';
+import { initI18n, translateText, closeLanguageOptions } from './i18n/index.js?v=47';
+import { initCinematicIntro } from './intro.js?v=43';
+import { initSky, setSkyActive } from './sky.js?v=44';
 
 initCinematicIntro();
 
@@ -49,13 +49,6 @@ let swipeTimer = null;
 const themeName = document.getElementById('theme-name');
 const themeDescription = document.getElementById('theme-description');
 const vibeGame = document.getElementById('vibe-game');
-const vibeShowcase = document.getElementById('vibe-showcase');
-const vibeShowcaseLayers = vibeShowcase
-  ? Array.from(vibeShowcase.querySelectorAll('.vibe-showcase__name'))
-  : [];
-const homeGlowLayers = Array.from(
-  document.querySelectorAll('#home-screen .home-glow__layer'),
-);
 const tetrisCanvas = document.getElementById('tetris-canvas');
 const vibeQuoteText = document.getElementById('vibe-quote-text');
 const tetrisGameOver = document.getElementById('tetris-game-over');
@@ -63,6 +56,15 @@ const tetrisRestartBtn = document.getElementById('tetris-restart-btn');
 const vibeDevelopment = document.getElementById('vibe-development');
 
 const READY_VIBES = new Set(['night']);
+
+const VIBE_PALETTES = Object.values(vibeThemes).map((vibe) => vibe.palette);
+const reducedMotionQuery = typeof window.matchMedia === 'function'
+  ? window.matchMedia('(prefers-reduced-motion: reduce)')
+  : null;
+
+function clearPaletteClasses() {
+  if (VIBE_PALETTES.length) document.body.classList.remove(...VIBE_PALETTES);
+}
 
 const state = {
   order: [],
@@ -103,8 +105,8 @@ const TRANSITION_LINKS = [
   [0, 1], [1, 2], [2, 3], [1, 5], [2, 4], [5, 6], [6, 4], [0, 5],
 ];
 
-const AUDIO_VERSION = 36;
-const UI_CLICK_SRC = 'audio/ui/ui%20click.mp3';
+const AUDIO_VERSION = 37;
+const UI_CLICK_SRC = 'audio/ui/ui-click.mp3';
 const TRANSITION_SRC = 'audio/ui/transition.mp3';
 const audioVolumeFades = new WeakMap();
 const uiButtonAudio = new Audio(`${UI_CLICK_SRC}?v=${AUDIO_VERSION}`);
@@ -200,7 +202,7 @@ function init3DTiltEffect(elementSelector, maxTiltAngle) {
     : elementSelector;
   if (!element) return null;
 
-  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return null;
+  if (reducedMotionQuery && reducedMotionQuery.matches) return null;
 
   const state = { rect: null, pointer: null, frame: 0, max: maxTiltAngle };
 
@@ -247,6 +249,12 @@ function init3DTiltEffect(elementSelector, maxTiltAngle) {
     element.style.setProperty('--scale', '1');
   };
 
+  /*
+   * Touch only drives the tilt horizontally: vertical gestures are left to the
+   * browser so the page still scrolls when the finger starts on a button.
+   * Because of that the touchmove listener can stay passive and never has to
+   * call preventDefault().
+   */
   const onTouchStart = (event) => {
     const touch = event.touches[0];
     if (!touch) return;
@@ -258,7 +266,6 @@ function init3DTiltEffect(elementSelector, maxTiltAngle) {
   const onTouchMove = (event) => {
     const touch = event.touches[0];
     if (!touch) return;
-    if (event.cancelable) event.preventDefault();
     scheduleUpdate(touch.clientX, touch.clientY);
   };
 
@@ -270,7 +277,7 @@ function init3DTiltEffect(elementSelector, maxTiltAngle) {
   element.addEventListener('mousemove', onMove);
   element.addEventListener('mouseleave', onLeave);
   element.addEventListener('touchstart', onTouchStart, { passive: true });
-  element.addEventListener('touchmove', onTouchMove, { passive: false });
+  element.addEventListener('touchmove', onTouchMove, { passive: true });
   element.addEventListener('touchend', onTouchEnd, { passive: true });
   element.addEventListener('touchcancel', onTouchEnd, { passive: true });
   return element;
@@ -311,136 +318,7 @@ function hexToRgba(hex, alpha) {
   return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
 }
 
-const VIBE_SHOWCASE_ORDER = Object.keys(vibeThemes);
-const SHOWCASE_HOLD_MS = 3000; 
-const SHOWCASE_FADE_MS = 1400; 
-const SHOWCASE_GLOW_ALPHA = 0.4;
-const SHOWCASE_INK_DURATION = 620;
-const SHOWCASE_INK_STEP = 34;
 
-const showcase = {
-  order: [],
-  index: 0,
-  active: false,
-  layer: 1,
-  glowLayer: 1,
-  holdTimer: null,
-};
-
-function stopShowcaseTimers() {
-  if (showcase.holdTimer !== null) {
-    window.clearTimeout(showcase.holdTimer);
-    showcase.holdTimer = null;
-  }
-}
-
-function setShowcaseAccent(key) {
-  const accent = VIBE_CARD_ACCENTS[key] || '#ffffff';
-  screens.home.style.setProperty('--preview-glow', hexToRgba(accent, SHOWCASE_GLOW_ALPHA));
-}
-
-function crossfadeShowcaseGlow(key) {
-  if (homeGlowLayers.length < 2) return;
-  const accent = VIBE_CARD_ACCENTS[key] || '#ffffff';
-  const previousLayer = showcase.glowLayer;
-  const nextLayer = 1 - previousLayer;
-  const incoming = homeGlowLayers[nextLayer];
-  incoming.style.setProperty('--glow-color', hexToRgba(accent, SHOWCASE_GLOW_ALPHA));
-  incoming.classList.add('is-active');
-  homeGlowLayers[previousLayer].classList.remove('is-active');
-  showcase.glowLayer = nextLayer;
-}
-
-function clearShowcaseGlow() {
-  screens.home.removeAttribute('data-vibe-glow');
-  screens.home.style.removeProperty('--preview-glow');
-  homeGlowLayers.forEach((layer) => {
-    layer.classList.remove('is-active');
-    layer.style.removeProperty('--glow-color');
-  });
-}
-
-function paintShowcaseLayer(layer, label) {
-  layer.classList.remove('is-active');
-  layer.textContent = '';
-  const words = String(label).split(' ');
-  let letterIndex = 0;
-  words.forEach((word, wordIndex) => {
-    if (wordIndex > 0) layer.appendChild(document.createTextNode(' '));
-    const wordNode = document.createElement('span');
-    wordNode.className = 'vibe-word';
-    Array.from(word).forEach((char) => {
-      const letterNode = document.createElement('span');
-      letterNode.className = 'vibe-letter';
-      letterNode.textContent = char;
-      letterNode.style.setProperty('--ink-delay', `${letterIndex * SHOWCASE_INK_STEP}ms`);
-      letterNode.style.setProperty('--ink-duration', `${SHOWCASE_INK_DURATION}ms`);
-      wordNode.appendChild(letterNode);
-      letterIndex += 1;
-    });
-    layer.appendChild(wordNode);
-  });
-}
-
-function showShowcaseVibe() {
-  if (!showcase.active || !vibeShowcaseLayers.length) return;
-  const key = showcase.order[showcase.index];
-  const vibe = vibeThemes[key];
-  if (!vibe) return;
-
-  setShowcaseAccent(key);
-  crossfadeShowcaseGlow(key);
-  screens.home.setAttribute('data-vibe-glow', '');
-
-  const label = translateText(vibe.title);
-  const previousLayer = showcase.layer;
-  const nextLayer = 1 - previousLayer;
-
-  paintShowcaseLayer(vibeShowcaseLayers[nextLayer], label);
-  void vibeShowcaseLayers[nextLayer].offsetWidth; 
-  vibeShowcaseLayers[nextLayer].classList.add('is-active');
-  vibeShowcaseLayers[previousLayer].classList.remove('is-active');
-
-  showcase.layer = nextLayer;
-  showcase.holdTimer = window.setTimeout(advanceShowcase, SHOWCASE_HOLD_MS + SHOWCASE_FADE_MS);
-}
-
-function advanceShowcase() {
-  if (!showcase.active) return;
-  showcase.holdTimer = null;
-  showcase.index = (showcase.index + 1) % showcase.order.length;
-  showShowcaseVibe();
-}
-
-const HOME_SHOWCASE_ENABLED = false;
-
-function startVibeShowcase() {
-  if (!HOME_SHOWCASE_ENABLED) return;
-  if (!vibeShowcase || !vibeShowcaseLayers.length) return;
-  showcase.order = VIBE_SHOWCASE_ORDER.filter((key) => vibeThemes[key]);
-  if (!showcase.order.length) return;
-  showcase.active = true;
-  showcase.index = 0;
-  showcase.layer = 1;
-  showcase.glowLayer = 0;
-  stopShowcaseTimers();
-  vibeShowcaseLayers.forEach((layer) => layer.classList.remove('is-active'));
-  homeGlowLayers.forEach((layer) => {
-    layer.classList.remove('is-active');
-    layer.style.removeProperty('--glow-color');
-  });
-  showShowcaseVibe();
-}
-
-function stopVibeShowcase() {
-  showcase.active = false;
-  stopShowcaseTimers();
-  vibeShowcaseLayers.forEach((layer) => {
-    layer.classList.remove('is-active');
-    layer.textContent = '';
-  });
-  clearShowcaseGlow();
-}
 
 function canSwipeAnimate() {
   return !reducedMotionPref()
@@ -545,13 +423,7 @@ function showScreen(name) {
     screens.vibe.classList.add('vibe-screen-reveal');
     schedulePendingVibeGame();
   }
-  if (name === 'home' || name === 'survey' || name === 'creation') {
-    if (name === 'home') startVibeShowcase();
-    setSkyActive(true);
-  } else {
-    stopVibeShowcase();
-    setSkyActive(false);
-  }
+  setSkyActive(name === 'home' || name === 'survey' || name === 'creation');
 }
 
 function closeVibeMenu(returnFocus = false) {
@@ -568,11 +440,17 @@ function closeProfileMenu(returnFocus = false) {
   if (returnFocus) profileToggle.focus();
 }
 
+/*
+ * All text written here is the Russian source string: the i18n layer observes
+ * the DOM and translates it for the active locale. Passing an already
+ * translated string would make the observer store the English text as the
+ * source and break switching back to Russian.
+ */
 function setShareFeedback(message) {
   if (state.shareFeedbackTimer !== null) {
     window.clearTimeout(state.shareFeedbackTimer);
   }
-  shareFeedback.textContent = translateText(message);
+  shareFeedback.textContent = message;
   state.shareFeedbackTimer = window.setTimeout(() => {
     shareFeedback.textContent = '';
     state.shareFeedbackTimer = null;
@@ -582,7 +460,7 @@ function setShareFeedback(message) {
 function renderSharePage(vibeKey) {
   const config = vibeThemes[vibeKey];
   state.shareVibeKey = config ? vibeKey : null;
-  document.body.classList.remove(...Object.values(vibeThemes).map((vibe) => vibe.palette));
+  clearPaletteClasses();
   delete screens.share.dataset.vibe;
   shareFeedback.textContent = '';
   if (state.shareFeedbackTimer !== null) {
@@ -593,10 +471,10 @@ function renderSharePage(vibeKey) {
   if (config) {
     document.body.classList.add(config.palette);
     screens.share.dataset.vibe = vibeKey;
-    shareVibeName.textContent = translateText(config.title);
+    shareVibeName.textContent = config.title;
     shareButton.hidden = false;
   } else {
-    shareVibeName.textContent = translateText('Неизвестный вайб');
+    shareVibeName.textContent = 'Неизвестный вайб';
     shareButton.hidden = true;
   }
 
@@ -995,7 +873,7 @@ function renderVibe(vibeKey) {
   if (!config) return;
 
   screens.vibe.classList.remove('vibe-screen-reveal');
-  document.body.classList.remove(...Object.values(vibeThemes).map((vibe) => vibe.palette));
+  clearPaletteClasses();
   document.body.classList.add(config.palette);
   screens.vibe.dataset.vibe = vibeKey;
 
@@ -1029,9 +907,7 @@ const TETRIS_SHAPES = [
 const game = {
   active: false,
   over: false,
-  raf: 0,
-  lastTime: 0,
-  dropTimer: 0,
+  gravityTimer: 0,
   keyHandler: null,
   restartHandler: null,
   touchStart: null,
@@ -1191,19 +1067,21 @@ function rotatePiece() {
   paintGame();
 }
 
-function tetrisLoop(time) {
-  if (!game.active) return;
-  if (!game.lastTime) game.lastTime = time;
-  const delta = time - game.lastTime;
-  game.lastTime = time;
-  game.dropTimer += Math.min(delta, 100);
-  if (game.dropTimer >= TETRIS_GRAVITY_MS) {
-    game.dropTimer -= TETRIS_GRAVITY_MS;
+/*
+ * Gravity runs on a plain timeout instead of a requestAnimationFrame loop:
+ * the board only changes once per TETRIS_GRAVITY_MS, so a 60 Hz loop spent
+ * almost every frame doing nothing. Canvas repaints happen on actual piece
+ * movement, which is where the visual update is needed anyway.
+ */
+function scheduleGravity() {
+  if (!game.active || game.over) return;
+  window.clearTimeout(game.gravityTimer);
+  game.gravityTimer = window.setTimeout(() => {
+    game.gravityTimer = 0;
+    if (!game.active || game.over) return;
     stepPiece();
-  }
-  if (game.active) {
-    game.raf = window.requestAnimationFrame(tetrisLoop);
-  }
+    scheduleGravity();
+  }, TETRIS_GRAVITY_MS);
 }
 
 function handleTetrisInput(event) {
@@ -1255,9 +1133,9 @@ function rotateQuote() {
 
 function stopVibeGame() {
   clearGameStartTimer();
-  if (game.raf) {
-    window.cancelAnimationFrame(game.raf);
-    game.raf = 0;
+  if (game.gravityTimer) {
+    window.clearTimeout(game.gravityTimer);
+    game.gravityTimer = 0;
   }
   if (game.quoteTimer) {
     window.clearInterval(game.quoteTimer);
@@ -1286,8 +1164,6 @@ function stopVibeGame() {
   game.active = false;
   game.over = false;
   game.piece = null;
-  game.lastTime = 0;
-  game.dropTimer = 0;
   game.pendingStart = false;
   hideGameOver();
 }
@@ -1369,11 +1245,9 @@ function startTetrisLoop() {
   game.piece = spawnPiece();
   game.active = true;
   game.over = false;
-  game.lastTime = 0;
-  game.dropTimer = 0;
   hideGameOver();
   paintGame();
-  game.raf = window.requestAnimationFrame(tetrisLoop);
+  scheduleGravity();
 }
 
 function focusTetrisCanvas() {
@@ -1424,8 +1298,6 @@ function initVibeGame(vibeKey) {
     game.field = createField();
     game.piece = spawnPiece();
     game.over = false;
-    game.lastTime = 0;
-    game.dropTimer = 0;
     hideGameOver();
     paintGame();
   }
@@ -1436,20 +1308,16 @@ function initVibeGame(vibeKey) {
 }
 
 function restartVibeGame() {
-  if (game.raf) {
-    window.cancelAnimationFrame(game.raf);
-    game.raf = 0;
-  }
+  window.clearTimeout(game.gravityTimer);
+  game.gravityTimer = 0;
   startTetrisLoop();
 }
 
 function endVibeGame() {
   if (game.over) return;
   game.over = true;
-  if (game.raf) {
-    window.cancelAnimationFrame(game.raf);
-    game.raf = 0;
-  }
+  window.clearTimeout(game.gravityTimer);
+  game.gravityTimer = 0;
   showGameOver();
 }
 
@@ -1499,7 +1367,7 @@ function performReturn() {
   state.history = [];
   state.activeVibe = null;
   state.shareVibeKey = null;
-  document.body.classList.remove(...Object.values(vibeThemes).map((vibe) => vibe.palette));
+  clearPaletteClasses();
   delete screens.vibe.dataset.vibe;
   delete screens.share.dataset.vibe;
   if (window.location.hash) {
@@ -1527,14 +1395,13 @@ shareButton.addEventListener('click', shareCurrentVibe);
 window.addEventListener('hashchange', handleHashRoute);
 window.addEventListener('vibe-language-change', () => {
   if (state.shareVibeKey) {
-    shareVibeName.textContent = translateText(vibeThemes[state.shareVibeKey].title);
+    shareVibeName.textContent = vibeThemes[state.shareVibeKey].title;
   } else if (screens.share.classList.contains('active')) {
-    shareVibeName.textContent = translateText('Неизвестный вайб');
+    shareVibeName.textContent = 'Неизвестный вайб';
   }
   if (state.quoteList && state.quoteList.length) {
     showQuote(game.quoteIndex);
   }
-  if (screens.home.classList.contains('active')) startVibeShowcase();
   shareFeedback.textContent = '';
 });
 document.addEventListener('click', (event) => {
@@ -1653,8 +1520,10 @@ function scrollToCatalog() {
   const target = document.getElementById('vibe-catalog');
   if (!target) return;
   setCatalogExpanded(true);
-  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  target.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' });
+  target.scrollIntoView({
+    behavior: reducedMotionPref() ? 'auto' : 'smooth',
+    block: 'start',
+  });
 }
 
 function openVibeFromCatalog(vibeKey) {
@@ -1665,8 +1534,7 @@ function openVibeFromCatalog(vibeKey) {
   renderVibe(vibeKey);
   state.activeVibe = vibeKey;
 
-  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  if (reduced) {
+  if (reducedMotionPref()) {
     showScreen('vibe');
     return;
   }
@@ -1689,8 +1557,7 @@ function reducedMotionPref() {
   const forced = document.documentElement.dataset.motion;
   if (forced === 'force') return false;
   if (forced === 'off') return true;
-  return typeof window.matchMedia === 'function'
-    && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  return Boolean(reducedMotionQuery && reducedMotionQuery.matches);
 }
 
 const homeTint = document.querySelector('.home-tint');
@@ -1809,7 +1676,6 @@ renderQuestion();
 showScreen('home');
 handleHashRoute();
 
-document.documentElement.classList.add('vf-js');
 initSky();
 initVibeHover();
 

@@ -348,32 +348,27 @@ input {
   align-items: flex-start;
   overflow-x: hidden;
   overflow-y: auto;
+  padding-top: clamp(20px, 2.5vh, 30px);
+  --mono-text: #f2f3f5;
+  --mono-muted: rgba(255, 255, 255, 0.52);
+  --text: #f4f4f4;
+  --muted: #b8b8b8;
+  --primary: #eeeeee;
+  background: transparent;
+  color: var(--text);
 }
 
-#home-screen,
 #survey-screen,
 #creation-screen {
   --text: #f4f4f4;
   --muted: #b8b8b8;
   --primary: #eeeeee;
+  background: transparent;
   color: var(--text);
 }
 
-#home-screen,
-#survey-screen,
+/* Creation screen keeps the full viewport stage for the constellation. */
 #creation-screen {
-  background: transparent;
-}
-
-#creation-screen {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
   z-index: 2;
   overflow: hidden;
 }
@@ -611,36 +606,23 @@ input {
   font-size: 0.7rem;
 }
 
+/* The visual styling of the hero heading, subtitle and primary button is
+   defined once further down (see the #home-screen rules). Only the shared
+   reset-level properties live here so they are not duplicated. */
 .hero-wrap h1 {
   margin: 0;
-  font-size: clamp(3.2rem, 9vw, 88px);
-  font-weight: 800;
-  letter-spacing: -0.035em;
-  line-height: 0.98;
-  color: var(--label-primary);
 }
 
 .subtitle {
   margin: 0;
-  max-width: 46ch;
-  color: var(--label-secondary);
   font-size: 17px;
   line-height: 1.55;
   letter-spacing: 0;
 }
 
 .primary-btn {
-  padding: 14px 20px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 999px;
-  background: linear-gradient(135deg, rgba(240, 240, 240, 0.16), rgba(130, 130, 130, 0.12));
-  color: var(--text);
-  font-weight: 600;
-  font-size: var(--type-body-size);
-  letter-spacing: var(--type-body-tracking);
   cursor: pointer;
   min-height: 44px;
-  box-shadow: var(--inset-highlight);
   transition: box-shadow 0.22s ease, border-color 0.22s ease, background-color 0.22s ease;
 }
 
@@ -664,7 +646,9 @@ input {
     --scale 0.4s var(--ease-spring),
     --lift 0.4s var(--ease-spring),
     box-shadow 0.4s ease;
-  touch-action: none;
+  /* Vertical panning stays available so a touch that starts on the button can
+     still scroll the page; the tilt only reacts to horizontal movement. */
+  touch-action: pan-y;
 }
 
 .control-label {
@@ -692,126 +676,15 @@ input {
   transition: transform 0.1s;
 }
 
-.primary-btn:active,
-.vibe-menu-toggle:active {
+.primary-btn:active {
   --press: 0.965;
   transition: --press 0.08s ease-out;
 }
 
-.primary-btn:hover,
-.primary-btn:focus-visible {
-  --lift: -2px;
-  border-color: rgba(255, 255, 255, 0.2);
-  box-shadow: 0 14px 26px -16px rgba(0, 0, 0, 0.5);
-}
 
-
-
-.home-glow {
-  position: absolute;
-  inset: -15% -10% auto;
-  height: 90%;
-  z-index: 1;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 1.1s var(--ease-spring);
-}
-
-#home-screen[data-vibe-glow] .home-glow {
-  opacity: 1;
-}
-
-.home-glow__layer {
-  position: absolute;
-  inset: 0;
-  opacity: 0;
-  background: radial-gradient(
-    58% 62% at 50% 26%,
-    var(--glow-color, transparent),
-    transparent 72%
-  );
-  transition: opacity 1400ms cubic-bezier(0.37, 0, 0.63, 1);
-}
-
-.home-glow__layer.is-active {
-  opacity: 1;
-}
-
-.vibe-showcase {
-  position: absolute;
-  inset-inline: 0;
-  top: clamp(64px, 17vh, 150px);
-  z-index: 1;
-  display: grid;
-  place-items: center;
-  padding: 0 1.25rem;
-  pointer-events: none;
-}
-
-.vibe-showcase__name {
-  grid-area: 1 / 1;
-  max-width: min(900px, 88vw);
-  font-size: clamp(1.6rem, 3vw, 2.15rem);
-  font-weight: 400;
-  line-height: 1.15;
-  letter-spacing: 0.01em;
-  text-align: center;
-  text-wrap: balance;
-  overflow-wrap: anywhere;
-  color: rgba(255, 255, 255, 0.7);
-  text-shadow: 0 0 34px var(--preview-glow, transparent);
-  opacity: 0;
-  will-change: opacity;
-  transition: opacity 1400ms cubic-bezier(0.37, 0, 0.63, 1);
-}
-
-.vibe-word {
-  display: inline-block;
-  white-space: nowrap;
-}
-
-.vibe-letter {
-  display: inline-block;
-}
-
-.vibe-showcase__name.is-active .vibe-letter {
-  animation: showcaseInk var(--ink-duration, 620ms) cubic-bezier(0.16, 1, 0.3, 1) both;
-  animation-delay: var(--ink-delay, 0ms);
-}
-
-@keyframes showcaseInk {
-  from {
-    transform: translateY(9px) rotate(-5deg);
-    filter: blur(6px);
-  }
-  to {
-    transform: translateY(0) rotate(0deg);
-    filter: blur(0);
-  }
-}
-
-.vibe-showcase__name.is-active {
-  opacity: 1;
-}
-
-#home-screen.active .hero-wrap > h1,
-#home-screen.active .subtitle {
-  animation: hero-rise 700ms var(--ease-spring) both;
-}
-
-#home-screen.active .primary-btn,
-#home-screen.active .vibe-showcase {
-  animation: hero-fade 900ms var(--ease-spring) both;
-}
-
-#home-screen.active .primary-btn {
-  animation-delay: 400ms;
-}
-
-#home-screen.active .vibe-showcase {
-  animation-delay: 520ms;
-}
-
+/* Entrance animations for the hero live in one place: the headline and subtitle
+   use hero-rise-strong, while the header, action group and catalog use
+   hero-fade / hero-rise with staggered delays. */
 @keyframes hero-rise {
   from {
     opacity: 0;
@@ -1166,7 +1039,7 @@ body.theme-forest #vibe-screen {
 
 .vibe-description-wrap {
   font-size: var(--type-body-size);
-  line-height: var(--type-body-line);
+  line-height: 1.8;
   letter-spacing: var(--type-body-tracking);
   color: var(--label-secondary);
   max-width: 740px;
@@ -1683,10 +1556,6 @@ body.theme-forest #share-screen {
 #share-screen[data-vibe="retro"] { --vibe-accent:#bdf35d; color:#e6f5c8; background:repeating-linear-gradient(0deg,#171b31 0 4px,#1d2036 4px 8px); font-family:var(--font-mono); }
 #share-screen[data-vibe="cozy"] { --vibe-accent:#f3bd7d; color:#fff2df; background:radial-gradient(ellipse at 50% 5%,#75523e,#382c2a 58%,#201d23); }
 
-body.theme-retro #share-screen {
-  font-family: var(--font-mono);
-}
-
 @media (prefers-reduced-motion: reduce) {
   .vibe-menu {
     animation: none;
@@ -1948,20 +1817,9 @@ button:disabled {
 
 }
 
-@media (max-width: 760px) {
-  .vibe-showcase {
-    top: clamp(56px, 15vh, 110px);
-  }
-
-  .vibe-showcase__name {
-    font-size: clamp(1.25rem, 6vw, 1.7rem);
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   #home-screen.active .hero-wrap > h1,
-  #home-screen.active .subtitle,
-  #home-screen.active .vibe-showcase {
+  #home-screen.active .subtitle {
     animation: none;
     opacity: 1;
     transform: none;
@@ -1970,22 +1828,6 @@ button:disabled {
   #home-screen.active .primary-btn {
     animation: none;
     opacity: 1;
-  }
-
-  .vibe-showcase__name {
-    transition: opacity 240ms linear;
-  }
-
-  .vibe-letter {
-    animation: none;
-  }
-
-  .home-glow {
-    transition: opacity 0.2s ease;
-  }
-
-  .home-glow__layer {
-    transition: opacity 240ms linear;
   }
 
   .primary-btn,
@@ -2154,26 +1996,6 @@ html[data-intro="short"] .cinematic-intro__grain {
   100% { opacity: 0.22; }
 }
 
-html[data-intro="full"] #home-screen.active .primary-btn {
-  animation-duration: 900ms;
-  animation-delay: 1050ms;
-}
-
-html[data-intro="full"] #home-screen.active .vibe-showcase {
-  animation-duration: 1100ms;
-  animation-delay: 1180ms;
-}
-
-html[data-intro="short"] #home-screen.active .primary-btn {
-  animation-duration: 560ms;
-  animation-delay: 300ms;
-}
-
-html[data-intro="short"] #home-screen.active .vibe-showcase {
-  animation-duration: 620ms;
-  animation-delay: 340ms;
-}
-
 @media (max-width: 768px) {
   .cinematic-intro__grain {
     display: none;
@@ -2193,18 +2015,13 @@ html[data-intro="short"] #home-screen.active .vibe-showcase {
 
   html[data-intro] #home-screen.active .hero-wrap > h1,
   html[data-intro] #home-screen.active .subtitle,
-  html[data-intro] #home-screen.active .primary-btn,
-  html[data-intro] #home-screen.active .vibe-showcase {
+  html[data-intro] #home-screen.active .primary-btn {
     animation: none;
     opacity: 1;
     transform: none;
   }
 }
 
-
-#home-screen {
-  padding-top: clamp(20px, 2.5vh, 30px);
-}
 
 .home-main {
   position: relative;
@@ -2296,6 +2113,9 @@ html[data-intro="short"] #home-screen.active .vibe-showcase {
 }
 
 .home-wordmark {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.62rem;
   font-family: var(--font-display);
   color: var(--label-primary);
   text-decoration: none;
@@ -2311,6 +2131,7 @@ html[data-intro="short"] #home-screen.active .vibe-showcase {
    subtitle and the button group stack in the right one. The hero spans the
    same 1180px measure as the header and the catalog so all three align. */
 .home-main .hero-wrap {
+  position: relative;
   display: grid;
   flex: 1 1 auto;
   grid-template-columns: minmax(0, 34fr) minmax(0, 66fr);
@@ -2356,10 +2177,25 @@ html[data-intro="short"] #home-screen.active .vibe-showcase {
 
 .home-main .hero-wrap > h1 {
   grid-area: heading;
+  background: none;
+  -webkit-background-clip: border-box;
+  background-clip: border-box;
+  color: var(--mono-text);
+  -webkit-text-fill-color: currentColor;
+  font-size: clamp(2.7rem, 6.6vw, 5.1rem);
+  letter-spacing: -0.05em;
+  line-height: 0.98;
+  text-shadow: 0 0 64px rgba(255, 255, 255, 0.07);
+  /* The headline lives in the narrower right column, so it wraps inside that
+     column instead of using the old full-width measure. */
+  max-width: 100%;
+  overflow-wrap: break-word;
 }
 
 .home-main .subtitle {
   grid-area: subtitle;
+  max-width: 40ch;
+  color: var(--mono-muted);
 }
 
 .hero-actions {
@@ -2408,22 +2244,49 @@ html[data-intro="short"] #home-screen.active .vibe-showcase {
   }
 }
 
+/* Home hero actions: one consolidated definition per button. Earlier
+   overrides were merged here so the cascade stays predictable. */
+#home-screen .primary-btn {
+  padding: 16px 34px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #0a0a0c;
+  font-size: var(--type-body-size);
+  font-weight: var(--weight-bold);
+  letter-spacing: 0.005em;
+  box-shadow: 0 14px 30px -20px rgba(0, 0, 0, 0.9);
+}
+
+#home-screen .primary-btn:hover,
+#home-screen .primary-btn:focus-visible {
+  --lift: -2px;
+  background: #ffffff;
+  box-shadow:
+    0 20px 40px -22px rgba(0, 0, 0, 0.95),
+    0 0 0 1px rgba(255, 255, 255, 0.38);
+}
+
+#home-screen .primary-btn:active {
+  box-shadow: none;
+}
+
 #home-screen .explore-btn {
   display: inline-block;
   min-height: 44px;
-  padding: 15px 30px;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.03);
-  color: var(--label-primary);
+  padding: 12px 14px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--mono-muted);
   font: inherit;
-  font-weight: 600;
   font-size: var(--type-body-size);
+  font-weight: var(--weight-semibold);
   letter-spacing: 0.005em;
   cursor: pointer;
-  box-shadow: var(--inset-highlight);
-  backdrop-filter: blur(10px) saturate(140%);
-  -webkit-backdrop-filter: blur(10px) saturate(140%);
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
   transition:
     transform 0.35s var(--ease-spring),
     border-color 0.35s var(--ease-spring),
@@ -2431,62 +2294,35 @@ html[data-intro="short"] #home-screen.active .vibe-showcase {
     box-shadow 0.35s var(--ease-spring);
 }
 
-#home-screen .primary-btn {
-  padding: 15px 34px;
-  border: 1px solid transparent;
-  font-size: var(--type-body-size);
-  letter-spacing: 0.005em;
-  box-shadow:
-    0 12px 30px -18px rgba(0, 0, 0, 0.9),
-    0 0 0 1px rgba(255, 255, 255, 0.06),
-    0 0 34px -16px rgba(124, 92, 255, 0.4);
+#home-screen .explore-btn .control-label {
+  text-decoration: underline;
+  text-underline-offset: 6px;
+  text-decoration-thickness: 1px;
+  text-decoration-color: rgba(255, 255, 255, 0.32);
 }
 
-#home-screen .primary-btn:hover,
-#home-screen .primary-btn:focus-visible {
-  --lift: -3px;
+#home-screen .explore-btn:hover,
+#home-screen .explore-btn:focus-visible {
+  transform: none;
+  background: transparent;
   border-color: transparent;
-  box-shadow:
-    0 22px 50px -20px var(--preview-glow, rgba(255, 255, 255, 0.5)),
-    0 0 0 1px rgba(255, 255, 255, 0.08),
-    0 0 44px -14px rgba(124, 92, 255, 0.5);
-}
-
-/* The catalog section and its heading carry no divider rule in the editorial
-   layout: the heading plus the plus mark stand on their own. Only the plus
-   mark itself (.catalog-toggle__mark) keeps its pseudo-elements. */
-#home-screen .catalog-head,
-#home-screen .vibe-catalog,
-#home-screen .catalog-title,
-#home-screen .catalog-toggle,
-#home-screen .catalog-toggle__label {
-  border: 0;
-  background-image: none;
   box-shadow: none;
+  color: #ffffff;
 }
 
-#home-screen .catalog-head::before,
-#home-screen .catalog-head::after,
-#home-screen .vibe-catalog::before,
-#home-screen .vibe-catalog::after,
-#home-screen .catalog-title::before,
-#home-screen .catalog-title::after,
-#home-screen .catalog-toggle::before,
-#home-screen .catalog-toggle::after,
-#home-screen .catalog-toggle__label::before,
-#home-screen .catalog-toggle__label::after {
-  content: none;
-  display: none;
-  border: 0;
-  background-image: none;
+#home-screen .explore-btn:hover .control-label,
+#home-screen .explore-btn:focus-visible .control-label {
+  text-decoration-color: currentColor;
 }
 
-#home-screen .vibe-showcase {
-  top: clamp(116px, 14vh, 168px);
+#home-screen .explore-btn:active {
+  transform: none;
+  opacity: 0.7;
 }
 
-#home-screen .vibe-showcase__name {
-  color: rgba(255, 255, 255, 0.3);
+#home-screen .explore-btn:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.5);
+  outline-offset: 2px;
 }
 
 .vibe-catalog {
@@ -2501,18 +2337,23 @@ html[data-intro="short"] #home-screen.active .vibe-showcase {
   gap: var(--catalog-gap);
 }
 
+#home-screen .vibe-catalog {
+  gap: var(--catalog-gap);
+}
+
 .catalog-head {
   display: flex;
   flex-direction: column;
-  gap: 0;
 }
 
+/* The heading doubles as the expand toggle, so it borrows the button's
+   colour instead of the generic heading colour. */
 .catalog-title {
   margin: 0;
   font-size: clamp(1.2rem, 2.6vw, 1.6rem);
   font-weight: 700;
   letter-spacing: -0.02em;
-  color: var(--label-primary);
+  color: var(--mono-text, #f2f3f5);
 }
 
 .vibe-list {
@@ -2858,99 +2699,6 @@ html[data-intro="short"] #home-screen.active .vibe-catalog {
 }
 
 
-.home-wordmark {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.62rem;
-  font-size: clamp(1.25rem, 2.8vw, 1.5rem);
-  font-weight: 700;
-  letter-spacing: -0.025em;
-  line-height: 1;
-}
-
-
-.home-main .hero-wrap {
-  position: relative;
-}
-
-.home-main .hero-wrap > h1 {
-  background: none;
-  -webkit-background-clip: border-box;
-  background-clip: border-box;
-  color: #ffffff;
-  -webkit-text-fill-color: currentColor;
-  font-size: clamp(2.7rem, 6.6vw, 5.1rem);
-  letter-spacing: -0.05em;
-  line-height: 0.98;
-  text-shadow: none;
-  /* The headline now lives in the narrower right column, so it wraps inside
-     that column instead of using the old full-width measure. */
-  max-width: 100%;
-  overflow-wrap: break-word;
-}
-
-.home-main .subtitle {
-  max-width: 40ch;
-  color: var(--label-secondary);
-}
-
-#home-screen .primary-btn {
-  padding: 16px 34px;
-  border-radius: 2px;
-  border: 1px solid transparent;
-  background: #ffffff;
-  color: #08080a;
-  font-weight: 700;
-  box-shadow: none;
-}
-
-#home-screen .primary-btn:hover,
-#home-screen .primary-btn:focus-visible {
-  --lift: -2px;
-  background: #ffffff;
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.35);
-}
-
-#home-screen .primary-btn:active {
-  box-shadow: none;
-}
-
-#home-screen .explore-btn {
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-  padding: 15px 6px;
-  box-shadow: none;
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
-  color: var(--label-secondary);
-}
-
-#home-screen .explore-btn .control-label {
-  text-decoration: underline;
-  text-underline-offset: 6px;
-  text-decoration-thickness: 1px;
-}
-
-#home-screen .explore-btn:hover,
-#home-screen .explore-btn:focus-visible {
-  transform: none;
-  background: transparent;
-  border-color: transparent;
-  box-shadow: none;
-}
-
-#home-screen .explore-btn:hover .control-label,
-#home-screen .explore-btn:focus-visible .control-label {
-  text-decoration-color: currentColor;
-}
-
-#home-screen .explore-btn:active {
-  transform: none;
-  opacity: 0.7;
-}
-
-
 @keyframes hero-rise-strong {
   from { opacity: 0; transform: translateY(26px); clip-path: inset(0 0 45% 0); }
   to { opacity: 1; transform: translateY(0); clip-path: inset(0 0 0 0); }
@@ -2981,79 +2729,23 @@ html[data-intro="short"] #home-screen.active .subtitle { animation-delay: 130ms;
   }
 }
 
-#home-screen .explore-btn {
-  border-radius: 8px;
-  padding: 12px 14px;
-}
-
-#home-screen .explore-btn:focus-visible {
-  outline: 2px solid rgba(255, 255, 255, 0.5);
-  outline-offset: 2px;
-}
-
-#home-screen {
-  --mono-text: #f2f3f5;
-  --mono-muted: rgba(255, 255, 255, 0.52);
-  background: transparent;
-}
-
-
-
 .home-wordmark__text {
   color: #ffffff;
   text-shadow: 0 0 26px rgba(255, 255, 255, 0.12);
 }
 
-.home-main .hero-wrap > h1 {
-  color: var(--mono-text);
-  text-shadow: 0 0 64px rgba(255, 255, 255, 0.07);
-}
-
-.home-main .subtitle {
-  color: var(--mono-muted);
-}
-
-#home-screen .primary-btn {
-  border-radius: 10px;
-  background: #ffffff;
-  color: #0a0a0c;
-  box-shadow: 0 14px 30px -20px rgba(0, 0, 0, 0.9);
-}
-
-#home-screen .primary-btn:hover,
-#home-screen .primary-btn:focus-visible {
-  background: #ffffff;
-  box-shadow: 0 20px 40px -22px rgba(0, 0, 0, 0.95), 0 0 0 1px rgba(255, 255, 255, 0.38);
-}
-
-#home-screen .explore-btn {
-  color: var(--mono-muted);
-}
-
-#home-screen .explore-btn .control-label {
-  text-decoration-color: rgba(255, 255, 255, 0.32);
-}
-
-#home-screen .explore-btn:hover,
-#home-screen .explore-btn:focus-visible {
-  color: #ffffff;
-}
-
-#home-screen .catalog-title {
-  color: var(--mono-text);
-}
-
-
 .home-header,
 .home-main .hero-wrap,
 #home-screen .vibe-catalog {
-  position: relative;
   z-index: 2;
 }
 
+/* The header must paint above the hero and catalog so the profile menu is
+   never covered by hero content. */
 .home-header {
   z-index: 6;
 }
+
 #home-screen.active {
   transform: none;
 }
@@ -3077,26 +2769,11 @@ html[data-intro="short"] #home-screen.active .subtitle { animation-delay: 130ms;
   min-width: 0;
 }
 
-#home-screen .catalog-head {
-  gap: 0;
-}
-
-#home-screen .vibe-catalog {
-  gap: var(--catalog-gap);
-}
-
-#home-screen .catalog-title {
-  font-size: clamp(1.2rem, 2.6vw, 1.6rem);
-  letter-spacing: -0.02em;
-}
-
-
 button, input, select, textarea {
   font-family: inherit;
 }
 
 .home-main .hero-wrap > h1,
-#catalog-title,
 .catalog-title,
 .vibe-header h2,
 .share-card h1,
@@ -3106,26 +2783,17 @@ button, input, select, textarea {
   font-weight: var(--weight-bold);
 }
 
-.home-main .hero-wrap > h1 {
-  font-weight: 700;  
-}
-
 .theme-tag,
 .share-kicker {
   font-weight: var(--weight-semibold);
 }
 
-#home-screen .primary-btn,
 #home-screen .explore-btn,
 .share-button,
-.tetris-restart-btn,
+#tetris-restart-btn,
 .option-btn {
   font-family: var(--font-sans);
   font-weight: var(--weight-semibold);
-}
-
-#home-screen .primary-btn {
-  font-weight: var(--weight-bold);
 }
 
 .vibe-menu button,
@@ -3160,25 +2828,16 @@ html[lang="ru"] .vibe-link {
   font-weight: var(--weight-bold);
 }
 
-.vibe-showcase__name {
-  font-family: var(--font-display);
-}
-
-#vibe-screen[data-vibe="retro"],
-body.theme-retro #share-screen,
-#tetris-canvas {
-  font-family: inherit;
-}
-
+/* The retro vibe (and its share page) switches to a monospace face. */
 #vibe-screen[data-vibe="retro"],
 body.theme-retro #share-screen {
-  font-family: var(--font-mono);  
+  font-family: var(--font-mono);
 }
 
 .sky-canvas {
   position: fixed;
   inset: 0;
-  z-index: 1;  
+  z-index: 1;
   display: block;
   width: 100%;
   height: 100%;
@@ -3186,14 +2845,9 @@ body.theme-retro #share-screen {
   opacity: 1;
 }
 
+/* Stop painting the canvas when no screen that uses it is active. */
 .page-shell:not([data-active-screen="home"]):not([data-active-screen="survey"]):not([data-active-screen="creation"]):not(.is-revealing) .sky-canvas {
   display: none;
-}
-
-@media (hover: none) {
-  .sky-canvas {
-    opacity: 1;
-  }
 }
 
 .page-shell.is-revealing .sky-canvas {
@@ -3205,18 +2859,12 @@ body.theme-retro #share-screen {
 }
 
 .page-shell.is-revealing #vibe-screen {
-  z-index: 2;  
+  z-index: 2;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .page-shell.is-revealing .sky-canvas {
     transition-duration: 0.01ms;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .sky-canvas {
-    opacity: 1;
   }
 }
 

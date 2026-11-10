@@ -11,15 +11,20 @@ let height = 0;
 
 let stars = [];
 let particles = [];
+let seededWidth = 0;
+let seededHeight = 0;
 
 let lastTime = 0;
-let reduceQuery = null;
+const reduceQuery = typeof window.matchMedia === 'function'
+  ? window.matchMedia('(prefers-reduced-motion: reduce)')
+  : null;
 let reduce = false;
 
 const MAX_STARS = 420;
 const MIN_STARS = 120;
 const MAX_PARTICLES = 42;
 const MIN_PARTICLES = 12;
+const TAU = Math.PI * 2;
 
 function rand(min, max) {
   return min + Math.random() * (max - min);
@@ -29,8 +34,7 @@ function prefersReduce() {
   const forced = document.documentElement.dataset.motion;
   if (forced === 'force') return false;
   if (forced === 'off') return true;
-  return typeof window.matchMedia === 'function'
-    && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  return Boolean(reduceQuery && reduceQuery.matches);
 }
 
 function starTint() {
@@ -96,15 +100,22 @@ function draw(dt, time) {
   if (!ctx) return;
   ctx.clearRect(0, 0, width, height);
 
+  // fillStyle assignments are the expensive part of a per-shape loop, so the
+  // current tint is tracked and only written when it actually changes.
+  let tint = '';
+
   for (let i = 0; i < particles.length; i += 1) {
     const p = particles[i];
     p.x += p.vx * dt;
     p.y += p.vy * dt;
     wrap(p);
+    if (p.tint !== tint) {
+      tint = p.tint;
+      ctx.fillStyle = tint;
+    }
     ctx.globalAlpha = p.alpha;
-    ctx.fillStyle = p.tint;
     ctx.beginPath();
-    ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+    ctx.arc(p.x, p.y, p.radius, 0, TAU);
     ctx.fill();
   }
 
@@ -119,10 +130,13 @@ function draw(dt, time) {
       alpha *= 0.6 + 0.4 * (Math.sin(time * s.twinkleSpeed + s.phase) * 0.5 + 0.5);
     }
 
+    if (s.tint !== tint) {
+      tint = s.tint;
+      ctx.fillStyle = tint;
+    }
     ctx.globalAlpha = alpha;
-    ctx.fillStyle = s.tint;
     ctx.beginPath();
-    ctx.arc(s.x, s.y, s.radius, 0, Math.PI * 2);
+    ctx.arc(s.x, s.y, s.radius, 0, TAU);
     ctx.fill();
   }
 
@@ -172,7 +186,21 @@ function resize() {
   canvas.style.width = `${width}px`;
   canvas.style.height = `${height}px`;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  seed();
+
+  // Mobile browsers fire resize whenever the URL bar slides in or out, which
+  // only changes the viewport height by a few percent. Reseeding on every one
+  // of those events made the whole star field visibly jump, so the field is
+  // rebuilt only on a meaningful size change.
+  const sizeShift = seededWidth > 0
+    ? Math.abs(width - seededWidth) / seededWidth
+      + Math.abs(height - seededHeight) / seededHeight
+    : 1;
+  if (sizeShift > 0.15 || !stars.length) {
+    seededWidth = width;
+    seededHeight = height;
+    seed();
+  }
+
   if (reduce) drawStatic();
 }
 
@@ -215,12 +243,11 @@ export function initSky() {
   if (!ctx) return;
 
   reduce = prefersReduce();
-  if (typeof window.matchMedia === 'function') {
-    reduceQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+  if (reduceQuery) {
     if (typeof reduceQuery.addEventListener === 'function') {
       reduceQuery.addEventListener('change', onReduceChange);
     } else if (typeof reduceQuery.addListener === 'function') {
-      reduceQuery.addListener(onReduceChange); 
+      reduceQuery.addListener(onReduceChange);
     }
   }
 

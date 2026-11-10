@@ -26,13 +26,20 @@
     <title>Vibe Finder</title>
     <meta
       name="description"
-      content="Vibe Finder — создайте своё настроение и откройте персональное вайб-пространство."
+      content="Vibe Finder — 10 вопросов и 14 атмосфер. Найди своё настроение и открой персональное вайб-пространство."
     />
-    <link rel="icon" type="image/png" sizes="48x48" href="img/favicon-48.png?v=4" />
-    <link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32.png?v=4" />
-    <link rel="icon" type="image/png" sizes="16x16" href="img/favicon-16.png?v=4" />
-    <link rel="apple-touch-icon" sizes="180x180" href="img/apple-touch-icon.png?v=4" />
-    <link rel="stylesheet" href="css/style.css?v=74" />
+    <meta name="color-scheme" content="dark" />
+    <link rel="icon" type="image/png" sizes="48x48" href="img/favicon-48.png?v=5" />
+    <link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32.png?v=5" />
+    <link rel="icon" type="image/png" sizes="16x16" href="img/favicon-16.png?v=5" />
+    <link rel="apple-touch-icon" sizes="180x180" href="img/apple-touch-icon.png?v=5" />
+    <link
+      rel="preload"
+      as="image"
+      href="img/vibefinder-logo.png?v=7"
+      fetchpriority="high"
+    />
+    <link rel="stylesheet" href="css/style.css?v=75" />
   </head>
   <body>
     <div class="page-shell">
@@ -40,14 +47,6 @@
       <canvas id="sky-canvas" class="sky-canvas" aria-hidden="true"></canvas>
 
       <section id="home-screen" class="screen active">
-        <div class="home-glow" aria-hidden="true">
-          <span class="home-glow__layer"></span>
-          <span class="home-glow__layer"></span>
-        </div>
-        <div id="vibe-showcase" class="vibe-showcase" aria-hidden="true">
-          <span class="vibe-showcase__name" data-layer="0"></span>
-          <span class="vibe-showcase__name" data-layer="1"></span>
-        </div>
         <div class="home-tint" aria-hidden="true"></div>
         <div class="home-main">
           <header class="home-header">
@@ -112,7 +111,7 @@
                 <span class="home-logo__scene">
                   <img
                     class="home-logo__face"
-                    src="img/vibefinder-logo.png?v=6"
+                    src="img/vibefinder-logo.png?v=7"
                     alt=""
                     width="1299"
                     height="1211"
@@ -121,11 +120,12 @@
                   />
                   <img
                     class="home-logo__face home-logo__face--back"
-                    src="img/vibefinder-logo.png?v=6"
+                    src="img/vibefinder-logo.png?v=7"
                     alt=""
                     width="1299"
                     height="1211"
                     decoding="async"
+                    fetchpriority="low"
                   />
                 </span>
               </span>
@@ -195,13 +195,13 @@
         </div>
       </section>
 
-      <section id="creation-screen" class="screen page-shell__screen" aria-label="Создание твоего вайба">
+      <section id="creation-screen" class="screen" aria-label="Создание твоего вайба">
         <div class="constellation" id="constellation" aria-hidden="true">
           <div class="constellation__scene">
             <svg class="constellation__lines" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet" aria-hidden="true" focusable="false"></svg>
             <div class="constellation__stars"></div>
           </div>
-          <p class="constellation__caption" data-no-i18n>Находим твой вайб...</p>
+          <p class="constellation__caption">Находим твой вайб...</p>
         </div>
       </section>
 
@@ -228,10 +228,10 @@
                 width="200"
                 height="400"
                 tabindex="0"
-                aria-label="Tetris"
+                aria-label="Тетрис"
               ></canvas>
               <div class="tetris-game-over-overlay" id="tetris-game-over" hidden>
-                <button id="tetris-restart-btn" type="button">RESTART</button>
+                <button id="tetris-restart-btn" type="button">Заново</button>
               </div>
             </div>
             <div class="vibe-quote-container">
@@ -283,6 +283,6 @@
       <span class="cinematic-intro__grain"></span>
     </div>
 
-    <script type="module" src="js/app.js?v=48"></script>
+    <script type="module" src="js/app.js?v=49"></script>
   </body>
 </html>
