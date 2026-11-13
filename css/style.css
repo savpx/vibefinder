@@ -2452,16 +2452,29 @@ html[data-motion="off"] #home-screen .explore-btn .control-label {
 
 /*
  * The catalogue sits in the same rounded frame as the quiz panel, but reads as
- * a thin outline rather than a card: the plate is almost fully transparent, so
- * only the hairline border marks the boundary and the black page stays black.
- * Radius and border width match the panel exactly, which is what keeps the two
- * screens feeling like one component.
+ * a thin outline rather than a card: the plate stays translucent, so the star
+ * field shows through and the hairline border marks the boundary. Radius and
+ * border width match the panel exactly, which is what keeps the two screens
+ * feeling like one component. The plate is a little more present than before
+ * but is still well below the quiz panel's opacity.
  *
- * The frame hugs its list (`fit-content`) instead of taking the full 1180px
- * measure. The atmosphere names are short, so a fixed-width frame left a wide
- * empty strip on the right that read as a layout bug rather than as breathing
- * room. `max-width: 100%` still clamps it on narrow screens, where the columns
- * then shrink and the names wrap (`.vibe-link` already wraps anywhere).
+ * The frame size is declared here instead of being derived from the labels. It
+ * used to be `fit-content` over fluid `1fr` tracks, so the plate was sized by
+ * the longest atmosphere name and jumped in width — and, through line
+ * wrapping, in height — whenever the language changed (about 919px in Russian
+ * versus 572px in English on a desktop viewport). The width below depends on
+ * the viewport only and the columns still split it evenly, so the frame box is
+ * identical in every locale.
+ *
+ * The 60rem cap is close to the desktop width the frame already had in Russian,
+ * where the four columns were sized by the longest name (919px, i.e. 202.2px
+ * tracks). It adds a few percent of slack so that longest name keeps a single
+ * line even when font metrics differ between devices, which matters because a
+ * single wrapped row would make the frame taller in one language again. English
+ * now matches the familiar Russian proportions instead of getting a much
+ * narrower box. Below the cap the subtraction roughly mirrors the header and
+ * hero side inset, so the plate keeps a proportional gutter and shrinks with
+ * the viewport instead of touching the screen edges or overflowing.
  *
  * Padding is tight on purpose: the panel is a card holding one question, while
  * the catalogue is a full list, and large insets left empty bands between the
@@ -2471,8 +2484,7 @@ html[data-motion="off"] #home-screen .explore-btn .control-label {
   --catalog-gap: clamp(0.8rem, 1.7vw, 1.05rem);
   position: relative;
   z-index: 2;
-  width: fit-content;
-  max-width: 100%;
+  width: min(calc(100% - 2 * clamp(1rem, 4vw, 2rem)), 60rem);
   margin: 0 auto;
   padding: clamp(0.85rem, 2vw, 1.15rem) clamp(0.9rem, 2.4vw, 1.15rem);
   display: flex;
@@ -2480,7 +2492,7 @@ html[data-motion="off"] #home-screen .explore-btn .control-label {
   gap: var(--catalog-gap);
   border-radius: var(--radius-container);
   border: 1px solid rgba(255, 255, 255, 0.045);
-  background: rgba(8, 8, 9, 0.02);
+  background: rgba(8, 8, 9, 0.07);
   -webkit-backdrop-filter: blur(3px) saturate(101%);
   backdrop-filter: blur(3px) saturate(101%);
 }
@@ -2491,7 +2503,7 @@ html[data-motion="off"] #home-screen .explore-btn .control-label {
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   .vibe-catalog {
     border-color: rgba(255, 255, 255, 0.07);
-    background: rgba(8, 8, 9, 0.14);
+    background: rgba(8, 8, 9, 0.2);
   }
 }
 
@@ -2503,6 +2515,10 @@ html[data-motion="off"] #home-screen .explore-btn .control-label {
 .catalog-title {
   margin: 0;
   font-size: clamp(1.2rem, 2.6vw, 1.6rem);
+  /* Explicit line-height: the Russian and English display fonts have different
+     default metrics, which made the heading — and therefore the whole frame —
+     a few pixels taller in one language. */
+  line-height: 1.2;
   font-weight: 700;
   letter-spacing: -0.02em;
   color: var(--mono-text, #f2f3f5);
@@ -2586,6 +2602,10 @@ html[data-motion="off"] .catalog-title {
   }
 }
 
+/* Equal tracks inside the fixed-width frame: a column is simply the frame
+   width divided by the column count, so it no longer depends on the labels.
+   `minmax(0, 1fr)` keeps a long name from forcing its track wider than that
+   share — it wraps inside the cell instead. */
 .vibe-list {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2598,6 +2618,8 @@ html[data-motion="off"] .catalog-title {
   }
 }
 
+/* At 1000px the four tracks are already ~207px against the ~202px the longest
+   Russian name needs, so the widest layout is safe from its first pixel. */
 @media (min-width: 1000px) {
   .vibe-list {
     grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -2626,6 +2648,28 @@ html[data-motion="off"] .catalog-title {
   user-select: none;
   -webkit-touch-callout: none;
   -webkit-tap-highlight-color: transparent;
+}
+
+/*
+ * Row height reservation, but only in the two viewport bands where it is
+ * actually needed.
+ *
+ * The longest Russian name measures ~202px at the label size used from 700px
+ * up, while its English counterpart is far shorter. Comparing that against the
+ * column width, the name needs a second line below ~497px of viewport in the
+ * two-column layout, and in a narrow band just after the three-column
+ * breakpoint (up to ~750px, where a track first clears 202px). Only inside
+ * those bands would a single row — and with it the whole frame — grow in
+ * Russian alone. Reserving two text lines there (2.5em of the 1.25 line-height
+ * plus the existing 0.35rem vertical padding) keeps the list, and therefore the
+ * frame, identical in both languages. Every bound carries ~20px of slack for
+ * scrollbar width and font-metric drift; at all other widths every name fits on
+ * one line and the original 44px rows stand.
+ */
+@media (max-width: 520px), (min-width: 700px) and (max-width: 770px) {
+  .vibe-link {
+    min-height: max(44px, calc(2.5em + 0.7rem));
+  }
 }
 
 .vibe-link:focus-visible {
