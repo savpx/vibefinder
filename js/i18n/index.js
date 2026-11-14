@@ -132,6 +132,13 @@ const translationCatalog = {
 };
 
 let currentLanguage = 'ru';
+/*
+ * The page is authored in Russian and <html lang> starts as "ru", so the very
+ * first setLanguage('ru') does not have to translate anything: skipping that
+ * walk avoids a full-tree pass on every cold load. A stored "en" (or any other
+ * locale) still differs here and gets translated as usual.
+ */
+let appliedLanguage = 'ru';
 const textSources = new WeakMap();
 const attributeSources = new WeakMap();
 let languageToggle = null;
@@ -221,12 +228,14 @@ function translateTree(root) {
 
 export function setLanguage(language) {
   if (!localeCodes.includes(language)) return;
+  const changed = appliedLanguage !== language;
   currentLanguage = language;
+  appliedLanguage = language;
   document.documentElement.lang = localeMetadata[language].htmlLang;
   document.querySelectorAll('[data-language]').forEach((option) => {
     option.setAttribute('aria-pressed', String(option.dataset.language === language));
   });
-  translateTree(document.body);
+  if (changed) translateTree(document.body);
   document.title = translateText('Vibe Finder');
   storeLanguage(language);
   window.dispatchEvent(new CustomEvent('vibe-language-change', { detail: { language } }));
@@ -247,7 +256,6 @@ export function initI18n(defaultLanguage = 'ru') {
     // setLanguage() already walks the whole document, so translating it here
     // as well would double the work on every page load.
     setLanguage(readStoredLanguage() || defaultLanguage);
-    document.documentElement.classList.add('i18n-ready');
     return;
   }
 
@@ -307,6 +315,4 @@ export function initI18n(defaultLanguage = 'ru') {
     childList: true,
     subtree: true,
   });
-
-  document.documentElement.classList.add('i18n-ready');
 }

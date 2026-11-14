@@ -2,7 +2,7 @@
 import { questions } from './questions.js?v=43';
 import { vibeThemes } from './themes.js?v=43';
 
-export const VIBE_IDS = Object.keys(vibeThemes);
+const VIBE_IDS = Object.keys(vibeThemes);
 
 export const questionIndexById = new Map(questions.map((question, index) => [question.id, index]));
 
@@ -43,7 +43,7 @@ function computeMaxPossible() {
 
 const VIBE_MAX_POSSIBLE = computeMaxPossible();
 
-export function normalizedScore(vibeId, raw) {
+function normalizedScore(vibeId, raw) {
   const max = VIBE_MAX_POSSIBLE.get(vibeId) || 0;
   return max > 0 ? raw / max : 0;
 }

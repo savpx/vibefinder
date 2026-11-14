@@ -63,6 +63,26 @@
   --type-body-tracking: -0.4px;
 
   --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* Cinematic intro timings, read by the data-intro rules far below. */
+  --intro-full-fade: 1150ms;
+  --intro-short-fade: 320ms;
+
+  /* One crimson wash shared by the wordmark and the catalogue heading: same
+     stops, same 200% tile, so both read as one palette and can drift on the
+     same keyframes instead of duplicating the declaration twice. */
+  --crimson-flow: linear-gradient(
+    90deg,
+    #4a071b 0%,
+    #9b123c 12.5%,
+    #a51d50 25%,
+    #e52e58 37.5%,
+    #ff647c 50%,
+    #e52e58 62.5%,
+    #a51d50 75%,
+    #9b123c 87.5%,
+    #4a071b 100%
+  );
 }
 
 /* Russian localisation uses Belepotan; every other locale keeps the default stack. */
@@ -378,7 +398,7 @@ input {
   color: var(--text);
 }
 
-/* Creation screen keeps the full viewport stage for the constellation. */
+/* The creation screen keeps the full viewport stage for the constellation. */
 #creation-screen {
   z-index: 2;
   overflow: hidden;
@@ -1902,11 +1922,6 @@ button:disabled {
 }
 
 
-:root {
-  --intro-full-fade: 1150ms;
-  --intro-short-fade: 320ms;
-}
-
 .cinematic-intro {
   position: fixed;
   inset: 0;
@@ -2087,6 +2102,8 @@ html[data-intro="short"] .cinematic-intro__grain {
 
 .home-header {
   position: relative;
+  /* Above the hero and catalog so the profile menu is never covered. */
+  z-index: 6;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -2184,6 +2201,8 @@ html[data-intro="short"] .cinematic-intro__grain {
    same 1180px measure as the header and the catalog so all three align. */
 .home-main .hero-wrap {
   position: relative;
+  /* Paints above the sky canvas; the header above it in turn. */
+  z-index: 2;
   display: grid;
   flex: 1 1 auto;
   grid-template-columns: minmax(0, 34fr) minmax(0, 66fr);
@@ -2478,15 +2497,17 @@ html[data-motion="off"] #home-screen .explore-btn .control-label {
  *
  * Padding is tight on purpose: the panel is a card holding one question, while
  * the catalogue is a full list, and large insets left empty bands between the
- * border and the first/last row.
+ * border and the first/last row. It was tightened a little further once the
+ * links stopped stretching across their columns, since the list no longer needs
+ * to compensate for oversized hit areas.
  */
 .vibe-catalog {
-  --catalog-gap: clamp(0.8rem, 1.7vw, 1.05rem);
+  --catalog-gap: clamp(0.55rem, 1.3vw, 0.8rem);
   position: relative;
   z-index: 2;
   width: min(calc(100% - 2 * clamp(1rem, 4vw, 2rem)), 60rem);
   margin: 0 auto;
-  padding: clamp(0.85rem, 2vw, 1.15rem) clamp(0.9rem, 2.4vw, 1.15rem);
+  padding: clamp(0.7rem, 1.6vw, 0.95rem) clamp(0.8rem, 2vw, 1rem);
   display: flex;
   flex-direction: column;
   gap: var(--catalog-gap);
@@ -2542,18 +2563,7 @@ html[data-motion="off"] #home-screen .explore-btn .control-label {
   .catalog-title {
     width: fit-content;
     max-width: 100%;
-    background-image: linear-gradient(
-      90deg,
-      #4a071b 0%,
-      #9b123c 12.5%,
-      #a51d50 25%,
-      #e52e58 37.5%,
-      #ff647c 50%,
-      #e52e58 62.5%,
-      #a51d50 75%,
-      #9b123c 87.5%,
-      #4a071b 100%
-    );
+    background-image: var(--crimson-flow);
     background-size: 200% 100%;
     background-position: 0% 50%;
     background-repeat: repeat-x;
@@ -2605,11 +2615,16 @@ html[data-motion="off"] .catalog-title {
 /* Equal tracks inside the fixed-width frame: a column is simply the frame
    width divided by the column count, so it no longer depends on the labels.
    `minmax(0, 1fr)` keeps a long name from forcing its track wider than that
-   share — it wraps inside the cell instead. */
+   share — it wraps inside the cell instead.
+
+   The label size lives here rather than on the link so the row reservation
+   below can compute a two-line height in the same units; the links simply
+   inherit it via the custom property. */
 .vibe-list {
+  --catalog-label-size: clamp(0.9rem, 1.1vw + 0.7rem, 1.05rem);
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.15rem 1.5rem;
+  gap: 0.1rem 1.1rem;
 }
 
 @media (min-width: 700px) {
@@ -2626,18 +2641,34 @@ html[data-motion="off"] .catalog-title {
   }
 }
 
+/*
+ * The link is a plain button that hugs its own label. A grid item stretches to
+ * fill its track by default, which made the whole cell — including the empty
+ * space to the right of a short name — clickable and hoverable. `justify-self`
+ * sizes the box to the text horizontally, so only the name reacts to pointer
+ * input and the space around and between names is inert. Vertically the button
+ * keeps the 44px minimum target for touch and keyboard use; `align-self` centres
+ * that target in its row instead of letting it stretch.
+ *
+ * The frame height still has to stay identical in both languages, so the row
+ * height is reserved on the grid (see below) rather than by stretching the
+ * button.
+ */
 .vibe-link {
   display: flex;
   align-items: center;
+  align-self: center;
+  justify-self: start;
   min-height: 44px;
-  padding: 0.35rem 0;
+  max-width: 100%;
+  padding: 0.45rem 0;
   margin: 0;
   border: 0;
   background: none;
   box-shadow: none;
   font: inherit;
   font-weight: 400;
-  font-size: clamp(0.9rem, 1.1vw + 0.7rem, 1.05rem);
+  font-size: var(--catalog-label-size);
   line-height: 1.25;
   letter-spacing: -0.01em;
   text-align: start;
@@ -2656,19 +2687,19 @@ html[data-motion="off"] .catalog-title {
  *
  * The longest Russian name measures ~202px at the label size used from 700px
  * up, while its English counterpart is far shorter. Comparing that against the
- * column width, the name needs a second line below ~497px of viewport in the
- * two-column layout, and in a narrow band just after the three-column
- * breakpoint (up to ~750px, where a track first clears 202px). Only inside
- * those bands would a single row — and with it the whole frame — grow in
- * Russian alone. Reserving two text lines there (2.5em of the 1.25 line-height
- * plus the existing 0.35rem vertical padding) keeps the list, and therefore the
- * frame, identical in both languages. Every bound carries ~20px of slack for
- * scrollbar width and font-metric drift; at all other widths every name fits on
- * one line and the original 44px rows stand.
+ * column width, the name needs a second line below roughly 480px of viewport in
+ * the two-column layout, and in a band from the three-column breakpoint up to
+ * about 740px, where a track first clears 202px. Only inside those bands would
+ * a row — and with it the whole frame — grow in Russian alone. Reserving two
+ * text lines there (2.5 × the label size, i.e. two 1.25 line boxes, plus the
+ * 0.9rem of vertical padding) keeps the list, and therefore the frame,
+ * identical in both languages while the links themselves stay text-sized. Both
+ * bounds carry slack for scrollbar width and font-metric drift; everywhere else
+ * every name fits on one line and rows are content-sized.
  */
-@media (max-width: 520px), (min-width: 700px) and (max-width: 770px) {
-  .vibe-link {
-    min-height: max(44px, calc(2.5em + 0.7rem));
+@media (max-width: 500px), (min-width: 700px) and (max-width: 740px) {
+  .vibe-list {
+    grid-auto-rows: minmax(calc(2.5 * var(--catalog-label-size) + 0.9rem), auto);
   }
 }
 
@@ -2812,8 +2843,8 @@ html[data-motion="off"] .vibe-link.is-revealed:hover .vibe-link__text {
   animation-delay: 320ms;
 }
 
-#home-screen.active .hero-actions .primary-btn,
-html[data-intro] #home-screen.active .hero-actions .primary-btn {
+/* The group fades in; the button itself only tilts, so it must not animate too. */
+#home-screen.active .hero-actions .primary-btn {
   animation: none;
 }
 
@@ -2835,7 +2866,7 @@ html[data-intro="full"] #home-screen.active .hero-wrap > h1 {
 
 html[data-intro="full"] #home-screen.active .subtitle {
   animation-duration: 900ms;
-  animation-delay: 860ms;
+  animation-delay: 880ms;
 }
 
 html[data-intro="full"] #home-screen.active .hero-actions {
@@ -2855,12 +2886,12 @@ html[data-intro="short"] #home-screen.active .home-header {
 
 html[data-intro="short"] #home-screen.active .hero-wrap > h1 {
   animation-duration: 320ms;
-  animation-delay: 40ms;
+  animation-delay: 60ms;
 }
 
 html[data-intro="short"] #home-screen.active .subtitle {
   animation-duration: 320ms;
-  animation-delay: 80ms;
+  animation-delay: 130ms;
 }
 
 html[data-intro="short"] #home-screen.active .hero-actions {
@@ -2874,7 +2905,6 @@ html[data-intro="short"] #home-screen.active .vibe-catalog {
 }
 
 @media (max-width: 640px) {
-
   .hero-actions {
     width: 100%;
   }
@@ -2884,17 +2914,15 @@ html[data-intro="short"] #home-screen.active .vibe-catalog {
     flex: 1 1 auto;
     text-align: center;
   }
+
+  .home-main .hero-wrap > h1 {
+    font-size: clamp(2.4rem, 11vw, 3.4rem);
+    max-width: none;
+  }
 }
 
+/* Covers both the intro and no-intro cases in one pass. */
 @media (prefers-reduced-motion: reduce) {
-  html[data-intro] #home-screen.active .home-header,
-  html[data-intro] #home-screen.active .hero-actions,
-  html[data-intro] #home-screen.active .vibe-catalog {
-    animation: none;
-    opacity: 1;
-    transform: none;
-  }
-
   #home-screen.active .home-header,
   #home-screen.active .hero-actions,
   #home-screen.active .vibe-catalog {
@@ -2902,7 +2930,6 @@ html[data-intro="short"] #home-screen.active .vibe-catalog {
     opacity: 1;
     transform: none;
   }
-
 }
 
 
@@ -2911,30 +2938,18 @@ html[data-intro="short"] #home-screen.active .vibe-catalog {
   to { opacity: 1; transform: translateY(0); clip-path: inset(0 0 0 0); }
 }
 
-#home-screen.active .hero-wrap > h1,
-html[data-intro] #home-screen.active .hero-wrap > h1 {
-  animation: hero-rise-strong 900ms var(--ease-spring) both;
+/* `html[data-intro]` used to be listed alongside these; it always matches the
+   same element once the intro module runs, so one selector is enough.
+   These are the default (no intro) delays; the data-intro blocks above override
+   duration and delay for the full and short modes. */
+#home-screen.active .hero-wrap > h1 {
+  animation: hero-rise-strong 900ms var(--ease-spring) 60ms both;
 }
 
-#home-screen.active .subtitle,
-html[data-intro] #home-screen.active .subtitle {
-  animation: hero-rise-strong 800ms var(--ease-spring) both;
+#home-screen.active .subtitle {
+  animation: hero-rise-strong 800ms var(--ease-spring) 170ms both;
 }
 
-#home-screen.active .hero-wrap > h1 { animation-delay: 60ms; }
-#home-screen.active .subtitle { animation-delay: 170ms; }
-html[data-intro="full"] #home-screen.active .hero-wrap > h1 { animation-delay: 720ms; }
-html[data-intro="full"] #home-screen.active .subtitle { animation-delay: 880ms; }
-html[data-intro="short"] #home-screen.active .hero-wrap > h1 { animation-delay: 60ms; }
-html[data-intro="short"] #home-screen.active .subtitle { animation-delay: 130ms; }
-
-
-@media (max-width: 640px) {
-  .home-main .hero-wrap > h1 {
-    font-size: clamp(2.4rem, 11vw, 3.4rem);
-    max-width: none;
-  }
-}
 
 .home-wordmark__text {
   color: #ffffff;
@@ -2954,18 +2969,7 @@ html[data-intro="short"] #home-screen.active .subtitle { animation-delay: 130ms;
  */
 @supports ((background-clip: text) or (-webkit-background-clip: text)) {
   .home-wordmark__text {
-    background-image: linear-gradient(
-      90deg,
-      #4a071b 0%,
-      #9b123c 12.5%,
-      #a51d50 25%,
-      #e52e58 37.5%,
-      #ff647c 50%,
-      #e52e58 62.5%,
-      #a51d50 75%,
-      #9b123c 87.5%,
-      #4a071b 100%
-    );
+    background-image: var(--crimson-flow);
     background-size: 200% 100%;
     background-position: 0% 50%;
     background-repeat: repeat-x;
@@ -3004,16 +3008,6 @@ html[data-motion="off"] .home-wordmark__text {
   }
 }
 
-.home-main .hero-wrap {
-  z-index: 2;
-}
-
-/* The header must paint above the hero and catalog so the profile menu is
-   never covered by hero content. */
-.home-header {
-  z-index: 6;
-}
-
 #home-screen.active {
   transform: none;
 }
@@ -3044,15 +3038,16 @@ button, input, select, textarea {
 .home-main .hero-wrap > h1,
 .catalog-title,
 .vibe-header h2,
-.share-card h1,
-.theme-tag,
-.share-kicker {
+.share-card h1 {
   font-family: var(--font-display);
   font-weight: var(--weight-bold);
 }
 
+/* The two uppercase kickers opt out of the bold heading weight and share the
+   display family with a semibold weight instead of overriding it afterwards. */
 .theme-tag,
 .share-kicker {
+  font-family: var(--font-display);
   font-weight: var(--weight-semibold);
 }
 

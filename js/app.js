@@ -1,8 +1,8 @@
 
 import { questions } from './data/questions.js?v=43';
 import { vibeThemes, vibeShareSlugs, vibeKeysByShareSlug } from './data/themes.js?v=43';
-import { rankVibes, selectNextQuestion, questionIndexById } from './data/scoring.js?v=44';
-import { initI18n, translateText, closeLanguageOptions } from './i18n/index.js?v=49';
+import { rankVibes, selectNextQuestion, questionIndexById } from './data/scoring.js?v=45';
+import { initI18n, translateText, closeLanguageOptions } from './i18n/index.js?v=50';
 import { initCinematicIntro } from './intro.js?v=43';
 import { initSky, setSkyActive } from './sky.js?v=45';
 
@@ -278,7 +278,6 @@ function init3DTiltEffect(elementSelector, maxTiltAngle) {
   element.addEventListener('touchmove', onTouchMove, { passive: true });
   element.addEventListener('touchend', onTouchEnd, { passive: true });
   element.addEventListener('touchcancel', onTouchEnd, { passive: true });
-  return element;
 }
 
 function initGlassTilt() {
@@ -603,7 +602,9 @@ function startVibeCreation(vibeKey) {
     window.clearInterval(transitionFade);
     audioVolumeFades.delete(transitionAudio);
   }
-  transitionAudio.currentTime = 0;
+  // Seeking before metadata is available throws in some engines, so the reset
+  // is guarded exactly like the other seeks in this module.
+  try { transitionAudio.currentTime = 0; } catch (error) {}
   transitionAudio.volume = 0;
   transitionFadeOutStarted = false;
   const playback = transitionAudio.play();
